@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Web Viewer Pro 🚀
 
-## Getting Started
+A high-performance, universal code previewer designed for modern developers. Instantly visualize and format HTML, JSON, YAML, React, and more with zero configuration.
 
-First, run the development server:
+![Web Viewer Hero](https://github.com/nishanth-kj/Web-Viewer/raw/main/public/hero-preview.png)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Live HTML/Bootstrap Preview**: Instantly render HTML5 and Bootstrap 5.3 code in a safe sandbox.
+- **Universal Data Formatting**: Professional beautification for JSON, YAML, XML, and CSV.
+- **React Support**: High-quality syntax highlighting for JSX and TSX components.
+- **SVG Rendering**: Live preview of SVG graphics.
+- **Responsive Sidebar**: Deeply integrated format switching with industry-standard icons.
+- **Theming**: Premium Dark and Light mode support with `next-themes`.
+- **Performance**: Built with Next.js 15 for lightning-fast route transitions and rendering.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Prerequisites
 
-## Learn More
+- Node.js 18+ 
+- npm / pnpm / yarn
 
-To learn more about Next.js, take a look at the following resources:
+### Installation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/nishanth-kj/Web-Viewer.git
+   cd web-viewer
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## Deploy on Vercel
+3. **Run the development server**
+   ```bash
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. **Open the App**
+   Navigate to [http://localhost:3000](http://localhost:3000) to see the landing page or [http://localhost:3000/view](http://localhost:3000/view) for the viewer app.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Shadcn UI](https://ui.shadcn.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Theming**: [Next Themes](https://github.com/pacocoursey/next-themes)
+
+## 📖 Documentation
+
+For detailed information on supported formats and advanced features, visit our [Docs page](http://localhost:3000/docs).
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see our [Contributing Guide](docs/CONTRIBUTING.md) and use the provided [Issue Templates](.github/ISSUE_TEMPLATE/).
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+Built with ❤️ by [Nishanth KJ](https://github.com/nishanth-kj)
