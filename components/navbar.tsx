@@ -14,7 +14,7 @@ export function Navbar() {
     const navLinks = [
         { href: "/", label: "Home" },
         { href: "/view", label: "Viewer" },
-        { href: "/docs", label: "Docs" },
+        { href: "/documentation", label: "Docs" },
     ];
 
     return (

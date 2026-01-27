@@ -119,10 +119,12 @@ export function AppSidebar() {
             <SidebarFooter className="p-4 border-t border-zinc-100 dark:border-zinc-800/50 group-data-[collapsible=icon]:px-0">
                 <SidebarMenu className="group-data-[collapsible=icon]:items-center">
                     <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-                        <SidebarMenuButton tooltip="Docs" className="rounded-lg h-10">
-                            <HelpCircle className="size-4" />
-                            <span className="font-medium">Documentation</span>
-                        </SidebarMenuButton>
+                        <Link href="/documentation" className="w-full">
+                            <SidebarMenuButton tooltip="Docs" className="rounded-lg h-10">
+                                <HelpCircle className="size-4" />
+                                <span className="font-medium">Documentation</span>
+                            </SidebarMenuButton>
+                        </Link>
                     </SidebarMenuItem>
                     <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
                         <SidebarMenuButton tooltip="Settings" className="rounded-lg h-10">
