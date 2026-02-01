@@ -20,7 +20,9 @@ import {
     AlignLeft,
     Copy,
     FileEdit,
-    ChevronDown
+    ChevronDown,
+    Zap,
+    Layers
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -222,16 +224,22 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Live Editor</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5">
-                                    <label className="flex items-center gap-1 cursor-pointer">
-                                        <input type="checkbox" checked={useBootstrap} onChange={(e) => setUseBootstrap(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
-                                        <span className="text-[10px] font-bold text-zinc-500">BS</span>
-                                    </label>
-                                    <label className="flex items-center gap-1 cursor-pointer">
-                                        <input type="checkbox" checked={useTailwind} onChange={(e) => setUseTailwind(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
-                                        <span className="text-[10px] font-bold text-zinc-500">TW</span>
-                                    </label>
-                                </div>
+                                {format === 'html' && (
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setUseBootstrap(!useBootstrap)}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${useBootstrap ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+                                        >
+                                            <Layers className="size-3" /> Bootstrap
+                                        </button>
+                                        <button
+                                            onClick={() => setUseTailwind(!useTailwind)}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${useTailwind ? "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 border-cyan-200 dark:border-cyan-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+                                        >
+                                            <Zap className="size-3" /> Tailwind
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
                                 <div className="flex items-center gap-2">
                                     <button
