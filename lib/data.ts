@@ -1,5 +1,5 @@
 export const DEFAULT_CONTENT = {
-    html: `<!-- Bootstrap Example -->
+  html: `<!-- Bootstrap Example -->
 <div class="card shadow-lg border-0">
   <div class="card-body p-5">
     <h2 class="card-title text-primary mb-4">Hello World</h2>
@@ -8,8 +8,8 @@ export const DEFAULT_CONTENT = {
     <button class="bg-indigo-600 text-white px-4 py-2 rounded-full ml-2 hover:bg-indigo-700 transition">Tailwind Button</button>
   </div>
 </div>`,
-    json: `{
-  "name": "Web Viewer",
+  json: `{
+  "name": "Web Utils",
   "version": "1.0.0",
   "features": [
     "Live Preview",
@@ -21,7 +21,7 @@ export const DEFAULT_CONTENT = {
     "fontSize": 14
   }
 }`,
-    yaml: `name: Web Viewer
+  yaml: `name: Web Utils
 version: 1.0.0
 features:
   - Live Preview
@@ -30,7 +30,7 @@ features:
 settings:
   theme: dark
   fontSize: 14`,
-    react: `import React from 'react';
+  react: `import React from 'react';
 
 export default function App() {
   return (
@@ -40,7 +40,7 @@ export default function App() {
     </div>
   );
 }`,
-    markdown: `# Hello Markdown
+  markdown: `# Hello Markdown
 
 This is a **live preview** of standard Markdown.
 
@@ -52,17 +52,17 @@ This is a **live preview** of standard Markdown.
 console.log("Hello World");
 \`\`\`
 `,
-    xml: `<?xml version="1.0" encoding="UTF-8"?>
+  xml: `<?xml version="1.0" encoding="UTF-8"?>
 <note>
   <to>User</to>
-  <from>Web Viewer</from>
+  <from>Web Utils</from>
   <heading>Reminder</heading>
   <body>Don't forget to check the preview!</body>
 </note>`,
-    svg: `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  svg: `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
 </svg>`,
-    csv: `id,name,role,status
+  csv: `id,name,role,status
 1,John Doe,Developer,Active
 2,Jane Smith,Designer,Active
 3,Bob Johnson,Manager,Inactive`

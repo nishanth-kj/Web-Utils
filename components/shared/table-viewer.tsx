@@ -4,15 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Download } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
 interface TableViewerProps {
-    data: any[];
-    onDataChange: (newData: any[]) => void;
+    data: Record<string, string>[];
+    onDataChange: (newData: Record<string, string>[]) => void;
 }
 
 export function TableViewer({ data, onDataChange }: TableViewerProps) {
-    const [rows, setRows] = useState<any[]>(data);
+    const [rows, setRows] = useState<Record<string, string>[]>(data);
 
     useEffect(() => {
         setRows(data);

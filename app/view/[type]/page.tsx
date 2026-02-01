@@ -1,7 +1,8 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { ViewerContainer } from "@/components/viewer/viewer-container";
+import { ViewerContainer } from "@/components/view/viewer-container";
 import { FloatingAd } from "@/components/floating-ad";
+import { Format } from "@/types";
 import { DEFAULT_CONTENT } from "@/lib/data";
 
 export function generateStaticParams() {
@@ -19,8 +20,8 @@ export function generateStaticParams() {
 
 export default async function ViewPage({ params }: { params: Promise<{ type: string }> }) {
     const { type } = await params;
-    const format = type as any; // Cast to Format
-    const content = DEFAULT_CONTENT[format as keyof typeof DEFAULT_CONTENT] || "";
+    const format = type as Format;
+    const content = (DEFAULT_CONTENT as Record<string, string>)[format] || "";
 
     return (
         <SidebarProvider>

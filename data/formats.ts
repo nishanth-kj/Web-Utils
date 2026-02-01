@@ -1,11 +1,11 @@
 export const DEFAULT_CONTENT = {
-    html: `<!-- Bootstrap & Tailwind Example -->
+  html: `<!-- Bootstrap & Tailwind Example -->
 <div class="max-w-md mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-xl overflow-hidden md:max-w-2xl m-8 p-10 border border-zinc-100 dark:border-zinc-800 transition-all hover:shadow-2xl">
   <div class="md:flex">
     <div class="flex flex-col gap-6">
       <div class="flex items-center gap-2">
         <div class="size-3 rounded-full bg-indigo-500 animate-pulse"></div>
-        <span class="uppercase tracking-widest text-xs text-indigo-500 font-bold">Web Viewer Pro</span>
+        <span class="uppercase tracking-widest text-xs text-indigo-500 font-bold">Web Utils Pro</span>
       </div>
       <h1 class="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
         High Performance <span class="text-indigo-600">HTML Preview</span>
@@ -24,8 +24,8 @@ export const DEFAULT_CONTENT = {
     </div>
   </div>
 </div>`,
-    json: `{
-  "tool": "Web Viewer Pro",
+  json: `{
+  "tool": "Web Utils Pro",
   "status": "ready",
   "capabilities": {
     "syntax_highlighting": true,
@@ -45,7 +45,7 @@ export const DEFAULT_CONTENT = {
   },
   "author": "Nishanth KJ"
 }`,
-    yaml: `project: Web Viewer Pro
+  yaml: `project: Web Utils Pro
 version: 1.2.0
 settings:
   theme: premium-dark
@@ -60,7 +60,7 @@ settings:
 endpoints:
   - https://api.webviewer.pro/v1
   - https://api.webviewer.pro/v2`,
-    react: `import React, { useState } from 'react';
+  react: `import React, { useState } from 'react';
 import { Layout, Zap, Box } from 'lucide-react';
 
 export default function PremiumComponent() {
@@ -89,7 +89,7 @@ export default function PremiumComponent() {
     </div>
   );
 }`,
-    markdown: `# 📊 Web Viewer Pro - Markdown
+  markdown: `# 📊 Web Utils Pro - Markdown
 ## Smart Documentation System
 This is a **High-Fidelity** Markdown preview engine designed for developers.
 
@@ -103,9 +103,9 @@ This is a **High-Fidelity** Markdown preview engine designed for developers.
 
 ---
 
-> "The most efficient way to preview and document your code is with Web Viewer Pro's integrated markdown engine."`,
-    xml: `<?xml version="1.0" encoding="UTF-8"?>
-<Project name="Web Viewer Pro">
+> "The most efficient way to preview and document your code is with Web Utils Pro's integrated markdown engine."`,
+  xml: `<?xml version="1.0" encoding="UTF-8"?>
+<Project name="Web Utils Pro">
   <Module id="viewer-core">
     <Component type="Editor" version="2.0.4" />
     <Component type="Renderer" engine="Next.js 15" />
@@ -120,7 +120,7 @@ This is a **High-Fidelity** Markdown preview engine designed for developers.
     <License>MIT</License>
   </Metadata>
 </Project>`,
-    svg: `<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+  svg: `<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:rgb(79,70,229);stop-opacity:1" />
@@ -135,8 +135,8 @@ This is a **High-Fidelity** Markdown preview engine designed for developers.
   <text x="200" y="115" font-family="Inter, system-ui, sans-serif" font-size="24" font-weight="900" text-anchor="middle" fill="white" style="letter-spacing: 2px;">SVG PREVIEW</text>
   <path d="M140 160 Q 200 120 260 160" stroke="white" stroke-width="3" fill="transparent" stroke-linecap="round" opacity="0.6" />
 </svg>`,
-    csv: `ItemID,Product Name,Category,Price,Status,Growth
-WV-001,Web Viewer Pro,Developer Tool,99.00,Active,+12.5%
+  csv: `ItemID,Product Name,Category,Price,Status,Growth
+WV-001,Web Utils Pro,Developer Tool,99.00,Active,+12.5%
 WV-002,API Connector,Infrastructure,249.00,Active,+8.2%
 WV-003,Cloud CLI,DevOps,49.00,Beta,+25.0%
 WV-004,Design Suite,Creative,129.00,Active,+4.1%

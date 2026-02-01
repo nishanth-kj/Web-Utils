@@ -3,15 +3,11 @@
 import React from 'react';
 import {
     Book,
-    Code2,
-    Layout,
     Zap,
     Shield,
     Globe,
-    FileCode,
     Braces,
     Box,
-    StickyNote,
     Terminal,
     Cpu
 } from 'lucide-react';
@@ -25,7 +21,7 @@ const DOCS_SECTIONS = [
             {
                 icon: Zap,
                 label: "Introduction",
-                content: "Web Viewer is a high-performance, universal code previewer designed for modern developers. It allows you to instantly visualize and format multiple data structures with zero setup."
+                content: "Web Utils is a high-performance, universal file editor and code previewer designed for modern developers. It allows you to instantly edit, visualize, and format multiple data structures with zero setup."
             },
             {
                 icon: Terminal,
@@ -84,7 +80,7 @@ export default function DocsPage() {
                         Everything you need to <br /> scale your workflow.
                     </h1>
                     <p className="text-lg text-zinc-600 dark:text-zinc-400">
-                        A comprehensive guide to using and extending the Web Viewer platform.
+                        A comprehensive guide to using and extending the Web Utils platform.
                     </p>
                 </header>
 
@@ -116,11 +112,11 @@ export default function DocsPage() {
                 <div className="mt-32 p-8 rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-center shadow-2xl shadow-indigo-500/20 mb-20">
                     <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
                     <p className="text-indigo-100 mb-8 max-w-lg mx-auto">
-                        Join thousands of developers using Web Viewer to preview their code more efficiently.
+                        Join thousands of developers using Web Utils to edit and preview their code more efficiently.
                     </p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <button className="px-8 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
-                            Launch Viewer App
+                            Launch App
                         </button>
                         <button className="px-8 py-3 bg-indigo-500/20 text-white border border-white/20 font-bold rounded-xl hover:bg-indigo-500/30 transition-colors">
                             Star on GitHub

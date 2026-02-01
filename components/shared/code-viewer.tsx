@@ -9,32 +9,29 @@ interface CodeViewerProps {
     language: string;
     className?: string;
     showLineNumbers?: boolean;
+    wrapLines?: boolean;
 }
 
-export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content, language, className, showLineNumbers = true }, ref) => {
+export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content, language, className, showLineNumbers = true, wrapLines = true }, ref) => {
     return (
-        <div ref={ref} className={`rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 ${className || ""}`}>
+        <div ref={ref} className={className}>
             <SyntaxHighlighter
                 language={language}
                 style={atomDark}
+                wrapLines={wrapLines}
+                lineProps={{
+                    style: {
+                        wordBreak: 'break-all',
+                        whiteSpace: wrapLines ? 'pre-wrap' : 'pre'
+                    }
+                }}
                 customStyle={{
                     margin: 0,
                     padding: 0,
                     background: 'transparent',
-                }}
-                codeTagProps={{
-                    style: {
-                        fontFamily: 'inherit',
-                        fontSize: 'inherit',
-                        lineHeight: 'inherit'
-                    }
-                }}
-                preTagProps={{
-                    style: {
-                        fontFamily: 'inherit',
-                        fontSize: 'inherit',
-                        lineHeight: 'inherit'
-                    }
+                    fontFamily: 'inherit',
+                    fontSize: 'inherit',
+                    lineHeight: 'inherit'
                 }}
                 showLineNumbers={showLineNumbers}
             >

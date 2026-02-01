@@ -1,8 +1,8 @@
-# Web Viewer Pro 🚀
+# Web Utils Pro 🚀
 
-A high-performance, universal code previewer designed for modern developers. Instantly visualize and format HTML, JSON, YAML, React, and more with zero configuration.
+A high-performance, universal file editor and code previewer designed for modern developers. Instantly edit, visualize, and format HTML, JSON, YAML, React, and more with zero configuration.
 
-![Web Viewer Hero](https://github.com/nishanth-kj/Web-Viewer/raw/main/public/hero-preview.png)
+![Web Utils Hero](https://github.com/nishanth-kj/Web-Utils/raw/main/public/hero-preview.png)
 
 ## ✨ Features
 
@@ -18,15 +18,15 @@ A high-performance, universal code previewer designed for modern developers. Ins
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 20+ 
 - npm / pnpm / yarn
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/nishanth-kj/Web-Viewer.git
-   cd web-viewer
+   git clone https://github.com/nishanth-kj/Web-Utils.git
+   cd web-utils
    ```
 
 2. **Install dependencies**

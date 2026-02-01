@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web Viewer | Universal Code Previewer",
-  description: "A professional tool for previewing HTML, JSON, YAML, and React code with ease.",
+  title: "Web Utils | Universal Code Previewer",
+  description: "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
 };
 
 export default function RootLayout({

@@ -1,56 +1,76 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { HTMLViewer } from './html-viewer';
-import { CodeViewer } from './code-viewer';
-import { TableViewer } from './table-viewer';
+import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { HTMLViewer } from '@/components/shared/html-viewer';
+import { CodeViewer } from '@/components/shared/code-viewer';
+import { TableViewer } from '@/components/shared/table-viewer';
+import { Format, ViewerProps } from '@/types';
 import yaml from 'js-yaml';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Code2,
     Eye,
-    FileJson,
-    FileCode,
-    FileText,
-    FileEdit,
-    FileSearch,
-    Type,
     Layout,
     Table as TableIcon,
-    Sparkles,
-    ArrowRightLeft,
-    Zap,
     Maximize2,
     ExternalLink,
-    Search,
-    Hash,
     PanelLeftClose,
     PanelLeftOpen,
     AlignLeft,
-    Copy
+    Copy,
+    FileEdit,
+    ChevronDown
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-type Format = 'html' | 'json' | 'yaml' | 'react' | 'markdown' | 'xml' | 'svg' | 'csv';
+import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
 
-interface ViewerContainerProps {
-    initialContent: string;
-    initialFormat: Format;
-}
-
-export function ViewerContainer({ initialContent, initialFormat }: ViewerContainerProps) {
+export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) {
+    const router = useRouter();
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);
     const [activeTab, setActiveTab] = useState("preview");
-    const [prompt, setPrompt] = useState("");
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
-    const codeViewerRef = React.useRef<HTMLDivElement>(null);
+    const codeViewerRef = useRef<HTMLDivElement>(null);
+
+    const [prevInitialContent, setPrevInitialContent] = useState(initialContent);
+    const [prevInitialFormat, setPrevInitialFormat] = useState(initialFormat);
+
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const saved = sessionStorage.getItem(`web-viewer-content-${format}`);
+            if (saved) {
+                setContent(saved);
+            }
+        }
+    }, [format]);
+
+    if (initialContent !== prevInitialContent || initialFormat !== prevInitialFormat) {
+        setPrevInitialContent(initialContent);
+        setPrevInitialFormat(initialFormat);
+
+        // Only update content from props if we don't have something in sessionStorage for this format
+        let hasSaved = false;
+        if (typeof window !== 'undefined') {
+            hasSaved = !!sessionStorage.getItem(`web-viewer-content-${initialFormat}`);
+        }
+
+        if (!hasSaved) {
+            setContent(initialContent);
+        }
+        setFormat(initialFormat);
+    }
 
     const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
         if (codeViewerRef.current) {
@@ -59,101 +79,51 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
         }
     };
 
-    useEffect(() => {
-        setContent(initialContent);
-        setFormat(initialFormat);
-    }, [initialContent, initialFormat]);
-
-    // ... existing logic ...
-
-    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">
-        <div className="flex items-center gap-2">
-            <Code2 className="size-4 text-indigo-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Live Editor</span>
-        </div>
-        <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-                <label className="flex items-center gap-1 cursor-pointer">
-                    <input type="checkbox" checked={useBootstrap} onChange={(e) => setUseBootstrap(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
-                    <span className="text-[10px] font-bold text-zinc-500">BS</span>
-                </label>
-                <label className="flex items-center gap-1 cursor-pointer">
-                    <input type="checkbox" checked={useTailwind} onChange={(e) => setUseTailwind(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
-                    <span className="text-[10px] font-bold text-zinc-500">TW</span>
-                </label>
-            </div>
-            <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
-            <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-500 font-mono">{format.toUpperCase()}</span>
-                <button onClick={() => navigator.clipboard.writeText(content)} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400"><Zap className="size-3" /></button>
-            </div>
-        </div>
-    </div>
-
-    // ... in render ...
-    { format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} /> }
-
     const handleFormat = () => {
         try {
             if (format === 'json') {
                 const parsed = JSON.parse(content);
                 setContent(JSON.stringify(parsed, null, 2));
+            } else if (format === 'yaml') {
+                const parsed = yaml.load(content);
+                setContent(yaml.dump(parsed));
             }
         } catch (e) {
-            // Silently fail if invalid code
+            console.error(e);
         }
     };
 
-    const handleConvert = () => {
-        if (!prompt) return;
-        const p = prompt.toLowerCase();
-        if (p.includes("to json") && format === 'csv') {
-            const data = tableData || [];
-            if (data.length > 0) {
-                setContent(JSON.stringify(data, null, 2));
-                setFormat('json');
-            }
-        } else if (p.includes("to csv") && format === 'json') {
-            const data = tableData || [];
-            if (Array.isArray(data) && data.length > 0) {
-                const headers = Object.keys(data[0]);
-                const csv = [headers.join(','), ...data.map(row => headers.map(h => row[h]).join(','))].join('\n');
-                setContent(csv);
-                setFormat('csv');
-            }
-        } else if (p.includes("beautify") || p.includes("format")) {
-            try {
-                if (format === 'json') setContent(JSON.stringify(JSON.parse(content), null, 2));
-            } catch (e) { }
+    let formattedContent = content;
+    try {
+        if (format === 'json') formattedContent = JSON.stringify(JSON.parse(content), null, 2);
+        else if (format === 'yaml') formattedContent = yaml.dump(yaml.load(content));
+    } catch (e) {
+        console.error(e);
+        formattedContent = content;
+    }
+
+    let tableData: Record<string, string>[] | null = null;
+    try {
+        if (format === 'json') {
+            const parsed = JSON.parse(content);
+            tableData = Array.isArray(parsed) ? parsed : null;
         }
-        setPrompt("");
-    };
-
-    const formattedContent = useMemo(() => {
-        try {
-            if (format === 'json') return JSON.stringify(JSON.parse(content), null, 2);
-            if (format === 'yaml') return yaml.dump(yaml.load(content));
-            return content;
-        } catch (e) { return content; }
-    }, [content, format]);
-
-    const tableData = useMemo(() => {
-        try {
-            if (format === 'json') return JSON.parse(content);
-            if (format === 'csv') {
-                const lines = content.trim().split('\n');
-                if (lines.length < 2) return [];
+        if (format === 'csv') {
+            const lines = content.trim().split('\n');
+            if (lines.length >= 2) {
                 const headers = lines[0].split(',');
-                return lines.slice(1).map(line => {
+                tableData = lines.slice(1).map(line => {
                     const values = line.split(',');
                     return headers.reduce((acc, header, i) => ({ ...acc, [header]: values[i] }), {});
                 });
             }
-            return null;
-        } catch (e) { return null; }
-    }, [content, format]);
+        }
+    } catch (e) {
+        console.error(e);
+        tableData = null;
+    }
 
-    const handleTableDataChange = (newData: any[]) => {
+    const handleTableDataChange = (newData: Record<string, string>[]) => {
         if (format === 'json') setContent(JSON.stringify(newData, null, 2));
         else if (format === 'csv' && newData.length > 0) {
             const headers = Object.keys(newData[0]);
@@ -161,22 +131,14 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
         }
     };
 
-    const canPreview = ['html', 'json', 'markdown', 'svg', 'csv'].includes(format);
     const canEditTable = (format === 'json' && Array.isArray(tableData)) || format === 'csv';
-
-    const getLanguage = (fmt: Format) => {
-        if (fmt === 'react') return 'tsx';
-        if (fmt === 'markdown') return 'markdown';
-        if (['svg', 'xml'].includes(fmt)) return 'xml';
-        return fmt;
-    };
 
     const openFullPage = () => {
         const htmlContent = `
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Preview - Web Viewer Pro</title>
+                    <title>Preview - Web Utils Pro</title>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1">
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -194,18 +156,43 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
         window.open(url, '_blank');
     };
 
+    const jumpToEditor = () => {
+        router.push('/editor');
+    };
+
     return (
         <div className={`flex flex-col w-full bg-white dark:bg-zinc-950 transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-[calc(100vh-64px)]"}`}>
             {/* Top Toolbar */}
             <div className="flex flex-col border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-md">
                 <div className="flex items-center justify-between px-6 py-2 gap-4">
-                    <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-indigo-600 rounded-lg text-white">
-                            <Sparkles className="size-4" />
-                        </div>
+                    <div className="flex items-center gap-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 gap-2">
+                                    <span className="text-zinc-600 dark:text-zinc-300">{format}</span>
+                                    <ChevronDown className="size-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="min-w-[150px] rounded-lg">
+                                {ALL_FORMATS.slice(0, 10).map((fmt) => (
+                                    <DropdownMenuItem key={fmt} onClick={() => setFormat(fmt)} className="text-[10px] font-bold uppercase tracking-wider">
+                                        {fmt}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={jumpToEditor}
+                            className="h-8 border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm text-xs font-bold gap-2"
+                        >
+                            <FileEdit className="size-3.5" /> Jump to Editor
+                        </Button>
                     </div>
-
-
 
                     <div className="flex items-center gap-2">
                         <Button
@@ -234,29 +221,38 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
                                 <Code2 className="size-4 text-indigo-500" />
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Live Editor</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-zinc-500 font-mono hidden sm:inline-block">{format.toUpperCase()}</span>
-                                <button
-                                    onClick={handleFormat}
-                                    className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
-                                    title="Format Code"
-                                >
-                                    <AlignLeft className="size-3" />
-                                    <span className="text-[10px] font-bold">Format</span>
-                                </button>
-                                <button
-                                    onClick={() => navigator.clipboard.writeText(content)}
-                                    className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
-                                    title="Copy Code"
-                                >
-                                    <Copy className="size-3" />
-                                    <span className="text-[10px] font-bold">Copy</span>
-                                </button>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                        <input type="checkbox" checked={useBootstrap} onChange={(e) => setUseBootstrap(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
+                                        <span className="text-[10px] font-bold text-zinc-500">BS</span>
+                                    </label>
+                                    <label className="flex items-center gap-1 cursor-pointer">
+                                        <input type="checkbox" checked={useTailwind} onChange={(e) => setUseTailwind(e.target.checked)} className="size-3 accent-indigo-600 rounded" />
+                                        <span className="text-[10px] font-bold text-zinc-500">TW</span>
+                                    </label>
+                                </div>
+                                <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleFormat}
+                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
+                                        title="Format Code"
+                                    >
+                                        <AlignLeft className="size-3" />
+                                        <span className="text-[10px] font-bold">Format</span>
+                                    </button>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(content)}
+                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
+                                        title="Copy Code"
+                                    >
+                                        <Copy className="size-3" />
+                                        <span className="text-[10px] font-bold">Copy</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-
-
-
 
                         <div className="flex-1 relative overflow-hidden custom-scrollbar">
                             <CodeViewer
@@ -273,6 +269,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
                                 onScroll={handleScroll}
                                 placeholder={`Paste ${format.toUpperCase()}...`}
                                 spellCheck={false}
+                                autoCapitalize="off"
+                                autoComplete="off"
+                                autoCorrect="off"
                             />
                         </div>
                     </div>
@@ -303,7 +302,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
                         <div className="absolute inset-0">
                             {activeTab === "preview" && (
                                 <div className="p-0 h-full flex flex-col">
-                                    {format === 'html' && <HTMLViewer content={content} />}
+                                    {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} />}
                                     {format === 'json' && <div className="p-4 bg-white dark:bg-zinc-900 border-none shadow-sm h-full overflow-auto"><CodeViewer content={formattedContent} language="json" /></div>}
                                     {format === 'markdown' && (
                                         <div className="prose prose-zinc dark:prose-invert max-w-none bg-white dark:bg-zinc-900 p-8 border-none min-h-full shadow-sm">
@@ -314,7 +313,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
                                         <div className="flex items-center justify-center p-8 bg-white dark:bg-zinc-900 border-none min-h-full shadow-sm" dangerouslySetInnerHTML={{ __html: content }} />
                                     )}
                                     {format === 'csv' && <div className="p-4"><TableViewer data={tableData || []} onDataChange={handleTableDataChange} /></div>}
-                                    {!['html', 'json', 'markdown', 'svg', 'csv'].includes(format) && (
+                                    {!PREVIEWABLE_FORMATS.includes(format) && (
                                         <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-40">
                                             <Layout className="size-16 mb-4 text-indigo-500" />
                                             <p className="text-sm font-bold uppercase tracking-widest">No Preview Format Available</p>
@@ -322,7 +321,6 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerContain
                                     )}
                                 </div>
                             )}
-                            {activeTab === "code" && <div className="p-8"><CodeViewer content={formattedContent} language={getLanguage(format)} /></div>}
                             {activeTab === "interactive" && <div className="p-8"><TableViewer data={tableData || []} onDataChange={handleTableDataChange} /></div>}
                         </div>
                     </div>
