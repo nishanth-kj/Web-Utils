@@ -275,8 +275,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                 ref={codeViewerRef}
                                 content={content}
                                 language={getLanguage(format)}
-                                className="absolute inset-0 pointer-events-none p-6 font-mono text-sm leading-[1.5] border-none rounded-none overflow-hidden"
+                                className="viewer-code-view absolute inset-0 pointer-events-none p-6 font-mono text-sm leading-[1.5] border-none rounded-none overflow-hidden"
                                 showLineNumbers={false}
+                                wrapLines={false}
                             />
                             <textarea
                                 className="absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent resize-none outline-none focus:ring-0 text-transparent caret-zinc-800 dark:caret-zinc-200 leading-[1.5] custom-scrollbar z-10 whitespace-pre"
@@ -348,6 +349,14 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.2); border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(161, 161, 170, 0.4); }
+                
+                /* Editor Typography Alignment */
+                textarea { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
+                .viewer-code-view { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; scrollbar-gutter: stable; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
+                .viewer-code-view code, .viewer-code-view pre { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; tab-size: 4; }
+                
+                /* Match textarea scrollbar behavior */
+                textarea { scrollbar-gutter: stable; }
             `}</style>
         </div>
     );
