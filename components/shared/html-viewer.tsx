@@ -6,9 +6,10 @@ interface HTMLViewerProps {
   content: string;
   useBootstrap?: boolean;
   useTailwind?: boolean;
+  enableJS?: boolean;
 }
 
-export function HTMLViewer({ content, useBootstrap = true, useTailwind = true }: HTMLViewerProps) {
+export function HTMLViewer({ content, useBootstrap = true, useTailwind = true, enableJS = true }: HTMLViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function HTMLViewer({ content, useBootstrap = true, useTailwind = true }:
       ref={iframeRef}
       className="w-full h-full min-h-[500px] border bg-white"
       title="HTML Viewer"
+      sandbox={`allow-same-origin allow-popups ${enableJS ? 'allow-scripts' : ''}`}
     />
   );
 }

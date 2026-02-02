@@ -41,7 +41,7 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
     const router = useRouter();
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);
-    const [fileName, setFileName] = useState("index");
+    const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
     const [isSaved, setIsSaved] = useState(true);
     const [copied, setCopied] = useState(false);
     const [wordWrap, setWordWrap] = useState(true);
@@ -82,6 +82,11 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
         setPrevInitialFormat(initialFormat);
         setContent(initialContent);
         setFormat(initialFormat);
+
+        if (initialFormat !== prevInitialFormat) {
+            const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+            setFileName(`${namePart}.${getLanguage(initialFormat)}`);
+        }
     }
 
     const handleCopy = () => {
@@ -110,7 +115,9 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
         const element = document.createElement("a");
         const file = new Blob([content], { type: 'text/plain' });
         element.href = URL.createObjectURL(file);
-        element.download = `${fileName}.${getLanguage(format)}`;
+        // If fileName already has an extension, use it; otherwise append current format
+        const finalName = fileName.includes('.') ? fileName : `${fileName}.${getLanguage(format)}`;
+        element.download = finalName;
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
@@ -130,7 +137,7 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
         ], null, 2);
         setContent(defaultTable);
         setFormat('json');
-        setFileName("table");
+        setFileName("table.json");
         setIsSaved(false);
         setViewMode('table');
     };
@@ -205,7 +212,11 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-[10px] uppercase font-bold text-zinc-400">Language / Format</DropdownMenuLabel>
-                            <DropdownMenuRadioGroup value={format} onValueChange={(v) => setFormat(v as Format)}>
+                            <DropdownMenuRadioGroup value={format} onValueChange={(v) => {
+                                setFormat(v as Format);
+                                const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+                                setFileName(`${namePart}.${getLanguage(v as string)}`);
+                            }}>
                                 {ALL_FORMATS.slice(0, 10).map((fmt) => (
                                     <DropdownMenuRadioItem key={fmt} value={fmt} className="text-xs uppercase">
                                         {fmt}
@@ -256,10 +267,10 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                             <div className="flex items-center gap-1 border-b border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors py-1">
                                 <input
                                     type="text"
-                                    value={fileName.includes('.') ? fileName : `${fileName}.${getLanguage(format)}`}
+                                    value={fileName}
                                     onChange={(e) => setFileName(e.target.value)}
                                     className="bg-transparent border-none outline-none text-sm font-bold text-zinc-700 dark:text-zinc-200 w-auto min-w-[120px]"
-                                    style={{ width: `${Math.max(fileName.length + (fileName.includes('.') ? 0 : getLanguage(format).length + 1), 10)}ch` }}
+                                    style={{ width: `${Math.max(fileName.length, 10)}ch` }}
                                     spellCheck={false}
                                 />
                             </div>
@@ -323,7 +334,7 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                                     ref={codeViewerRef}
                                     content={content}
                                     language={getLanguage(format)}
-                                    className="absolute inset-0 pointer-events-none p-4 font-mono text-[14px] leading-[21px] border-none rounded-none overflow-hidden opacity-100 bg-transparent"
+                                    className="editor-code-view absolute inset-0 pointer-events-none p-4 font-mono text-[14px] leading-[21px] border-none rounded-none overflow-hidden opacity-100 bg-transparent"
                                     showLineNumbers={false}
                                     wrapLines={wordWrap}
                                 />
@@ -401,7 +412,11 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.2); border-radius: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(161, 161, 170, 0.4); }
-                textarea { scrollbar-width: thin; scrollbar-color: rgba(161, 161, 170, 0.2) transparent; }
+                textarea { scrollbar-width: thin; scrollbar-color: rgba(161, 161, 170, 0.2) transparent; font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
+                .editor-code-view { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; scrollbar-gutter: stable; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
+                .editor-code-view code, .editor-code-view pre { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; tab-size: 4; }
+                /* Ensure CodeViewer matches textarea width minus scrollbar */
+                textarea { scrollbar-gutter: stable; }
             `}} />
         </div>
     );

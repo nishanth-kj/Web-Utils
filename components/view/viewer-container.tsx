@@ -43,6 +43,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
+    const [enableJS, setEnableJS] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
     const codeViewerRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +239,13 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                         >
                                             <Zap className="size-3" /> Tailwind
                                         </button>
+                                        <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+                                        <button
+                                            onClick={() => setEnableJS(!enableJS)}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${enableJS ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 border-yellow-200 dark:border-yellow-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+                                        >
+                                            <Code2 className="size-3" /> JavaScript
+                                        </button>
                                     </div>
                                 )}
                                 <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -310,7 +318,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                         <div className="absolute inset-0">
                             {activeTab === "preview" && (
                                 <div className="p-0 h-full flex flex-col">
-                                    {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} />}
+                                    {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={enableJS} />}
                                     {format === 'json' && <div className="p-4 bg-white dark:bg-zinc-900 border-none shadow-sm h-full overflow-auto"><CodeViewer content={formattedContent} language="json" /></div>}
                                     {format === 'markdown' && (
                                         <div className="prose prose-zinc dark:prose-invert max-w-none bg-white dark:bg-zinc-900 p-8 border-none min-h-full shadow-sm">

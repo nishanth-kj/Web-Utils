@@ -21,7 +21,7 @@ export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content
                 wrapLines={wrapLines}
                 lineProps={{
                     style: {
-                        wordBreak: 'break-all',
+                        wordBreak: 'initial',
                         whiteSpace: wrapLines ? 'pre-wrap' : 'pre'
                     }
                 }}
