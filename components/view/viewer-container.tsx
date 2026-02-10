@@ -7,6 +7,13 @@ import { CodeViewer } from '@/components/shared/code-viewer';
 import { TableViewer } from '@/components/shared/table-viewer';
 import { Format, ViewerProps } from '@/types';
 import yaml from 'js-yaml';
+import * as prettier from 'prettier/standalone';
+import * as prettierPluginHtml from 'prettier/plugins/html';
+import * as prettierPluginPostcss from 'prettier/plugins/postcss';
+import * as prettierPluginBabel from 'prettier/plugins/babel';
+import * as prettierPluginEstree from 'prettier/plugins/estree';
+import * as prettierPluginMarkdown from 'prettier/plugins/markdown';
+import { format as formatSql } from 'sql-formatter';
 import { Button } from "@/components/ui/button";
 import {
     Code2,
@@ -82,7 +89,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
         }
     };
 
-    const handleFormat = () => {
+    const handleFormat = async () => {
         try {
             if (format === 'json') {
                 const parsed = JSON.parse(content);
@@ -90,9 +97,39 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
             } else if (format === 'yaml') {
                 const parsed = yaml.load(content);
                 setContent(yaml.dump(parsed));
+            } else if (format === 'sql') {
+                setContent(formatSql(content));
+            } else {
+                const parserMap: Record<string, string> = {
+                    'html': 'html',
+                    'css': 'css',
+                    'javascript': 'babel',
+                    'typescript': 'babel-ts',
+                    'react': 'babel-ts',
+                    'markdown': 'markdown',
+                    'xml': 'html', // Prettier doesn't have a native XML plugin without extra deps, but HTML often works for basics
+                };
+
+                const parser = parserMap[format];
+                if (parser) {
+                    const formatted = await prettier.format(content, {
+                        parser,
+                        plugins: [
+                            prettierPluginHtml,
+                            prettierPluginPostcss,
+                            prettierPluginBabel,
+                            prettierPluginEstree,
+                            prettierPluginMarkdown
+                        ],
+                        semi: true,
+                        singleQuote: true,
+                        tabWidth: 2,
+                    });
+                    setContent(formatted);
+                }
             }
         } catch (e) {
-            console.error(e);
+            console.error('Formatting error:', e);
         }
     };
 
