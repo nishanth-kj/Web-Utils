@@ -21,8 +21,8 @@ export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content
                 wrapLines={wrapLines}
                 lineProps={{
                     style: {
-                        wordBreak: 'initial',
-                        whiteSpace: wrapLines ? 'pre-wrap' : 'pre'
+                        wordBreak: 'break-all',
+                        whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
                     }
                 }}
                 customStyle={{
@@ -31,9 +31,17 @@ export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content
                     background: 'transparent',
                     fontFamily: 'inherit',
                     fontSize: 'inherit',
-                    lineHeight: 'inherit'
+                    lineHeight: 'inherit',
                 }}
                 showLineNumbers={showLineNumbers}
+                lineNumberStyle={{
+                    minWidth: '3em',
+                    paddingRight: '1em',
+                    color: '#636e7b',
+                    textAlign: 'right',
+                    userSelect: 'none',
+                    opacity: 0.5
+                }}
             >
                 {content}
             </SyntaxHighlighter>

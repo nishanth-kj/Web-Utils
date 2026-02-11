@@ -29,7 +29,11 @@ import {
     FileEdit,
     ChevronDown,
     Zap,
-    Layers
+    Layers,
+    Download,
+    Trash2,
+    ListOrdered,
+    Type
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -52,7 +56,10 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
     const [useTailwind, setUseTailwind] = useState(true);
     const [enableJS, setEnableJS] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
+    const [showLineNumbers, setShowLineNumbers] = useState(true);
+    const [wordWrap, setWordWrap] = useState(false);
     const codeViewerRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const [prevInitialContent, setPrevInitialContent] = useState(initialContent);
     const [prevInitialFormat, setPrevInitialFormat] = useState(initialFormat);
@@ -87,6 +94,25 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
             codeViewerRef.current.scrollTop = e.currentTarget.scrollTop;
             codeViewerRef.current.scrollLeft = e.currentTarget.scrollLeft;
         }
+    };
+
+    const handleClear = () => {
+        if (confirm("Are you sure you want to clear the editor?")) {
+            setContent("");
+        }
+    };
+
+    const handleDownload = () => {
+        const extension = format === 'react' ? 'tsx' : format;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `file.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     };
 
     const handleFormat = async () => {
@@ -288,6 +314,23 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                 <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
                                 <div className="flex items-center gap-2">
                                     <button
+                                        onClick={() => setShowLineNumbers(!showLineNumbers)}
+                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${showLineNumbers ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+                                        title="Toggle Line Numbers"
+                                    >
+                                        <ListOrdered className="size-3" /> Lines
+                                    </button>
+                                    <button
+                                        onClick={() => setWordWrap(!wordWrap)}
+                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${wordWrap ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
+                                        title="Toggle Word Wrap"
+                                    >
+                                        <Type className="size-3" /> Wrap
+                                    </button>
+                                </div>
+                                <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
+                                <div className="flex items-center gap-2">
+                                    <button
                                         onClick={handleFormat}
                                         className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
                                         title="Format Code"
@@ -303,6 +346,22 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                         <Copy className="size-3" />
                                         <span className="text-[10px] font-bold">Copy</span>
                                     </button>
+                                    <button
+                                        onClick={handleDownload}
+                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
+                                        title="Download File"
+                                    >
+                                        <Download className="size-3" />
+                                        <span className="text-[10px] font-bold">Save</span>
+                                    </button>
+                                    <button
+                                        onClick={handleClear}
+                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-red-500 transition-colors"
+                                        title="Clear Editor"
+                                    >
+                                        <Trash2 className="size-3" />
+                                        <span className="text-[10px] font-bold">Clear</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -312,12 +371,13 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
                                 ref={codeViewerRef}
                                 content={content}
                                 language={getLanguage(format)}
-                                className="viewer-code-view absolute inset-0 pointer-events-none p-6 font-mono text-sm leading-[1.5] border-none rounded-none overflow-hidden"
-                                showLineNumbers={false}
-                                wrapLines={false}
+                                className={`viewer-code-view absolute inset-0 pointer-events-none p-6 font-mono text-sm leading-[1.5] border-none rounded-none overflow-hidden ${showLineNumbers ? "" : "pl-6"}`}
+                                showLineNumbers={showLineNumbers}
+                                wrapLines={wordWrap}
                             />
                             <textarea
-                                className="absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent resize-none outline-none focus:ring-0 text-transparent caret-zinc-800 dark:caret-zinc-200 leading-[1.5] custom-scrollbar z-10 whitespace-pre"
+                                ref={textareaRef}
+                                className={`absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent resize-none outline-none focus:ring-0 text-transparent caret-zinc-800 dark:caret-zinc-200 leading-[1.5] custom-scrollbar z-10 ${wordWrap ? "whitespace-pre-wrap break-all" : "whitespace-pre"} ${showLineNumbers ? "pl-[calc(3em+2.5rem)]" : "pl-6"}`}
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
                                 onScroll={handleScroll}
