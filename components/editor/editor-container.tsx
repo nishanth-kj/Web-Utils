@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { CodeViewer } from '@/components/shared/code-viewer';
 import { TableViewer } from '@/components/shared/table-viewer';
-import { Format, EditorProps } from '@/types';
+import { Format, ContainerProps } from '@/types';
 import yaml from 'js-yaml';
 import {
     DropdownMenu,
@@ -37,7 +37,7 @@ import {
 
 import { PREVIEWABLE_FORMATS, ALL_FORMATS, getLanguage } from '@/lib/formats';
 
-export function EditorContainer({ initialContent, initialFormat }: EditorProps) {
+export function EditorContainer({ initialContent, initialFormat }: ContainerProps) {
     const router = useRouter();
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);
@@ -156,7 +156,7 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
         }
     };
 
-    const isPreviewable = PREVIEWABLE_FORMATS.includes(format.toLowerCase());
+    const isPreviewable = PREVIEWABLE_FORMATS.includes(format.toLowerCase() as Format);
 
     const handlePreview = () => {
         if (isPreviewable) {
@@ -232,10 +232,10 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                                     className="w-full h-7 px-2 text-xs border rounded bg-zinc-50 dark:bg-zinc-800 outline-none focus:ring-1 ring-indigo-500"
                                     defaultValue={format}
                                     onBlur={(e) => {
-                                        if (e.target.value) setFormat(e.target.value.toLowerCase());
+                                        if (e.target.value) setFormat(e.target.value.toLowerCase() as Format);
                                     }}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter') setFormat(e.currentTarget.value.toLowerCase());
+                                        if (e.key === 'Enter') setFormat(e.currentTarget.value.toLowerCase() as Format);
                                     }}
                                 />
                             </div>
@@ -324,7 +324,7 @@ export function EditorContainer({ initialContent, initialFormat }: EditorProps) 
                         <>
                             {/* Line Numbers Column */}
                             <div className="absolute top-0 left-0 w-12 h-full bg-zinc-50/50 dark:bg-zinc-900/20 border-r border-zinc-200 dark:border-zinc-800 flex flex-col items-end pr-3 pt-4 text-[11px] font-mono text-zinc-400 select-none overflow-hidden z-20">
-                                {content.split('\n').map((_, i) => (
+                                {content.split('\n').map((_: string, i: number) => (
                                     <div key={i} className="h-[21px] flex items-center shrink-0">{i + 1}</div>
                                 ))}
                             </div>

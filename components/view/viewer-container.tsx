@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { HTMLViewer } from '@/components/shared/html-viewer';
 import { CodeViewer } from '@/components/shared/code-viewer';
 import { TableViewer } from '@/components/shared/table-viewer';
-import { Format, ViewerProps } from '@/types';
+import { Format, ContainerProps } from '@/types';
 import yaml from 'js-yaml';
 import * as prettier from 'prettier/standalone';
 import * as prettierPluginHtml from 'prettier/plugins/html';
@@ -46,7 +46,7 @@ import {
 
 import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
 
-export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) {
+export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
     const router = useRouter();
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);
@@ -178,9 +178,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ViewerProps) 
             const lines = content.trim().split('\n');
             if (lines.length >= 2) {
                 const headers = lines[0].split(',');
-                tableData = lines.slice(1).map(line => {
+                tableData = lines.slice(1).map((line: string) => {
                     const values = line.split(',');
-                    return headers.reduce((acc, header, i) => ({ ...acc, [header]: values[i] }), {});
+                    return headers.reduce((acc: Record<string, string>, header: string, i: number) => ({ ...acc, [header]: values[i] }), {});
                 });
             }
         }

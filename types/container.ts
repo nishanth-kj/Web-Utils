@@ -1,6 +1,6 @@
 import { Format } from "./format";
 
-export interface IDEProps {
+export interface ContainerProps {
     initialContent: string;
     initialFormat: Format;
 }

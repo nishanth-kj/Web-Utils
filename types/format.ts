@@ -1,1 +1,18 @@
-export type Format = string;
+export type Format =
+    | 'html'
+    | 'json'
+    | 'yaml'
+    | 'react'
+    | 'markdown'
+    | 'xml'
+    | 'svg'
+    | 'csv'
+    | 'typescript'
+    | 'javascript'
+    | 'css'
+    | 'sql'
+    | 'python'
+    | 'golang'
+    | 'rust'
+    | 'cpp'
+    | 'java';

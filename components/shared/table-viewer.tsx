@@ -48,15 +48,7 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
         const newRows = [...rows];
         newRows[rowIndex] = { ...newRows[rowIndex], [key]: value };
         setRows(newRows);
-
-        // Find the index in the original data if sorted
-        const originalData = [...data];
-        if (sortConfig.direction) {
-            // This is a simple implementation; in a real app, we might want unique IDs
-            onDataChange(newRows);
-        } else {
-            onDataChange(newRows);
-        }
+        onDataChange(newRows);
     };
 
     const addRow = () => {

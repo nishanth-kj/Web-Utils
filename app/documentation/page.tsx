@@ -11,7 +11,7 @@ import {
     Terminal,
     Cpu
 } from 'lucide-react';
-import { FloatingAd } from "@/components/floating-ad";
+
 import { Footer } from "@/components/landing/footer";
 
 const DOCS_SECTIONS = [
@@ -125,7 +125,6 @@ export default function DocsPage() {
                 </div>
             </div>
             <Footer />
-            <FloatingAd />
         </div>
     );
 }

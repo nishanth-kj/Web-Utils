@@ -68,7 +68,7 @@ export function Hero() {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">App.tsx</span>
                                 </div>
                                 <div className="space-y-1">
-                                    <p><span className="text-indigo-400">import</span> React <span className="text-indigo-400">from</span> 'react';</p>
+                                    <p><span className="text-indigo-400">import</span> React <span className="text-indigo-400">from</span> &apos;react&apos;;</p>
                                     <p><span className="text-purple-400">export const</span> <span className="text-blue-400">Hero</span> = () =&gt; {"{"}</p>
                                     <p className="pl-4"><span className="text-purple-400">return</span> (</p>
                                     <p className="pl-8 text-zinc-400">&lt;<span className="text-indigo-400">section</span> <span className="text-yellow-400">className</span>=&quot;hero&quot;&gt;</p>

@@ -59,27 +59,6 @@ export function AppSidebar() {
             </div>
 
             <SidebarContent className="flex-1 overflow-y-auto overflow-x-visible pt-2 custom-scrollbar">
-                <style jsx global>{`
-                    .custom-scrollbar::-webkit-scrollbar {
-                        width: 4px;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-track {
-                        background: transparent;
-                    }
-                    .custom-scrollbar::-webkit-scrollbar-thumb {
-                        background: rgba(0, 0, 0, 0.05);
-                        border-radius: 10px;
-                    }
-                    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-                        background: rgba(255, 255, 255, 0.05);
-                    }
-                    .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-                        background: rgba(0, 0, 0, 0.1);
-                    }
-                    .dark .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-                        background: rgba(255, 255, 255, 0.1);
-                    }
-                `}</style>
                 <SidebarGroup>
                     <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-2">Formats</SidebarGroupLabel>
                     <SidebarGroupContent>

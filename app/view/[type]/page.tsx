@@ -1,9 +1,8 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ViewerContainer } from "@/components/view/viewer-container";
-import { FloatingAd } from "@/components/floating-ad";
 import { Format } from "@/types";
-import { DEFAULT_CONTENT } from "@/lib/data";
+import { DEFAULT_CONTENT } from "@/data/default-content";
 
 export function generateStaticParams() {
     return [
@@ -32,7 +31,6 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
                         initialContent={content}
                         initialFormat={format}
                     />
-                    <FloatingAd />
                 </main>
             </div>
         </SidebarProvider>

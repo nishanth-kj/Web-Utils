@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Blocks, Rocket, Hammer, Construction } from 'lucide-react';
-import { FloatingAd } from "@/components/floating-ad";
 
 export default function IDEPage() {
     return (
@@ -55,7 +54,6 @@ export default function IDEPage() {
                 </div>
             </div>
 
-            <FloatingAd />
         </div>
     );
 }

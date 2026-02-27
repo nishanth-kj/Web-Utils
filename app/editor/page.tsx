@@ -1,7 +1,7 @@
 "use client";
 
 import { EditorContainer } from "@/components/editor/editor-container";
-import { DEFAULT_CONTENT } from "@/lib/data";
+import { DEFAULT_CONTENT } from "@/data/default-content";
 
 export default function EditorPage() {
     return (
