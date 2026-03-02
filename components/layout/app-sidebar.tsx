@@ -13,7 +13,8 @@ import {
     FileCode,
     StickyNote,
     Table,
-    Image
+    Image,
+    Clock
 } from "lucide-react";
 
 import {
@@ -75,6 +76,26 @@ export function AppSidebar() {
                             ].map((item) => (
                                 <SidebarMenuItem key={item.label} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
                                     <Link href={`/view/${item.id}`} className="w-full">
+                                        <SidebarMenuButton tooltip={item.tooltip} className="rounded-lg h-10 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 w-full">
+                                            <item.icon className="size-4" />
+                                            <span className="font-medium">{item.label}</span>
+                                        </SidebarMenuButton>
+                                    </Link>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-2">Convert</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0 px-2 transition-all">
+                            {[
+                                { id: "epoch", label: "Epoch Converter", icon: Clock, tooltip: "Epoch Converter" },
+                            ].map((item) => (
+                                <SidebarMenuItem key={item.label} className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                                    <Link href={`/convert/${item.id}`} className="w-full">
                                         <SidebarMenuButton tooltip={item.tooltip} className="rounded-lg h-10 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 w-full">
                                             <item.icon className="size-4" />
                                             <span className="font-medium">{item.label}</span>

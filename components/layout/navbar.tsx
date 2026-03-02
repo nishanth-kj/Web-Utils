@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Moon, Sun, Layout, Github, Menu, X, FileEdit, Code2, Home } from 'lucide-react';
+import { Moon, Sun, Layout, Github, Menu, X, FileEdit, Code2, Home, ArrowLeftRight } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -19,13 +19,15 @@ export function Navbar() {
     const tools = [
         { id: "editor", label: "Editor", href: "/editor", icon: FileEdit },
         { id: "viewer", label: "Viewer", href: "/view", icon: Layout },
-        { id: "ide", label: "IDE", href: "/ide", icon: Code2 }
+        { id: "ide", label: "IDE", href: "/ide", icon: Code2 },
+        { id: "convert", label: "Convert", href: "/convert/epoch", icon: ArrowLeftRight }
     ];
 
     const activeTool = pathname.includes("editor") ? "editor"
         : pathname.includes("ide") ? "ide"
             : pathname.includes("view") ? "viewer"
-                : null;
+                : pathname.includes("convert") ? "convert"
+                    : null;
 
     return (
         <>
