@@ -2,9 +2,9 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { EpochConverter } from "@/components/convert/epoch-converter";
+import { EpochConverter } from "./epoch-converter";
 
-export default function EpochConverterPage() {
+export function ConvertPage() {
     return (
         <SidebarProvider>
             <div className="flex w-full h-full overflow-hidden">

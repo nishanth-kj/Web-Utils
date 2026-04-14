@@ -1,4 +1,4 @@
-import { Format } from "./format";
+import { Format } from "../format";
 
 export interface ContainerProps {
     initialContent: string;

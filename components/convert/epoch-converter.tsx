@@ -50,23 +50,13 @@ function toLocalDatetimeString(date: Date): string {
 type CopiedField = string | null;
 
 export function EpochConverter() {
-    // Epoch -> Date
+    // State
     const [epochInput, setEpochInput] = useState("");
-    const [parsedDate, setParsedDate] = useState<Date | null>(null);
-    const [epochError, setEpochError] = useState("");
-    const [isMillis, setIsMillis] = useState(false);
-
-    // Date -> Epoch
     const [dateInput, setDateInput] = useState("");
-    const [dateEpochSeconds, setDateEpochSeconds] = useState<number | null>(null);
-    const [dateEpochMillis, setDateEpochMillis] = useState<number | null>(null);
-
-    // Live clock
-    const [liveEpoch, setLiveEpoch] = useState(Math.floor(Date.now() / 1000));
-
-    // Copy feedback
+    const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
     const [copied, setCopied] = useState<CopiedField>(null);
 
+    // Live clock effect
     useEffect(() => {
         const interval = setInterval(() => {
             setLiveEpoch(Math.floor(Date.now() / 1000));
@@ -80,48 +70,38 @@ export function EpochConverter() {
         setTimeout(() => setCopied(null), 1500);
     }, []);
 
-    // Parse epoch input
-    useEffect(() => {
+    // Derived from epochInput
+    const { parsedDate, epochError, isMillis } = React.useMemo(() => {
         if (!epochInput.trim()) {
-            setParsedDate(null);
-            setEpochError("");
-            return;
+            return { parsedDate: null, epochError: "", isMillis: false };
         }
         const num = Number(epochInput.trim());
         if (isNaN(num)) {
-            setEpochError("Enter a valid number");
-            setParsedDate(null);
-            return;
+            return { parsedDate: null, epochError: "Enter a valid number", isMillis: false };
         }
         // Auto-detect: if > 10 digits, treat as milliseconds
         const isMs = epochInput.trim().length > 10;
-        setIsMillis(isMs);
         const ms = isMs ? num : num * 1000;
         const d = new Date(ms);
         if (isNaN(d.getTime())) {
-            setEpochError("Invalid timestamp");
-            setParsedDate(null);
-            return;
+            return { parsedDate: null, epochError: "Invalid timestamp", isMillis: isMs };
         }
-        setEpochError("");
-        setParsedDate(d);
+        return { parsedDate: d, epochError: "", isMillis: isMs };
     }, [epochInput]);
 
-    // Parse date input
-    useEffect(() => {
+    // Derived from dateInput
+    const { dateEpochSeconds, dateEpochMillis } = React.useMemo(() => {
         if (!dateInput) {
-            setDateEpochSeconds(null);
-            setDateEpochMillis(null);
-            return;
+            return { dateEpochSeconds: null, dateEpochMillis: null };
         }
         const d = new Date(dateInput);
         if (isNaN(d.getTime())) {
-            setDateEpochSeconds(null);
-            setDateEpochMillis(null);
-            return;
+            return { dateEpochSeconds: null, dateEpochMillis: null };
         }
-        setDateEpochSeconds(Math.floor(d.getTime() / 1000));
-        setDateEpochMillis(d.getTime());
+        return { 
+            dateEpochSeconds: Math.floor(d.getTime() / 1000), 
+            dateEpochMillis: d.getTime() 
+        };
     }, [dateInput]);
 
     const setNow = () => {
