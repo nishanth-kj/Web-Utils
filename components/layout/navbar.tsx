@@ -8,16 +8,9 @@ import Link from 'next/link';
 
 import { useSidebar } from "@/components/ui/sidebar";
 
-interface NavbarProps {
-    searchQuery?: string;
-    setSearchQuery?: (query: string) => void;
-    activeCategory?: string;
-    setActiveCategory?: (category: string) => void;
-}
-
-export function Navbar({searchQuery, setSearchQuery, activeCategory, setActiveCategory}: NavbarProps = {}) {
+export function Navbar() {
     const { theme, setTheme } = useTheme();
-    const { open, state } = useSidebar();
+    const { state } = useSidebar();
 
     return (
         <nav className={`fixed top-0 right-0 z-[100] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out ${state === 'collapsed' ? 'left-0' : 'left-[var(--sidebar-width)]'}`}>

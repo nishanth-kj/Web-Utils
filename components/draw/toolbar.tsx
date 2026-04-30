@@ -49,7 +49,7 @@ export function Toolbar({ tool, setTool, isLocked, setIsLocked }: ToolbarProps) 
             <ToggleGroup 
                 type="single" 
                 value={tool} 
-                onValueChange={(v) => v && setTool(v as any)}
+                onValueChange={(v) => v && setTool(v as ElementType)}
                 className="flex items-center gap-0.5"
             >
                 <Tooltip>

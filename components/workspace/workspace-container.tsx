@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
@@ -12,7 +11,6 @@ import {
     Code,
     Eye,
     Copy as CopyIcon,
-    Check,
     Braces,
     Layout,
     ChevronDown,
@@ -23,8 +21,7 @@ import {
     Type as TypeIcon,
     Code2,
     Download,
-    Trash,
-    Type
+    Trash
 } from "lucide-react";
 import { TableViewer } from '@/components/shared/table-viewer';
 import { HTMLViewer } from '@/components/shared/html-viewer';
@@ -46,7 +43,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { PREVIEWABLE_FORMATS, ALL_FORMATS, getLanguage } from '@/lib/formats';
+import {  ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { format as formatSql } from 'sql-formatter';
 import * as prettier from 'prettier/standalone';
@@ -72,7 +69,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     // UI State
     const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
-    const [copied, setCopied] = useState(false);
+
     
     // Editor Settings from LocalStorage
     const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
@@ -133,8 +130,6 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
     };
 
     const handleAutoFormat = async () => {

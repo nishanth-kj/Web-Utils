@@ -1,26 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import {SidebarProvider} from "@/components/ui/sidebar";
 import {SplashScreen} from "@/components/layout/splash-screen";
 import {Navbar} from "@/components/layout/navbar";
-import Footer from "@/components/common/Footer";
 import {AppSidebar} from "@/components/layout/app-sidebar";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
-  const [showSplash, setShowSplash] = useState(true);
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && localStorage.getItem("hasSeenSplash_v1")) {
-      setShowSplash(false);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !localStorage.getItem("hasSeenSplash_v1");
     }
-  }, []);
-
-    const [searchQuery, setSearchQuery] = useState("");
-    const [activeCategory, setActiveCategory] = useState("all");
+    return true;
+  });
 
     const handleSplashComplete = () => {
     setShowSplash(false);
@@ -40,12 +35,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         >
 
             {isHomePage && (
-                <Navbar
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    activeCategory={activeCategory}
-                    setActiveCategory={setActiveCategory}
-                />
+                <Navbar />
             )}
 
             <div className={`flex flex-1 ${isHomePage ? 'pt-16' : 'pt-0'} overflow-hidden w-full`}>

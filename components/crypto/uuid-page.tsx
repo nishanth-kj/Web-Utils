@@ -19,8 +19,9 @@ export function UuidPage() {
     const [uuids, setUuids] = useState<string[]>([]);
     const [count, setCount] = useState(5);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+    const hasInitialized = React.useRef(false);
 
-    const generateUuids = () => {
+    const generateUuids = React.useCallback(() => {
         const newUuids = Array.from({ length: count }, () => {
             if (typeof crypto !== 'undefined' && crypto.randomUUID) {
                 return crypto.randomUUID();
@@ -32,11 +33,16 @@ export function UuidPage() {
             });
         });
         setUuids(newUuids);
-    };
+    }, [count]);
 
     useEffect(() => {
-        generateUuids();
-    }, []);
+        if (!hasInitialized.current) {
+            queueMicrotask(() => {
+                generateUuids();
+            });
+            hasInitialized.current = true;
+        }
+    }, [generateUuids]);
 
     const handleCopy = (text: string, index: number) => {
         navigator.clipboard.writeText(text);

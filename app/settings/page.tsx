@@ -15,7 +15,6 @@ export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
     const [fontSize, setFontSize] = useLocalStorage('editorFontSize', 14);
     const [tabSize, setTabSize] = useLocalStorage('editorTabSize', 4);
-    const [wordWrap, setWordWrap] = useLocalStorage('editorWordWrap', 'on');
     const [timeZone, setTimeZone] = useLocalStorage('timeZone', 'UTC');
     const [timeFormat, setTimeFormat] = useLocalStorage('timeFormat', 'seconds');
 
@@ -158,7 +157,7 @@ export default function SettingsPage() {
                                             Millis (13 digits)
                                         </Button>
                                     </div>
-                                    <p className="text-[10px] text-muted-foreground">Default precision when using "Now" or generating timestamps.</p>
+                                    <p className="text-[10px] text-muted-foreground">Default precision when using &quot;Now&quot; or generating timestamps.</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -204,7 +203,7 @@ export default function SettingsPage() {
                                                         localStorage.setItem(key, value as string);
                                                     });
                                                     window.location.reload();
-                                                } catch (err) {
+                                                } catch {
                                                     alert('Invalid settings file');
                                                 }
                                             };

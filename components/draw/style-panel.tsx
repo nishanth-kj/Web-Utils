@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { Palette, Trash2, ArrowUp, ArrowDown, Plus, Layers, MousePointer2, Type } from 'lucide-react';
+import { Palette, Trash2, Plus, Layers, MousePointer2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Element } from './types';
 
@@ -41,7 +39,7 @@ export function StylePanel({
     const isCustomColor = !DEFAULT_COLORS.some(c => c.value === color);
 
     const handleDragStart = (e: React.MouseEvent) => {
-        if (e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || (e.target as any).closest('button')) return;
+        if (e.target instanceof HTMLButtonElement || e.target instanceof HTMLInputElement || (e.target as HTMLElement).closest('button')) return;
         const el = e.currentTarget as HTMLElement;
         const startX = e.clientX - el.offsetLeft;
         const startY = e.clientY - el.offsetTop;

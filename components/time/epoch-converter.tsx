@@ -10,7 +10,6 @@ import {
     Check, 
     RefreshCw, 
     Zap, 
-    LayoutGrid, 
     Table as TableIcon, 
     ArrowRight 
 } from "lucide-react";
@@ -30,6 +29,60 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 
 type CopiedField = string | null;
+
+interface CopyButtonProps {
+    value: string;
+    field: string;
+    className?: string;
+    copied: string | null;
+    onCopy: (text: string, field: string) => void;
+}
+
+const CopyButton = ({ value, field, className, copied, onCopy }: CopyButtonProps) => (
+    <button
+        onClick={() => onCopy(value, field)}
+        className={cn("flex items-center justify-center size-8 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-primary transition-all active:scale-90", className)}
+        title="Copy"
+    >
+        {copied === field ? (
+            <Check className="size-4 text-emerald-500" />
+        ) : (
+            <Copy className="size-4" />
+        )}
+    </button>
+);
+
+interface TableRowProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    icon: any;
+    label: string;
+    value: string;
+    field: string;
+    mono?: boolean;
+    isPreferred?: boolean;
+    copied: string | null;
+    onCopy: (text: string, field: string) => void;
+}
+
+const TableRow = ({ icon: Icon, label, value, field, mono = true, isPreferred = false, copied, onCopy }: TableRowProps) => (
+    <tr className={cn(
+        "border-b border-muted/30 group hover:bg-muted/5 transition-colors",
+        isPreferred && "bg-primary/[0.03] border-l-2 border-l-primary"
+    )}>
+        <td className="py-3 pl-4 pr-2">
+            <div className="flex items-center gap-3">
+                <Icon className={cn("size-3.5 transition-colors", isPreferred ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
+                <span className={cn("text-[10px] font-bold uppercase tracking-wider", isPreferred ? "text-primary" : "text-muted-foreground")}>{label}</span>
+            </div>
+        </td>
+        <td className={cn("py-3 px-4 text-sm font-medium tabular-nums truncate", mono ? "font-mono" : "text-foreground", isPreferred && "text-primary font-bold")}>
+            {value}
+        </td>
+        <td className="py-3 pl-2 pr-4 text-right">
+            <CopyButton value={value} field={field} copied={copied} onCopy={onCopy} />
+        </td>
+    </tr>
+);
 
 export function EpochConverter() {
     // Settings
@@ -106,39 +159,6 @@ export function EpochConverter() {
         setDateInput(toLocalDatetimeString(new Date()));
     };
 
-    const CopyButton = ({ value, field, className }: { value: string; field: string; className?: string }) => (
-        <button
-            onClick={() => copyToClipboard(value, field)}
-            className={cn("flex items-center justify-center size-8 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-primary transition-all active:scale-90", className)}
-            title="Copy"
-        >
-            {copied === field ? (
-                <Check className="size-4 text-emerald-500" />
-            ) : (
-                <Copy className="size-4" />
-            )}
-        </button>
-    );
-
-    const TableRow = ({ icon: Icon, label, value, field, mono = true, isPreferred = false }: any) => (
-        <tr className={cn(
-            "border-b border-muted/30 group hover:bg-muted/5 transition-colors",
-            isPreferred && "bg-primary/[0.03] border-l-2 border-l-primary"
-        )}>
-            <td className="py-3 pl-4 pr-2">
-                <div className="flex items-center gap-3">
-                    <Icon className={cn("size-3.5 transition-colors", isPreferred ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
-                    <span className={cn("text-[10px] font-bold uppercase tracking-wider", isPreferred ? "text-primary" : "text-muted-foreground")}>{label}</span>
-                </div>
-            </td>
-            <td className={cn("py-3 px-4 text-sm font-medium tabular-nums truncate", mono ? "font-mono" : "text-foreground", isPreferred && "text-primary font-bold")}>
-                {value}
-            </td>
-            <td className="py-3 pl-2 pr-4 text-right">
-                <CopyButton value={value} field={field} />
-            </td>
-        </tr>
-    );
 
     return (
         <div className="flex flex-col w-full h-full bg-background text-foreground overflow-hidden">
@@ -230,10 +250,10 @@ export function EpochConverter() {
                                                 <div className="rounded-lg border border-muted/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
                                                     <table className="w-full text-left border-collapse">
                                                         <tbody>
-                                                            <TableRow icon={Globe} label="GMT / UTC" value={parsedDate.toUTCString()} field="utc" isPreferred={prefTimeZone === 'UTC'} />
-                                                            <TableRow icon={Calendar} label="Local Time" value={parsedDate.toLocaleString()} field="local" isPreferred={prefTimeZone === 'Local'} />
-                                                            <TableRow icon={Clock} label="ISO 8601" value={parsedDate.toISOString()} field="iso" />
-                                                            <TableRow icon={Timer} label="Relative" value={formatRelativeTime(parsedDate)} field="rel" mono={false} />
+                                                            <TableRow icon={Globe} label="GMT / UTC" value={parsedDate.toUTCString()} field="utc" isPreferred={prefTimeZone === 'UTC'} copied={copied} onCopy={copyToClipboard} />
+                                                            <TableRow icon={Calendar} label="Local Time" value={parsedDate.toLocaleString()} field="local" isPreferred={prefTimeZone === 'Local'} copied={copied} onCopy={copyToClipboard} />
+                                                            <TableRow icon={Clock} label="ISO 8601" value={parsedDate.toISOString()} field="iso" copied={copied} onCopy={copyToClipboard} />
+                                                            <TableRow icon={Timer} label="Relative" value={formatRelativeTime(parsedDate)} field="rel" mono={false} copied={copied} onCopy={copyToClipboard} />
                                                         </tbody>
                                                     </table>
                                                     <div className="grid grid-cols-2 border-t border-muted/50 divide-x divide-muted/50 bg-muted/5">
@@ -304,8 +324,8 @@ export function EpochConverter() {
                                                     <div className="rounded-lg border border-muted/50 overflow-hidden">
                                                         <table className="w-full text-left border-collapse">
                                                             <tbody>
-                                                                <TableRow icon={RefreshCw} label="Unix Seconds" value={String(dateEpochSeconds)} field="d-sec" isPreferred={prefTimeFormat === 'seconds'} />
-                                                                <TableRow icon={Zap} label="Unix Millis" value={String(dateEpochMillis)} field="d-ms" isPreferred={prefTimeFormat === 'millis'} />
+                                                                <TableRow icon={RefreshCw} label="Unix Seconds" value={String(dateEpochSeconds)} field="d-sec" isPreferred={prefTimeFormat === 'seconds'} copied={copied} onCopy={copyToClipboard} />
+                                                                <TableRow icon={Zap} label="Unix Millis" value={String(dateEpochMillis)} field="d-ms" isPreferred={prefTimeFormat === 'millis'} copied={copied} onCopy={copyToClipboard} />
                                                             </tbody>
                                                         </table>
                                                     </div>

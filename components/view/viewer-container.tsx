@@ -33,8 +33,7 @@ import {
     Download,
     Trash2,
     Type,
-    Layout as LayoutIcon,
-    Braces
+    Layout as LayoutIcon
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -74,17 +73,10 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
     const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'off');
     
-    const [wordWrap, setWordWrap] = useState<"on" | "off">(prefWordWrap as "on" | "off");
     const [fileName, setFileName] = useState(`view.${getLanguage(initialFormat)}`);
 
-    // Sync local wordWrap with preference when preference changes
-    React.useEffect(() => {
-        setWordWrap(prefWordWrap as "on" | "off");
-    }, [prefWordWrap]);
-
     const handleWordWrapToggle = () => {
-        const newVal = wordWrap === "on" ? "off" : "on";
-        setWordWrap(newVal);
+        const newVal = prefWordWrap === "on" ? "off" : "on";
         setPrefWordWrap(newVal);
     };
 
@@ -294,6 +286,19 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                     ))}
                                 </div>
                             </div>
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <AlignLeft className="size-3" /> Word Wrap
+                                </label>
+                                <Button 
+                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="h-7 w-full text-[10px] font-bold"
+                                    onClick={handleWordWrapToggle}
+                                >
+                                    {prefWordWrap === 'on' ? 'Enabled' : 'Disabled'}
+                                </Button>
+                            </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -349,7 +354,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                                 minimap: { enabled: false },
                                                 fontSize: prefFontSize,
                                                 tabSize: prefTabSize,
-                                                wordWrap: wordWrap,
+                                                wordWrap: prefWordWrap as "on" | "off",
                                                 automaticLayout: true,
                                                 padding: { top: 16 },
                                                 lineNumbersMinChars: 3,

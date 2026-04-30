@@ -7,13 +7,11 @@ import {
     Info, 
     FileText, 
     Binary, 
-    Type,
-    FileBox,
     Database,
     Cpu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,7 +40,7 @@ export function DummyFilePage() {
                 link.download = `${fileName}.${extension}`;
                 link.click();
                 URL.revokeObjectURL(url);
-            } catch (e) {
+            } catch {
                 alert("File too large for browser memory. Try a smaller size.");
             }
             setIsGenerating(false);
@@ -104,7 +102,7 @@ export function DummyFilePage() {
                                     />
                                     <Tabs 
                                         value={unit} 
-                                        onValueChange={(v) => setUnit(v as any)} 
+                                        onValueChange={(v) => setUnit(v as 'KB' | 'MB' | 'GB')} 
                                         className="flex-1"
                                     >
                                         <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50">

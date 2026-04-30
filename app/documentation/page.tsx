@@ -64,7 +64,7 @@ export default function DocumentationPage() {
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
                             <p>
-                                Need to format an ugly JSON or un-minified HTML block? Most editors have a "Format" button near the top right, or you can right-click anywhere in the editor and select <strong>"Format Document"</strong>.
+                                Need to format an ugly JSON or un-minified HTML block? Most editors have a &quot;Format&quot; button near the top right, or you can right-click anywhere in the editor and select <strong>&quot;Format Document&quot;</strong>.
                             </p>
                         </CardContent>
                     </Card>

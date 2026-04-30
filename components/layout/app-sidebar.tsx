@@ -7,7 +7,6 @@ import {
     ChevronLeft,
     ChevronRight,
     Command,
-    Home,
     Search
 } from "lucide-react";
 

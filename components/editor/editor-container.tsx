@@ -1,21 +1,16 @@
 "use client";
 
 import React, { useState, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import Editor, { OnMount } from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
 import {
     Save,
     FileEdit,
-    Terminal,
     Plus,
     Table as TableIcon,
-    Code,
     Trash,
-    Eye,
     Copy as CopyIcon,
-    Check,
     Settings,
     Type as TypeIcon,
     Code2,
@@ -38,13 +33,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
-    DropdownMenuLabel,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import { PREVIEWABLE_FORMATS, ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import {
     ResizableHandle,
@@ -56,7 +48,6 @@ import { HTMLViewer } from '@/components/shared/html-viewer';
 import { CodeViewer } from '@/components/shared/code-viewer';
 
 export function EditorContainer({ initialContent, initialFormat }: ContainerProps) {
-    const router = useRouter();
     const { resolvedTheme } = useTheme();
     const { content, setContent, format, setFormat, isSaved, setIsSaved } = useEditor({
         initialContent,
@@ -64,119 +55,126 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
     });
 
     const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
-    const [copied, setCopied] = useState(false);
     
     // Editor Settings from LocalStorage
     const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
     const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
     const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'on');
     
-    const [wordWrap, setWordWrap] = useState<"on" | "off">(prefWordWrap as "on" | "off");
-
-    // Sync local wordWrap with preference when preference changes
-    React.useEffect(() => {
-        setWordWrap(prefWordWrap as "on" | "off");
-    }, [prefWordWrap]);
-
     const handleWordWrapToggle = () => {
-        const newVal = wordWrap === "on" ? "off" : "on";
-        setWordWrap(newVal);
+        const newVal = prefWordWrap === 'on' ? 'off' : 'on';
         setPrefWordWrap(newVal);
     };
 
-    const [viewMode, setViewMode] = useState<'code' | 'table'>('code');
     const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
     const [showPreview, setShowPreview] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [activeTab, setActiveTab] = useState("preview");
-    const [useBootstrap, setUseBootstrap] = useState(false);
-    const [useTailwind, setUseTailwind] = useState(false);
     const editorRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const handleEditorDidMount: OnMount = (editor) => {
         editorRef.current = editor;
         editor.onDidChangeCursorPosition((e) => {
-            setCursorPos({
-                line: e.position.lineNumber,
-                col: e.position.column
-            });
+            setCursorPos({ line: e.position.lineNumber, col: e.position.column });
         });
     };
 
-    const handleFormatChange = (newFormat: Format) => {
-        setFormat(newFormat);
-        const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-        setFileName(`${namePart}.${getLanguage(newFormat)}`);
+    const handleSave = () => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+        setIsSaved(true);
     };
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleFormatChange = (newFormat: Format) => {
+        setFormat(newFormat);
+        setFileName(prev => {
+            const parts = prev.split('.');
+            if (parts.length > 1) parts.pop();
+            return [...parts, getLanguage(newFormat)].join('.');
+        });
     };
 
     const handleAutoFormat = async () => {
         try {
             if (format === 'json') {
-                const parsed = JSON.parse(content);
-                setContent(JSON.stringify(parsed, null, 2));
+                setContent(JSON.stringify(JSON.parse(content), null, prefTabSize));
             } else if (format === 'yaml') {
-                const parsed = yaml.load(content);
-                setContent(yaml.dump(parsed));
+                setContent(yaml.dump(yaml.load(content)));
             }
-            setIsSaved(true);
-        } catch (e) {
-            console.error(e);
+        } catch {
+            console.error("Format error");
         }
-    };
-
-    const handleSave = () => {
-        setIsSaved(true);
-        const element = document.createElement("a");
-        const file = new Blob([content], { type: 'text/plain' });
-        element.href = URL.createObjectURL(file);
-        const finalName = fileName.includes('.') ? fileName : `${fileName}.${getLanguage(format)}`;
-        element.download = finalName;
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
     };
 
     const handleNewFile = () => {
         setContent("");
-        setFileName("untitled.txt");
         setIsSaved(true);
-        setViewMode('code');
     };
 
     const handleNewTable = () => {
-        const defaultTable = JSON.stringify([
-            { id: "1", name: "Sample Item", price: "$10.00" },
-            { id: "2", name: "Another Item", price: "$20.00" }
-        ], null, 2);
-        setContent(defaultTable);
-        setFormat('json');
-        setFileName("table.json");
-        setIsSaved(false);
-        setViewMode('table');
+        const csvHeader = "id,name,value\n1,example,data";
+        setContent(csvHeader);
+        setFormat("csv");
+        setFileName("table.csv");
     };
 
-    const isTabularData = useMemo(() => {
-        try {
-            const parsed = JSON.parse(content);
-            return Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object';
-        } catch {
-            return false;
+    const tableRows = useMemo<Record<string, string>[] | null>(() => {
+        if (format === 'csv' || format === 'json' || format === 'yaml') {
+            try {
+                if (format === 'csv') {
+                    const lines = content.trim().split('\n');
+                    if (lines.length < 2) return null;
+                    const headers = lines[0].split(',');
+                    return lines.slice(1).map(line => {
+                        const values = line.split(',');
+                        return headers.reduce((obj, header, i) => {
+                            obj[header.trim()] = values[i]?.trim();
+                            return obj;
+                        }, {} as Record<string, string>);
+                    });
+                }
+                if (format === 'json') {
+                    const data = JSON.parse(content);
+                    if (Array.isArray(data) && data.length > 0) {
+                        return data as Record<string, string>[];
+                    }
+                }
+            } catch {
+                return null;
+            }
         }
-    }, [content]);
+        return null;
+    }, [content, format]);
 
-    const isPreviewable = PREVIEWABLE_FORMATS.includes(format.toLowerCase() as Format);
+    const handleTableDataChange = (newData: Record<string, string>[]) => {
+        if (format === 'csv') {
+            if (newData.length === 0) return;
+            const headers = Object.keys(newData[0]);
+            const csv = [
+                headers.join(','),
+                ...newData.map(row => headers.map(h => row[h]).join(','))
+            ].join('\n');
+            setContent(csv);
+        } else if (format === 'json') {
+            setContent(JSON.stringify(newData, null, prefTabSize));
+        }
+    };
+
+    const monacoWordWrap = (prefWordWrap === 'on' || prefWordWrap === 'off') ? prefWordWrap : 'off';
 
     return (
         <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full border-t"}`}>
             {/* Header / Standard Toolbar */}
-            <div className="flex items-center justify-between px-6 h-14 border-b bg-muted/20 backdrop-blur-md">
-                <div className="flex items-center gap-4">
+            <div className="flex h-11 items-center justify-between px-3 border-b bg-muted/30">
+                <div className="flex items-center gap-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground gap-2">
@@ -266,6 +264,19 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
                                     ))}
                                 </div>
                             </div>
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <AlignLeft className="size-3" /> Word Wrap
+                                </label>
+                                <Button 
+                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="h-7 w-full text-[10px] font-bold"
+                                    onClick={handleWordWrapToggle}
+                                >
+                                    {prefWordWrap === 'on' ? 'Enabled' : 'Disabled'}
+                                </Button>
+                            </div>
                             <DropdownMenuSeparator />
                             <div className="space-y-1.5 pt-1">
                                 <Button variant="ghost" size="sm" onClick={handleNewFile} className="w-full justify-start h-8 text-[10px] font-bold uppercase gap-2">
@@ -319,25 +330,29 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
                                 <Editor
                                     height="100%"
                                     language={getLanguage(format)}
-                                    value={content}
-                                    onChange={(value) => setContent(value || "")}
-                                    onMount={handleEditorDidMount}
                                     theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                                    value={content}
+                                    onChange={(val) => setContent(val || "")}
+                                    onMount={handleEditorDidMount}
                                     options={{
-                                        minimap: { enabled: false },
                                         fontSize: prefFontSize,
                                         tabSize: prefTabSize,
-                                        wordWrap: wordWrap,
-                                        automaticLayout: true,
-                                        padding: { top: 16 },
-                                        lineNumbersMinChars: 3,
+                                        wordWrap: monacoWordWrap,
+                                        minimap: { enabled: false },
                                         scrollBeyondLastLine: false,
+                                        automaticLayout: true,
+                                        lineNumbers: 'on',
+                                        glyphMargin: false,
+                                        folding: true,
+                                        lineDecorationsWidth: 10,
+                                        lineNumbersMinChars: 3,
+                                        padding: { top: 10, bottom: 10 },
+                                        fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+                                        fontLigatures: true,
                                     }}
                                 />
-                                {/* Subtle Editor Footer */}
-                                <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
-                                    <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
-                                    <span>{content.length} chars</span>
+                                <div className="absolute bottom-4 right-6 px-2 py-1 bg-background/50 backdrop-blur-sm border rounded text-[9px] font-bold tabular-nums text-muted-foreground select-none pointer-events-none">
+                                    LN {cursorPos.line}, COL {cursorPos.col}
                                 </div>
                             </div>
                         </div>
@@ -345,83 +360,50 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
 
                     {showPreview && (
                         <>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={50} minSize={20}>
-                                <div className="flex flex-col h-full bg-background border-l">
-                                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                                        <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
-                                            <TabsList className="h-8 bg-muted/50">
-                                                <TabsTrigger value="preview" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                    <Eye className="size-3 mr-2" /> Preview
-                                                </TabsTrigger>
-                                                <TabsTrigger value="viewer" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                    <Code className="size-3 mr-2" /> Source
-                                                </TabsTrigger>
-                                                {isTabularData && (
-                                                    <TabsTrigger value="table" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                        <TableIcon className="size-3 mr-2" /> Data
-                                                    </TabsTrigger>
-                                                )}
-                                            </TabsList>
-
-                                            <div className="flex items-center gap-2">
-                                                {format === 'html' && (
-                                                    <div className="flex items-center gap-1">
-                                                        <Button 
-                                                            variant={useBootstrap ? "secondary" : "ghost"} 
-                                                            size="sm" 
-                                                            className="h-7 text-[10px] uppercase px-2 font-bold"
-                                                            onClick={() => setUseBootstrap(!useBootstrap)}
-                                                        >
-                                                            BS
-                                                        </Button>
-                                                        <Button 
-                                                            variant={useTailwind ? "secondary" : "ghost"} 
-                                                            size="sm" 
-                                                            className="h-7 text-[10px] uppercase px-2 font-bold"
-                                                            onClick={() => setUseTailwind(!useTailwind)}
-                                                        >
-                                                            TW
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
+                            <ResizableHandle withHandle className="bg-border/50" />
+                            <ResizablePanel defaultSize={60} minSize={20}>
+                                <div className="h-full bg-background flex flex-col">
+                                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5">
+                                        <div className="flex items-center gap-2">
+                                            <LayoutIcon className="size-4 text-primary" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Preview</span>
                                         </div>
+                                    </div>
+                                    <div className="flex-1 overflow-auto custom-scrollbar p-0">
+                                        <Tabs defaultValue="preview" className="h-full flex flex-col">
+                                            <div className="px-4 border-b bg-muted/5">
+                                                <TabsList className="h-9 bg-transparent p-0 gap-4">
+                                                    <TabsTrigger value="preview" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Live View</TabsTrigger>
+                                                    {tableRows && <TabsTrigger value="table" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Table View</TabsTrigger>}
+                                                    <TabsTrigger value="raw" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Raw Output</TabsTrigger>
+                                                </TabsList>
+                                            </div>
 
-                                        <div className="flex-1 relative overflow-hidden">
-                                            <TabsContent value="preview" className="flex-1 relative overflow-auto m-0 p-0 border-none">
-                                                <div className="absolute inset-0">
-                                                    {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={true} />}
-                                                    {format === 'markdown' && (
-                                                        <div className="prose prose-zinc dark:prose-invert max-w-none bg-background p-8 min-h-full">
+                                            <div className="flex-1 overflow-hidden">
+                                                <TabsContent value="preview" className="h-full m-0 p-0 border-none outline-none overflow-auto">
+                                                    {format === 'html' ? (
+                                                        <HTMLViewer content={content} />
+                                                    ) : format === 'markdown' ? (
+                                                        <div className="p-8 max-w-4xl mx-auto prose dark:prose-invert">
                                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                                                         </div>
+                                                    ) : (
+                                                        <CodeViewer content={content} language={getLanguage(format)} />
                                                     )}
-                                                    {format === 'svg' && <div className="flex items-center justify-center p-8 bg-background h-full overflow-auto" dangerouslySetInnerHTML={{ __html: content }} />}
-                                                    {['json', 'xml', 'yaml', 'css', 'js'].includes(format) && (
-                                                        <CodeViewer content={content} language={getLanguage(format)} wrapLines={true} />
-                                                    )}
-                                                    {!['html', 'markdown', 'svg', 'json', 'xml', 'yaml', 'css', 'js'].includes(format) && (
-                                                        <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-30">
-                                                            <LayoutIcon className="size-16 mb-4 text-primary" />
-                                                            <p className="text-sm font-bold uppercase tracking-widest">No Live Preview</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TabsContent>
-
-                                            <TabsContent value="viewer" className="h-full m-0 p-0 bg-background">
-                                                <CodeViewer content={content} language={getLanguage(format)} wrapLines={wordWrap === 'on'} />
-                                            </TabsContent>
-
-                                            <TabsContent value="table" className="h-full m-0 p-8 overflow-auto">
-                                                <TableViewer data={JSON.parse(content || '[]')} onDataChange={(newData) => {
-                                                    setContent(JSON.stringify(newData, null, 2));
-                                                    setIsSaved(false);
-                                                }} />
-                                            </TabsContent>
-                                        </div>
-                                    </Tabs>
+                                                </TabsContent>
+                                                {tableRows && (
+                                                    <TabsContent value="table" className="h-full m-0 p-0 border-none outline-none overflow-auto p-6">
+                                                        <TableViewer data={tableRows} onDataChange={handleTableDataChange} />
+                                                    </TabsContent>
+                                                )}
+                                                <TabsContent value="raw" className="h-full m-0 p-0 border-none outline-none">
+                                                    <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all h-full overflow-auto bg-muted/5">
+                                                        {content}
+                                                    </pre>
+                                                </TabsContent>
+                                            </div>
+                                        </Tabs>
+                                    </div>
                                 </div>
                             </ResizablePanel>
                         </>
@@ -429,6 +411,22 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
                 </ResizablePanelGroup>
             </div>
 
+            {/* Footer / Status Bar */}
+            <div className="h-7 border-t bg-muted/30 px-3 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                        <div className={`size-1.5 rounded-full ${isSaved ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground">{isSaved ? 'Synced' : 'Modified'}</span>
+                    </div>
+                    <Separator orientation="vertical" className="h-3" />
+                    <span className="text-[9px] font-bold text-muted-foreground">{content.length} characters</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{format}</span>
+                    <Separator orientation="vertical" className="h-3" />
+                    <span className="text-[9px] font-bold text-muted-foreground tabular-nums">UTF-8</span>
+                </div>
+            </div>
         </div>
     );
 }

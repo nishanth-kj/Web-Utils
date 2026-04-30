@@ -1,13 +1,72 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import Script from 'next/script';
 
-import { Element, ElementType } from './types';
+import { Element, ElementType, RoughCanvas } from './types';
 import { Toolbar } from './toolbar';
 import { StylePanel } from './style-panel';
 import { ZoomControls } from './zoom-controls';
 import { ActionMenu } from './action-menu';
+
+// Type-safe access to global roughjs
+interface RoughWindow extends Window {
+    rough: {
+        canvas: (canvas: HTMLCanvasElement) => RoughCanvas;
+    }
+}
+
+// Define drawElement outside to ensure it's not re-created and is hoisted
+function drawElement(rc: RoughCanvas, ctx: CanvasRenderingContext2D, element: Element) {
+    const generator = rc.generator;
+    const options = {
+        stroke: element.color,
+        strokeWidth: element.strokeWidth,
+        roughness: 1.2,
+        bowing: 1.5,
+        seed: element.id + 1,
+    };
+
+    switch (element.type) {
+        case 'line': rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options)); break;
+        case 'rectangle': rc.draw(generator.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options)); break;
+        case 'diamond': {
+            const midX = (element.x1 + element.x2) / 2;
+            const midY = (element.y1 + element.y2) / 2;
+            rc.draw(generator.polygon([[midX, element.y1], [element.x2, midY], [midX, element.y2], [element.x1, midY]], options));
+            break;
+        }
+        case 'circle': {
+            const width = element.x2 - element.x1;
+            const height = element.y2 - element.y1;
+            rc.draw(generator.ellipse(element.x1 + width / 2, element.y1 + height / 2, width, height, options));
+            break;
+        }
+        case 'arrow': {
+            const headlen = 15;
+            const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
+            rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options));
+            rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle - Math.PI / 6), element.y2 - headlen * Math.sin(angle - Math.PI / 6), options));
+            rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle + Math.PI / 6), element.y2 - headlen * Math.sin(angle + Math.PI / 6), options));
+            break;
+        }
+        case 'freehand':
+            if (element.points && element.points.length > 1) {
+                const stroke = element.points.map(p => [p.x, p.y] as [number, number]);
+                rc.draw(generator.curve(stroke, options));
+            }
+            break;
+        case 'text':
+            ctx.font = `${32 * element.strokeWidth}px 'Outfit', sans-serif`;
+            ctx.fillStyle = element.color;
+            ctx.textBaseline = 'top';
+            const lines = (element.text || '').split('\n');
+            lines.forEach((line, i) => {
+                ctx.fillText(line, element.x1, element.y1 + i * (38 * element.strokeWidth));
+            });
+            break;
+    }
+}
 
 export function DrawPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,7 +75,7 @@ export function DrawPage() {
     const [tool, setTool] = useState<ElementType>('freehand');
     const [color, setColor] = useState('#1e1e1e');
     const [strokeWidth, setStrokeWidth] = useState(2);
-    const [roughCanvas, setRoughCanvas] = useState<any>(null);
+    const [roughCanvas, setRoughCanvas] = useState<RoughCanvas | null>(null);
     const [history, setHistory] = useState<Element[][]>([]);
     const [redoStack, setRedoStack] = useState<Element[][]>([]);
     const [selectedElementIds, setSelectedElementIds] = useState<number[]>([]);
@@ -24,28 +83,34 @@ export function DrawPage() {
     const [scale, setScale] = useState(1);
     const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
     const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
-    const [resizeHandle, setResizeHandle] = useState<{ id: number, type: string } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [editingElement, setEditingElement] = useState<Element | null>(null);
 
-    const getMousePos = (e: React.MouseEvent) => {
-        const rect = canvasRef.current!.getBoundingClientRect();
+    const getMousePos = useCallback((e: React.MouseEvent | MouseEvent) => {
+        if (!canvasRef.current) return { x: 0, y: 0 };
+        const rect = canvasRef.current.getBoundingClientRect();
         return {
             x: (e.clientX - rect.left - offset.x) / scale,
             y: (e.clientY - rect.top - offset.y) / scale
         };
-    };
+    }, [offset, scale]);
 
     const onScriptLoad = () => {
-        if (typeof window !== 'undefined' && (window as any).rough) {
-            const canvas = canvasRef.current;
-            if (canvas) setRoughCanvas((window as any).rough.canvas(canvas));
+        if (typeof window !== 'undefined') {
+            const roughWindow = window as unknown as RoughWindow;
+            if (roughWindow.rough) {
+                const canvas = canvasRef.current;
+                if (canvas) setRoughCanvas(roughWindow.rough.canvas(canvas));
+            }
         }
     };
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && (window as any).rough && canvasRef.current && !roughCanvas) {
-            setRoughCanvas((window as any).rough.canvas(canvasRef.current));
+        if (typeof window !== 'undefined') {
+            const roughWindow = window as unknown as RoughWindow;
+            if (roughWindow.rough && canvasRef.current && !roughCanvas) {
+                setRoughCanvas(roughWindow.rough.canvas(canvasRef.current));
+            }
         }
     }, [roughCanvas]);
 
@@ -89,306 +154,197 @@ export function DrawPage() {
                 ctx.strokeStyle = '#3b82f6';
                 ctx.lineWidth = 1.5;
                 const handleSize = 8 / scale;
-                const handles = [
-                    { x: minX, y: minY }, { x: maxX, y: minY },
-                    { x: minX, y: maxY }, { x: maxX, y: maxY },
-                    { x: (minX + maxX) / 2, y: minY }, { x: (minX + maxX) / 2, y: maxY },
-                    { x: minX, y: (minY + maxY) / 2 }, { x: maxX, y: (minY + maxY) / 2 },
-                ];
-                handles.forEach(h => {
-                    ctx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
-                    ctx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+                
+                [
+                    [minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY],
+                    [(minX + maxX) / 2, minY], [(minX + maxX) / 2, maxY],
+                    [minX, (minY + maxY) / 2], [maxX, (minY + maxY) / 2]
+                ].forEach(([x, y]) => {
+                    ctx.beginPath();
+                    ctx.rect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
+                    ctx.fill();
+                    ctx.stroke();
                 });
             }
         });
 
         if (selectionBox) {
             ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 1 / scale;
+            ctx.strokeRect(
+                selectionBox.x1, 
+                selectionBox.y1, 
+                selectionBox.x2 - selectionBox.x1, 
+                selectionBox.y2 - selectionBox.y1
+            );
             ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-            ctx.lineWidth = 1;
-            const x = Math.min(selectionBox.x1, selectionBox.x2);
-            const y = Math.min(selectionBox.y1, selectionBox.y2);
-            const width = Math.abs(selectionBox.x2 - selectionBox.x1);
-            const height = Math.abs(selectionBox.y2 - selectionBox.y1);
-            ctx.fillRect(x, y, width, height);
-            ctx.strokeRect(x, y, width, height);
+            ctx.fillRect(
+                selectionBox.x1, 
+                selectionBox.y1, 
+                selectionBox.x2 - selectionBox.x1, 
+                selectionBox.y2 - selectionBox.y1
+            );
         }
 
         ctx.restore();
-    }, [elements, roughCanvas, offset, scale, selectedElementIds, selectionBox]);
+    }, [elements, roughCanvas, selectedElementIds, selectionBox, offset, scale]);
 
     useEffect(() => {
-        const updateSize = () => {
-            const canvas = canvasRef.current;
-            if (canvas && canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-            }
-        };
-        updateSize();
-        window.addEventListener('resize', updateSize);
-        return () => window.removeEventListener('resize', updateSize);
-    }, []);
-
-    const drawElement = (rc: any, ctx: CanvasRenderingContext2D, element: Element) => {
-        const generator = rc.generator;
-        const options = {
-            stroke: element.color,
-            strokeWidth: element.strokeWidth,
-            roughness: 1.2,
-            bowing: 1.5,
-            seed: element.id + 1,
-        };
-
-        switch (element.type) {
-            case 'line': rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options)); break;
-            case 'rectangle': rc.draw(generator.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options)); break;
-            case 'diamond':
-                const midX = (element.x1 + element.x2) / 2;
-                const midY = (element.y1 + element.y2) / 2;
-                rc.draw(generator.polygon([[midX, element.y1], [element.x2, midY], [midX, element.y2], [element.x1, midY]], options));
-                break;
-            case 'circle':
-                const width = element.x2 - element.x1;
-                const height = element.y2 - element.y1;
-                rc.draw(generator.ellipse(element.x1 + width / 2, element.y1 + height / 2, width, height, options));
-                break;
-            case 'arrow':
-                const headlen = 15;
-                const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
-                rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options));
-                rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle - Math.PI / 6), element.y2 - headlen * Math.sin(angle - Math.PI / 6), options));
-                rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle + Math.PI / 6), element.y2 - headlen * Math.sin(angle + Math.PI / 6), options));
-                break;
-            case 'freehand':
-                if (element.points && element.points.length > 1) {
-                    const stroke = element.points.map(p => [p.x, p.y] as [number, number]);
-                    rc.draw(generator.curve(stroke, options));
-                }
-                break;
-            case 'text':
-                ctx.font = `${32 * element.strokeWidth}px 'Outfit', sans-serif`;
-                ctx.fillStyle = element.color;
-                ctx.textBaseline = 'top';
-                const lines = (element.text || '').split('\n');
-                lines.forEach((line, i) => {
-                    ctx.fillText(line, element.x1, element.y1 + i * (38 * element.strokeWidth));
-                });
-                break;
-        }
-    };
-
-    const distance = (a: {x: number, y: number}, b: {x: number, y: number}) => Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
-
-    const getHandleAtPosition = (x: number, y: number, elements: Element[]) => {
-        for (const id of selectedElementIds) {
-            const el = elements.find(e => e.id === id);
-            if (!el) continue;
-
-            const minX = Math.min(el.x1, el.x2);
-            const maxX = Math.max(el.x1, el.x2);
-            const minY = Math.min(el.y1, el.y2);
-            const maxY = Math.max(el.y1, el.y2);
-
-            const handles = [
-                { x: minX, y: minY, type: 'nw' },
-                { x: maxX, y: minY, type: 'ne' },
-                { x: minX, y: maxY, type: 'sw' },
-                { x: maxX, y: maxY, type: 'se' },
-                { x: (minX + maxX) / 2, y: minY, type: 'n' },
-                { x: (minX + maxX) / 2, y: maxY, type: 's' },
-                { x: minX, y: (minY + maxY) / 2, type: 'w' },
-                { x: maxX, y: (minY + maxY) / 2, type: 'e' },
-            ];
-
-            for (const h of handles) {
-                if (Math.abs(x - h.x) < 8 / scale && Math.abs(y - h.y) < 8 / scale) {
-                    return { id, type: h.type };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedElementIds.length > 0 && !editingElement) {
+                    setHistory(prev => [...prev, elements]);
+                    setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
+                    setSelectedElementIds([]);
                 }
             }
-        }
-        return null;
-    };
-
-    const getElementAtPosition = (x: number, y: number, elements: Element[]) => {
-        return [...elements].sort((a, b) => a.zIndex - b.zIndex).findLast(element => {
-            if (element.type === 'rectangle' || element.type === 'diamond') {
-                const minX = Math.min(element.x1, element.x2);
-                const maxX = Math.max(element.x1, element.x2);
-                const minY = Math.min(element.y1, element.y2);
-                const maxY = Math.max(element.y1, element.y2);
-                return x >= minX && x <= maxX && y >= minY && y <= maxY;
-            } else if (element.type === 'circle') {
-                const center = { x: (element.x1 + element.x2) / 2, y: (element.y1 + element.y2) / 2 };
-                const rx = Math.abs(element.x2 - element.x1) / 2;
-                const ry = Math.abs(element.y2 - element.y1) / 2;
-                const dx = (x - center.x) / rx;
-                const dy = (y - center.y) / ry;
-                return (dx * dx + dy * dy) <= 1;
-            } else if (element.type === 'line' || element.type === 'arrow') {
-                const a = { x: element.x1, y: element.y1 };
-                const b = { x: element.x2, y: element.y2 };
-                const offset = distance(a, b);
-                const dist = distance(a, {x, y}) + distance(b, {x, y});
-                return Math.abs(dist - offset) < 1;
-            } else if (element.type === 'freehand') {
-                return element.points?.some(p => distance(p, {x, y}) < 5);
-            } else if (element.type === 'text') {
-                const width = Math.max(50, (element.text?.length || 0) * 12 * element.strokeWidth);
-                const height = 30 * element.strokeWidth;
-                return x >= element.x1 && x <= element.x1 + width && y >= element.y1 && y <= element.y1 + height;
-            }
-            return false;
-        });
-    };
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedElementIds, elements, editingElement]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
+        if (isLocked) return;
         const { x, y } = getMousePos(e);
 
-        if (e.button === 1 || tool === 'hand') {
+        if (tool === 'hand') {
             setAction('panning');
             setStartPanPos({ x: e.clientX, y: e.clientY });
             return;
         }
 
-        switch (tool) {
-            case 'selection': {
-                const handle = getHandleAtPosition(x, y, elements);
-                if (handle) {
-                    setResizeHandle(handle);
-                    setAction('resizing');
-                    setStartPanPos({ x: e.clientX, y: e.clientY });
-                    return;
-                }
+        if (tool === 'selection') {
+            // Check if clicking on an element
+            const clickedElement = [...elements].reverse().find(el => {
+                const minX = Math.min(el.x1, el.x2) - 5;
+                const maxX = Math.max(el.x1, el.x2) + 5;
+                const minY = Math.min(el.y1, el.y2) - 5;
+                const maxY = Math.max(el.y1, el.y2) + 5;
+                return x >= minX && x <= maxX && y >= minY && y <= maxY;
+            });
 
-                const element = getElementAtPosition(x, y, elements);
-                if (element) {
-                    const isAlreadySelected = selectedElementIds.includes(element.id);
-                    if (!isAlreadySelected && !e.shiftKey) {
-                        setSelectedElementIds([element.id]);
-                    } else if (!isAlreadySelected && e.shiftKey) {
-                        setSelectedElementIds(prev => [...prev, element.id]);
-                    }
-                    setAction('moving');
-                    setStartPanPos({ x: e.clientX, y: e.clientY });
-                } else {
-                    setSelectedElementIds([]);
-                    setAction('selecting');
-                    setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
+            if (clickedElement) {
+                if (e.shiftKey) {
+                    setSelectedElementIds(prev => 
+                        prev.includes(clickedElement.id) 
+                            ? prev.filter(id => id !== clickedElement.id)
+                            : [...prev, clickedElement.id]
+                    );
+                } else if (!selectedElementIds.includes(clickedElement.id)) {
+                    setSelectedElementIds([clickedElement.id]);
                 }
-                break;
+                setAction('moving');
+                setStartPanPos({ x: x, y: y });
+            } else {
+                setSelectedElementIds([]);
+                setAction('selecting');
+                setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
             }
-            case 'text': {
-                const id = Date.now();
-                const newEl: Element = { 
-                    id, x1: x, y1: y, x2: x + 100, y2: y + 40, 
-                    type: 'text', color, strokeWidth, zIndex: elements.length, text: '' 
-                };
-                setElements(prev => [...prev, newEl]);
-                setEditingElement(newEl);
-                setAction('none');
-                break;
-            }
-            default: {
-                if (!roughCanvas) return;
-                setAction('drawing');
-                const id = Date.now();
-                const newEl: Element = { 
-                    id, x1: x, y1: y, x2: x, y2: y, type: tool, color, strokeWidth, zIndex: elements.length,
-                    points: tool === 'freehand' ? [{x, y}] : undefined 
-                };
-                setElements(prev => [...prev, newEl]);
-                setHistory(prev => [...prev, elements]);
-                setRedoStack([]);
-                break;
-            }
+            return;
+        }
+
+        setAction('drawing');
+        const id = Date.now();
+        const newElement: Element = {
+            id,
+            type: tool,
+            x1: x,
+            y1: y,
+            x2: x,
+            y2: y,
+            color,
+            strokeWidth,
+            zIndex: elements.length,
+            points: tool === 'freehand' ? [{ x, y }] : undefined,
+            text: tool === 'text' ? '' : undefined
+        };
+        setElements(prev => [...prev, newElement]);
+        setHistory(prev => [...prev, elements]);
+        if (tool === 'text') {
+            setEditingElement(newElement);
+            setAction('none');
         }
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (action === 'none') return;
         const { x, y } = getMousePos(e);
 
         if (action === 'panning') {
-            setOffset(prev => ({ x: prev.x + (e.clientX - startPanPos.x), y: prev.y + (e.clientY - startPanPos.y) }));
-            setStartPanPos({ x: e.clientX, y: e.clientY });
-            return;
-        }
-
-        if (action === 'selecting' && selectionBox) {
-            setSelectionBox({ ...selectionBox, x2: x, y2: y });
-            return;
-        }
-
-        if (action === 'resizing' && resizeHandle) {
-            setElements(prev => prev.map(e => {
-                if (e.id !== resizeHandle.id) return e;
-                const newEl = { ...e };
-                
-                // For freehand, we need to scale all points
-                if (e.type === 'freehand' && e.points) {
-                    const minX = Math.min(...e.points.map(p => p.x));
-                    const maxX = Math.max(...e.points.map(p => p.x));
-                    const minY = Math.min(...e.points.map(p => p.y));
-                    const maxY = Math.max(...e.points.map(p => p.y));
-                    const oldWidth = maxX - minX || 1;
-                    const oldHeight = maxY - minY || 1;
-
-                    let newMinX = minX, newMaxX = maxX, newMinY = minY, newMaxY = maxY;
-                    if (resizeHandle.type.includes('e')) newMaxX = x;
-                    if (resizeHandle.type.includes('w')) newMinX = x;
-                    if (resizeHandle.type.includes('s')) newMaxY = y;
-                    if (resizeHandle.type.includes('n')) newMinY = y;
-
-                    const scaleX = (newMaxX - newMinX) / oldWidth;
-                    const scaleY = (newMaxY - newMinY) / oldHeight;
-
-                    newEl.points = e.points.map(p => ({
-                        x: newMinX + (p.x - minX) * scaleX,
-                        y: newMinY + (p.y - minY) * scaleY
-                    }));
-                    
-                    // Update bounding box for selection highlight
-                    newEl.x1 = newMinX;
-                    newEl.y1 = newMinY;
-                    newEl.x2 = newMaxX;
-                    newEl.y2 = newMaxY;
-                } else {
-                    if (resizeHandle.type.includes('e')) newEl.x2 = x;
-                    if (resizeHandle.type.includes('w')) newEl.x1 = x;
-                    if (resizeHandle.type.includes('s')) newEl.y2 = y;
-                    if (resizeHandle.type.includes('n')) newEl.y1 = y;
-                }
-                return newEl;
-            }));
-            return;
-        }
-
-        if (action === 'moving' && selectedElementIds.length > 0) {
-            const dx = (e.clientX - startPanPos.x) / scale;
-            const dy = (e.clientY - startPanPos.y) / scale;
-            setElements(prev => prev.map(el => selectedElementIds.includes(el.id) ? { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy, points: el.points?.map(p => ({ x: p.x + dx, y: p.y + dy })) } : el));
+            const dx = e.clientX - startPanPos.x;
+            const dy = e.clientY - startPanPos.y;
+            setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
             setStartPanPos({ x: e.clientX, y: e.clientY });
             return;
         }
 
         if (action === 'drawing') {
-            const copy = [...elements];
-            const current = copy[copy.length - 1];
-            if (current.type === 'freehand') current.points = [...(current.points || []), { x, y }];
-            else { current.x2 = x; current.y2 = y; }
-            setElements(copy);
+            const index = elements.length - 1;
+            const updatedElements = [...elements];
+            const element = updatedElements[index];
+            element.x2 = x;
+            element.y2 = y;
+            if (element.type === 'freehand' && element.points) {
+                element.points.push({ x, y });
+            }
+            setElements(updatedElements);
+        } else if (action === 'moving') {
+            const dx = x - startPanPos.x;
+            const dy = y - startPanPos.y;
+            setElements(prev => prev.map(el => {
+                if (selectedElementIds.includes(el.id)) {
+                    const newEl = { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
+                    if (newEl.type === 'freehand' && newEl.points) {
+                        newEl.points = newEl.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+                    }
+                    return newEl;
+                }
+                return el;
+            }));
+            setStartPanPos({ x, y });
+        } else if (action === 'selecting' && selectionBox) {
+            setSelectionBox({ ...selectionBox, x2: x, y2: y });
         }
     };
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         const { x, y } = getMousePos(e);
-        const element = getElementAtPosition(x, y, elements);
-        if (element && element.type === 'text') {
-            setEditingElement(element);
-            setSelectedElementIds([]);
+        const clickedElement = [...elements].reverse().find(el => {
+            const minX = Math.min(el.x1, el.x2) - 5;
+            const maxX = Math.max(el.x1, el.x2) + 5;
+            const minY = Math.min(el.y1, el.y2) - 5;
+            const maxY = Math.max(el.y1, el.y2) + 5;
+            return x >= minX && x <= maxX && y >= minY && y <= maxY;
+        });
+
+        if (clickedElement && clickedElement.type === 'text') {
+            setEditingElement(clickedElement);
+        } else if (!clickedElement) {
+            // Create new text element
+            const id = Date.now();
+            const newElement: Element = {
+                id,
+                type: 'text',
+                x1: x,
+                y1: y,
+                x2: x,
+                y2: y,
+                color,
+                strokeWidth,
+                zIndex: elements.length,
+                text: ''
+            };
+            setElements(prev => [...prev, newElement]);
+            setEditingElement(newElement);
         }
     };
+
+    const deleteSelected = useCallback(() => {
+        if (selectedElementIds.length > 0) {
+            setHistory(prev => [...prev, elements]);
+            setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
+            setSelectedElementIds([]);
+        }
+    }, [selectedElementIds, elements]);
 
     const handleMouseUp = () => {
         if (action === 'selecting' && selectionBox) {
@@ -408,7 +364,6 @@ export function DrawPage() {
         }
         setAction('none');
         setSelectionBox(null);
-        setResizeHandle(null);
     };
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -439,55 +394,66 @@ export function DrawPage() {
         setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: minZ - 1 } : e)); 
     };
 
-    const handleClear = () => { setHistory(h => [...h, elements]); setElements([]); };
-
-    const deleteSelected = () => {
-        if (selectedElementIds.length === 0) return;
-        setHistory(prev => [...prev, elements]);
-        setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
-        setSelectedElementIds([]);
-    };
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.key === 'Delete' || e.key === 'Backspace') && !editingElement) {
-                deleteSelected();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedElementIds, editingElement, elements]);
-
-    const zoomIn = () => setScale(s => Math.min(10, s + 0.1));
-    const zoomOut = () => setScale(s => Math.max(0.1, s - 0.1));
-    const resetZoom = () => setScale(1);
-
     return (
-        <div className="flex flex-col h-full bg-[#f9f9fb] dark:bg-zinc-950 overflow-hidden font-sans select-none relative">
-            <Script src="https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js" onLoad={onScriptLoad} />
-            <ActionMenu handleDownload={handleDownload} />
-            <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
-            <ZoomControls scale={scale} zoomIn={zoomIn} zoomOut={zoomOut} resetZoom={resetZoom} handleUndo={handleUndo} handleRedo={handleRedo} canUndo={history.length > 0} canRedo={redoStack.length > 0} />
-            
-            <StylePanel 
-                elements={elements} 
-                selectedElementIds={selectedElementIds} 
-                setSelectedElementIds={setSelectedElementIds} 
-                color={color} 
-                setColor={setColor} 
-                strokeWidth={strokeWidth} 
-                setStrokeWidth={setStrokeWidth} 
-                handleClear={handleClear} 
-                updateElement={updateElement}
-                deleteSelected={deleteSelected}
-                bringToFront={bringToFront} 
-                sendToBack={sendToBack} 
+        <div className="relative w-full h-screen overflow-hidden bg-[#fafafa] dark:bg-[#09090b]">
+            <Script 
+                src="https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js" 
+                onLoad={onScriptLoad}
             />
+            
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
+                <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
+            </div>
 
-            <div className="flex-1 relative overflow-hidden bg-white dark:bg-zinc-950">
-                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: `${20 * scale}px ${20 * scale}px`, backgroundPosition: `${offset.x}px ${offset.y}px` }} />
+            <div className="absolute top-6 right-6 z-50">
+                <ActionMenu 
+                    handleDownload={handleDownload} 
+                />
+            </div>
+
+            <div className="absolute bottom-6 left-6 z-50">
+                <ZoomControls 
+                    scale={scale} 
+                    zoomIn={() => setScale(s => Math.min(10, s * 1.1))} 
+                    zoomOut={() => setScale(s => Math.max(0.1, s * 0.9))} 
+                    resetZoom={() => { setScale(1); setOffset({ x: 0, y: 0 }); }}
+                    handleUndo={handleUndo}
+                    handleRedo={handleRedo}
+                    canUndo={history.length > 0}
+                    canRedo={redoStack.length > 0}
+                />
+            </div>
+
+            {selectedElementIds.length > 0 && (
+                <div className="absolute top-24 right-6 z-50">
+                    <StylePanel 
+                        elements={elements}
+                        selectedElementIds={selectedElementIds}
+                        setSelectedElementIds={setSelectedElementIds}
+                        color={color} 
+                        setColor={(c) => {
+                            setColor(c);
+                            selectedElementIds.forEach(id => updateElement(id, { color: c }));
+                        }} 
+                        strokeWidth={strokeWidth} 
+                        setStrokeWidth={(w) => {
+                            setStrokeWidth(w);
+                            selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
+                        }}
+                        handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
+                        updateElement={updateElement}
+                        deleteSelected={deleteSelected}
+                        bringToFront={bringToFront}
+                        sendToBack={sendToBack}
+                    />
+                </div>
+            )}
+
+            <div className="w-full h-full cursor-crosshair overflow-hidden">
                 <canvas 
                     ref={canvasRef} 
+                    width={typeof window !== 'undefined' ? window.innerWidth : 1920}
+                    height={typeof window !== 'undefined' ? window.innerHeight : 1080}
                     onMouseDown={handleMouseDown} 
                     onMouseMove={handleMouseMove} 
                     onMouseUp={handleMouseUp} 
