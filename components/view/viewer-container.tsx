@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { HTMLViewer } from '@/components/shared/html-viewer';
 import { CodeViewer } from '@/components/shared/code-viewer';
 import { TableViewer } from '@/components/shared/table-viewer';
-import { Format, ContainerProps } from '@/types';
+import { ContainerProps } from '@/types';
 import yaml from 'js-yaml';
 import * as prettier from 'prettier/standalone';
 import * as prettierPluginHtml from 'prettier/plugins/html';
@@ -15,25 +15,25 @@ import * as prettierPluginEstree from 'prettier/plugins/estree';
 import * as prettierPluginMarkdown from 'prettier/plugins/markdown';
 import { format as formatSql } from 'sql-formatter';
 import { Button } from "@/components/ui/button";
+import Editor from '@monaco-editor/react';
+import { useTheme } from 'next-themes';
 import {
     Code2,
     Eye,
-    Layout,
     Table as TableIcon,
     Maximize2,
     ExternalLink,
     PanelLeftClose,
     PanelLeftOpen,
+    Settings,
     AlignLeft,
     Copy,
     FileEdit,
     ChevronDown,
-    Zap,
-    Layers,
     Download,
     Trash2,
-    ListOrdered,
-    Type
+    Type,
+    Layout as LayoutIcon
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -43,57 +43,41 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useEditor } from '@/lib/hooks/use-editor';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
+import { Separator } from '@/components/ui/separator';
 
 export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
     const router = useRouter();
-    const [content, setContent] = useState(initialContent);
-    const [format, setFormat] = useState<Format>(initialFormat);
+    const { resolvedTheme } = useTheme();
+    const { content, setContent, format, setFormat } = useEditor({
+        initialContent,
+        initialFormat,
+    });
+
     const [activeTab, setActiveTab] = useState("preview");
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
-    const [enableJS, setEnableJS] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
-    const [showLineNumbers, setShowLineNumbers] = useState(true);
-    const [wordWrap, setWordWrap] = useState(false);
-    const codeViewerRef = useRef<HTMLDivElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    
+    // Editor Settings from LocalStorage
+    const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
+    const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'off');
+    
+    const [fileName, setFileName] = useState(`view.${getLanguage(initialFormat)}`);
 
-    const [prevInitialContent, setPrevInitialContent] = useState(initialContent);
-    const [prevInitialFormat, setPrevInitialFormat] = useState(initialFormat);
-
-    React.useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const saved = sessionStorage.getItem(`web-viewer-content-${format}`);
-            if (saved) {
-                setContent(saved);
-            }
-        }
-    }, [format]);
-
-    if (initialContent !== prevInitialContent || initialFormat !== prevInitialFormat) {
-        setPrevInitialContent(initialContent);
-        setPrevInitialFormat(initialFormat);
-
-        // Only update content from props if we don't have something in sessionStorage for this format
-        let hasSaved = false;
-        if (typeof window !== 'undefined') {
-            hasSaved = !!sessionStorage.getItem(`web-viewer-content-${initialFormat}`);
-        }
-
-        if (!hasSaved) {
-            setContent(initialContent);
-        }
-        setFormat(initialFormat);
-    }
-
-    const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        if (codeViewerRef.current) {
-            codeViewerRef.current.scrollTop = e.currentTarget.scrollTop;
-            codeViewerRef.current.scrollLeft = e.currentTarget.scrollLeft;
-        }
+    const handleWordWrapToggle = () => {
+        const newVal = prefWordWrap === "on" ? "off" : "on";
+        setPrefWordWrap(newVal);
     };
 
     const handleClear = () => {
@@ -103,19 +87,18 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     };
 
     const handleDownload = () => {
-        const extension = format === 'react' ? 'tsx' : format;
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `file.${extension}`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
-    const handleFormat = async () => {
+    const handleAutoFormat = async () => {
         try {
             if (format === 'json') {
                 const parsed = JSON.parse(content);
@@ -132,10 +115,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                     'javascript': 'babel',
                     'typescript': 'babel-ts',
                     'react': 'babel-ts',
-                    'markdown': 'markdown',
-                    'xml': 'html', // Prettier doesn't have a native XML plugin without extra deps, but HTML often works for basics
+                    'markdown': 'babel',
+                    'xml': 'html',
                 };
-
                 const parser = parserMap[format];
                 if (parser) {
                     const formatted = await prettier.format(content, {
@@ -155,56 +137,50 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                 }
             }
         } catch (e) {
-            console.error('Formatting error:', e);
+            console.error(e);
         }
     };
 
-    let formattedContent = content;
-    try {
-        if (format === 'json') formattedContent = JSON.stringify(JSON.parse(content), null, 2);
-        else if (format === 'yaml') formattedContent = yaml.dump(yaml.load(content));
-    } catch (e) {
-        console.error(e);
-        formattedContent = content;
-    }
-
-    let tableData: Record<string, string>[] | null = null;
-    try {
-        if (format === 'json') {
-            const parsed = JSON.parse(content);
-            tableData = Array.isArray(parsed) ? parsed : null;
+    const formattedContent = useMemo(() => {
+        try {
+            if (format === 'json') return JSON.stringify(JSON.parse(content), null, 2);
+            if (format === 'yaml') return yaml.dump(yaml.load(content));
+        } catch {
+            return content;
         }
-        if (format === 'csv') {
-            const lines = content.trim().split('\n');
-            if (lines.length >= 2) {
-                const headers = lines[0].split(',');
-                tableData = lines.slice(1).map((line: string) => {
-                    const values = line.split(',');
-                    return headers.reduce((acc: Record<string, string>, header: string, i: number) => ({ ...acc, [header]: values[i] }), {});
-                });
+        return content;
+    }, [content, format]);
+
+    const tableData = useMemo(() => {
+        try {
+            if (format === 'json') {
+                const parsed = JSON.parse(content);
+                return Array.isArray(parsed) ? parsed : null;
             }
+            if (format === 'csv') {
+                const lines = content.trim().split('\n');
+                if (lines.length >= 2) {
+                    const headers = lines[0].split(',');
+                    return lines.slice(1).map((line: string) => {
+                        const values = line.split(',');
+                        return headers.reduce((acc: Record<string, string>, header: string, i: number) => ({ ...acc, [header]: values[i] }), {});
+                    });
+                }
+            }
+        } catch {
+            return null;
         }
-    } catch (e) {
-        console.error(e);
-        tableData = null;
-    }
+        return null;
+    }, [content, format]);
 
-    const handleTableDataChange = (newData: Record<string, string>[]) => {
-        if (format === 'json') setContent(JSON.stringify(newData, null, 2));
-        else if (format === 'csv' && newData.length > 0) {
-            const headers = Object.keys(newData[0]);
-            setContent([headers.join(','), ...newData.map(row => headers.map(h => row[h]).join(','))].join('\n'));
-        }
-    };
-
-    const canEditTable = (format === 'json' && Array.isArray(tableData)) || format === 'csv';
+    const canPreviewTable = (format === 'json' && Array.isArray(tableData)) || format === 'csv';
 
     const openFullPage = () => {
         const htmlContent = `
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Preview - Web Utils Pro</title>
+                    <title>Preview - Web Utils</title>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1">
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -222,239 +198,257 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
         window.open(url, '_blank');
     };
 
-    const jumpToEditor = () => {
-        router.push('/editor');
-    };
-
     return (
-        <div className={`flex flex-col w-full bg-white dark:bg-zinc-950 transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-[calc(100vh-64px)]"}`}>
-            {/* Top Toolbar */}
-            <div className="flex flex-col border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 backdrop-blur-md">
-                <div className="flex items-center justify-between px-6 py-2 gap-4">
-                    <div className="flex items-center gap-4">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 gap-2">
-                                    <span className="text-zinc-600 dark:text-zinc-300">{format}</span>
-                                    <ChevronDown className="size-3" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="min-w-[150px] rounded-lg">
-                                {ALL_FORMATS.slice(0, 10).map((fmt) => (
-                                    <DropdownMenuItem key={fmt} onClick={() => setFormat(fmt)} className="text-[10px] font-bold uppercase tracking-wider">
-                                        {fmt}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full"}`}>
+            {/* Minimalist Top Toolbar */}
+            <div className="flex items-center justify-between px-6 h-14 border-b bg-muted/20 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground gap-2">
+                                <span className="text-foreground">{format}</span>
+                                <ChevronDown className="size-3" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="min-w-[150px]">
+                            {ALL_FORMATS.slice(0, 10).map((fmt) => (
+                                <DropdownMenuItem key={fmt} onClick={() => setFormat(fmt)} className="text-[10px] font-bold uppercase">
+                                    {fmt}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
-                        <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
-
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={jumpToEditor}
-                            className="h-8 border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm text-xs font-bold gap-2"
-                        >
-                            <FileEdit className="size-3.5" /> Jump to Editor
-                        </Button>
-                    </div>
+                    <Separator orientation="vertical" className="h-4" />
 
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-lg text-zinc-500"
-                            onClick={() => setShowEditor(!showEditor)}
-                            title={showEditor ? "Close Source Code" : "Open Source Code"}
-                        >
-                            {showEditor ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="size-8 rounded-lg text-zinc-500" onClick={() => setIsFullscreen(!isFullscreen)}>
-                            <Maximize2 className="size-4" />
-                        </Button>
+                        <div className="p-1 bg-primary/10 rounded-md">
+                            <Eye className="size-3.5 text-primary" />
+                        </div>
+                        <input
+                            type="text"
+                            value={fileName}
+                            onChange={(e) => setFileName(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[11px] font-bold text-foreground min-w-[120px] placeholder:text-muted-foreground/50"
+                            spellCheck={false}
+                        />
                     </div>
                 </div>
-            </div>
 
-            {/* Split Editor/Preview */}
-            <div className="flex-1 flex overflow-hidden">
-                {/* Left: Syntax Highlighted Editor */}
-                {showEditor && (
-                    <div className="flex-1 flex flex-col border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/20 dark:bg-zinc-900/10 transition-all duration-300">
-                        <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">
-                            <div className="flex items-center gap-2">
-                                <Code2 className="size-4 text-indigo-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Live Editor</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                {format === 'html' && (
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setUseBootstrap(!useBootstrap)}
-                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${useBootstrap ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-                                        >
-                                            <Layers className="size-3" /> Bootstrap
-                                        </button>
-                                        <button
-                                            onClick={() => setUseTailwind(!useTailwind)}
-                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${useTailwind ? "bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 border-cyan-200 dark:border-cyan-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-                                        >
-                                            <Zap className="size-3" /> Tailwind
-                                        </button>
-                                        <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
-                                        <button
-                                            onClick={() => setEnableJS(!enableJS)}
-                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${enableJS ? "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 border-yellow-200 dark:border-yellow-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-                                        >
-                                            <Code2 className="size-3" /> JavaScript
-                                        </button>
-                                    </div>
-                                )}
-                                <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setShowLineNumbers(!showLineNumbers)}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${showLineNumbers ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-                                        title="Toggle Line Numbers"
-                                    >
-                                        <ListOrdered className="size-3" /> Lines
-                                    </button>
-                                    <button
-                                        onClick={() => setWordWrap(!wordWrap)}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all border ${wordWrap ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-200 dark:border-indigo-800" : "text-zinc-400 border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}
-                                        title="Toggle Word Wrap"
-                                    >
-                                        <Type className="size-3" /> Wrap
-                                    </button>
-                                </div>
-                                <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleFormat}
-                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
-                                        title="Format Code"
-                                    >
-                                        <AlignLeft className="size-3" />
-                                        <span className="text-[10px] font-bold">Format</span>
-                                    </button>
-                                    <button
-                                        onClick={() => navigator.clipboard.writeText(content)}
-                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
-                                        title="Copy Code"
-                                    >
-                                        <Copy className="size-3" />
-                                        <span className="text-[10px] font-bold">Copy</span>
-                                    </button>
-                                    <button
-                                        onClick={handleDownload}
-                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-indigo-500 transition-colors"
-                                        title="Download File"
-                                    >
-                                        <Download className="size-3" />
-                                        <span className="text-[10px] font-bold">Save</span>
-                                    </button>
-                                    <button
-                                        onClick={handleClear}
-                                        className="flex items-center gap-1 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-red-500 transition-colors"
-                                        title="Clear Editor"
-                                    >
-                                        <Trash2 className="size-3" />
-                                        <span className="text-[10px] font-bold">Clear</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 relative overflow-hidden custom-scrollbar">
-                            <CodeViewer
-                                ref={codeViewerRef}
-                                content={content}
-                                language={getLanguage(format)}
-                                className={`viewer-code-view absolute inset-0 pointer-events-none p-6 font-mono text-sm leading-[1.5] border-none rounded-none overflow-hidden ${showLineNumbers ? "" : "pl-6"}`}
-                                showLineNumbers={showLineNumbers}
-                                wrapLines={wordWrap}
-                            />
-                            <textarea
-                                ref={textareaRef}
-                                className={`absolute inset-0 w-full h-full p-6 font-mono text-sm bg-transparent resize-none outline-none focus:ring-0 text-transparent caret-zinc-800 dark:caret-zinc-200 leading-[1.5] custom-scrollbar z-10 ${wordWrap ? "whitespace-pre-wrap break-all" : "whitespace-pre"} ${showLineNumbers ? "pl-[calc(3em+2.5rem)]" : "pl-6"}`}
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                onScroll={handleScroll}
-                                placeholder={`Paste ${format.toUpperCase()}...`}
-                                spellCheck={false}
-                                autoCapitalize="off"
-                                autoComplete="off"
-                                autoCorrect="off"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Right: Correct Preview */}
-                <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-zinc-950">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">
-                        <div className="flex gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                            <button onClick={() => setActiveTab("preview")} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === "preview" ? "bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm" : "text-zinc-500"}`}>
-                                <Eye className="size-3.5" /> Preview
-                            </button>
-
-                            {canEditTable && (
-                                <button onClick={() => setActiveTab("interactive")} className={`px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${activeTab === "interactive" ? "bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm" : "text-zinc-500"}`}>
-                                    <TableIcon className="size-3.5" /> Data Table
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-md px-2" onClick={openFullPage}>
-                                <ExternalLink className="size-3" /> Full Page
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-md text-muted-foreground"
+                        onClick={() => setShowEditor(!showEditor)}
+                    >
+                        {showEditor ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+                    </Button>
+                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                                <Settings className="size-4" />
                             </Button>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-auto bg-zinc-50/30 dark:bg-transparent custom-scrollbar relative">
-                        <div className="absolute inset-0">
-                            {activeTab === "preview" && (
-                                <div className="p-0 h-full flex flex-col">
-                                    {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={enableJS} />}
-                                    {format === 'json' && <div className="p-4 bg-white dark:bg-zinc-900 border-none shadow-sm h-full overflow-auto"><CodeViewer content={formattedContent} language="json" /></div>}
-                                    {format === 'markdown' && (
-                                        <div className="prose prose-zinc dark:prose-invert max-w-none bg-white dark:bg-zinc-900 p-8 border-none min-h-full shadow-sm">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-                                        </div>
-                                    )}
-                                    {format === 'svg' && (
-                                        <div className="flex items-center justify-center p-8 bg-white dark:bg-zinc-900 border-none min-h-full shadow-sm" dangerouslySetInnerHTML={{ __html: content }} />
-                                    )}
-                                    {format === 'csv' && <div className="p-4"><TableViewer data={tableData || []} onDataChange={handleTableDataChange} /></div>}
-                                    {!PREVIEWABLE_FORMATS.includes(format) && (
-                                        <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-40">
-                                            <Layout className="size-16 mb-4 text-indigo-500" />
-                                            <p className="text-sm font-bold uppercase tracking-widest">No Preview Format Available</p>
-                                        </div>
-                                    )}
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Type className="size-3" /> Font Size
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="range" 
+                                        min="10" 
+                                        max="24" 
+                                        value={prefFontSize} 
+                                        onChange={(e) => setPrefFontSize(Number(e.target.value))}
+                                        className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
                                 </div>
-                            )}
-                            {activeTab === "interactive" && <div className="p-8"><TableViewer data={tableData || []} onDataChange={handleTableDataChange} /></div>}
-                        </div>
-                    </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Code2 className="size-3" /> Tab Size
+                                </label>
+                                <div className="flex gap-2">
+                                    {[2, 4, 8].map(size => (
+                                        <Button 
+                                            key={size}
+                                            variant={prefTabSize === size ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="h-7 flex-1 text-[10px] font-bold"
+                                            onClick={() => setPrefTabSize(size)}
+                                        >
+                                            {size}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <AlignLeft className="size-3" /> Word Wrap
+                                </label>
+                                <Button 
+                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="h-7 w-full text-[10px] font-bold"
+                                    onClick={handleWordWrapToggle}
+                                >
+                                    {prefWordWrap === 'on' ? 'Enabled' : 'Disabled'}
+                                </Button>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
+                        <Maximize2 className="size-4" />
+                    </Button>
                 </div>
             </div>
 
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.2); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(161, 161, 170, 0.4); }
-                
-                /* Editor Typography Alignment */
-                textarea { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
-                .viewer-code-view { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; scrollbar-gutter: stable; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
-                .viewer-code-view code, .viewer-code-view pre { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; tab-size: 4; }
-                
-                /* Match textarea scrollbar behavior */
-                textarea { scrollbar-gutter: stable; }
-            `}</style>
+            {/* Split UI with Resizable Panels */}
+            <div className="flex-1 flex overflow-hidden">
+                <ResizablePanelGroup direction="horizontal">
+                    {showEditor && (
+                        <>
+                            <ResizablePanel defaultSize={40} minSize={20}>
+                                <div className="flex flex-col h-full border-r bg-muted/5">
+                                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+                                        <div className="flex items-center gap-2">
+                                            <Code2 className="size-4 text-primary" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={() => router.push('/editor')} className="size-7" title="Open in Editor">
+                                                <FileEdit className="size-3.5" />
+                                            </Button>
+                                            <Separator orientation="vertical" className="h-4 mx-1" />
+                                            <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7" title="Format">
+                                                <AlignLeft className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Wrap">
+                                                <Type className="size-3.5" />
+                                            </Button>
+                                            <Separator orientation="vertical" className="h-4 mx-1" />
+                                            <Button variant="ghost" size="icon" onClick={() => navigator.clipboard.writeText(content)} className="size-7">
+                                                <Copy className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleDownload} className="size-7">
+                                                <Download className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleClear} className="size-7 text-destructive">
+                                                <Trash2 className="size-3.5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 relative overflow-hidden">
+                                        <Editor
+                                            height="100%"
+                                            language={getLanguage(format)}
+                                            value={content}
+                                            onChange={(value) => setContent(value || "")}
+                                            theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                                            options={{
+                                                minimap: { enabled: false },
+                                                fontSize: prefFontSize,
+                                                tabSize: prefTabSize,
+                                                wordWrap: prefWordWrap as "on" | "off",
+                                                automaticLayout: true,
+                                                padding: { top: 16 },
+                                                lineNumbersMinChars: 3,
+                                                scrollBeyondLastLine: false,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                        </>
+                    )}
+
+                    <ResizablePanel defaultSize={showEditor ? 60 : 100}>
+                        <div className="flex flex-col h-full bg-background">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                                <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+                                    <TabsList className="h-8 bg-muted/50">
+                                        <TabsTrigger value="preview" className="text-[10px] font-bold uppercase py-1.5 h-7">
+                                            <Eye className="size-3 mr-2" /> Preview
+                                        </TabsTrigger>
+                                        {canPreviewTable && (
+                                            <TabsTrigger value="table" className="text-[10px] font-bold uppercase py-1.5 h-7">
+                                                <TableIcon className="size-3 mr-2" /> Data
+                                            </TabsTrigger>
+                                        )}
+                                    </TabsList>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        {format === 'html' && (
+                                            <div className="flex items-center gap-1">
+                                                <Button 
+                                                    variant={useBootstrap ? "secondary" : "ghost"} 
+                                                    size="sm" 
+                                                    className="h-7 text-[10px] uppercase px-2 font-bold"
+                                                    onClick={() => setUseBootstrap(!useBootstrap)}
+                                                >
+                                                    BS
+                                                </Button>
+                                                <Button 
+                                                    variant={useTailwind ? "secondary" : "ghost"} 
+                                                    size="sm" 
+                                                    className="h-7 text-[10px] uppercase px-2 font-bold"
+                                                    onClick={() => setUseTailwind(!useTailwind)}
+                                                >
+                                                    TW
+                                                </Button>
+                                            </div>
+                                        )}
+                                        <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold uppercase rounded-md px-3" onClick={openFullPage}>
+                                            <ExternalLink className="size-3 mr-2" /> Full Page
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <TabsContent value="preview" className="flex-1 relative overflow-auto m-0 p-0 border-none">
+                                    <div className="absolute inset-0">
+                                        {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={true} />}
+                                        {format === 'json' && <div className="p-4 bg-background h-full overflow-auto"><CodeViewer content={formattedContent} language="json" /></div>}
+                                        {format === 'markdown' && (
+                                            <div className="prose prose-zinc dark:prose-invert max-w-none bg-background p-8 min-h-full">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                                            </div>
+                                        )}
+                                        {format === 'svg' && (
+                                            <div className="flex items-center justify-center p-8 bg-background min-h-full" dangerouslySetInnerHTML={{ __html: content }} />
+                                        )}
+                                        {format === 'csv' && <div className="p-4 bg-background min-h-full"><TableViewer data={tableData || []} onDataChange={(newData) => {
+                                            const headers = Object.keys(newData[0]);
+                                            setContent([headers.join(','), ...newData.map(row => headers.map(h => row[h]).join(','))].join('\n'));
+                                        }} /></div>}
+                                        {!PREVIEWABLE_FORMATS.includes(format) && (
+                                            <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-30">
+                                                <LayoutIcon className="size-16 mb-4 text-primary" />
+                                                <p className="text-sm font-bold uppercase tracking-widest">No Live Preview</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="table" className="flex-1 overflow-auto m-0 p-8 border-none bg-background">
+                                    <TableViewer data={tableData || []} onDataChange={(newData) => {
+                                        if (format === 'json') setContent(JSON.stringify(newData, null, 2));
+                                        else if (format === 'csv') {
+                                            const headers = Object.keys(newData[0]);
+                                            setContent([headers.join(','), ...newData.map(row => headers.map(h => row[h]).join(','))].join('\n'));
+                                        }
+                                    }} />
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
         </div>
     );
 }

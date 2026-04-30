@@ -6,10 +6,15 @@ import { Group, Panel, Separator } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
 
+export interface ResizablePanelGroupProps extends React.ComponentProps<typeof Group> {
+  className?: string
+  direction: "horizontal" | "vertical"
+}
+
 function ResizablePanelGroup({
   className,
   ...props
-}: React.ComponentProps<typeof Group>) {
+}: ResizablePanelGroupProps) {
   return (
     <Group
       data-slot="resizable-panel-group"
@@ -22,10 +27,14 @@ function ResizablePanelGroup({
   )
 }
 
+export interface ResizablePanelProps extends React.ComponentProps<typeof Panel> {
+  className?: string
+}
+
 function ResizablePanel({
   className,
   ...props
-}: React.ComponentProps<typeof Panel>) {
+}: ResizablePanelProps) {
   return (
     <Panel
       data-slot="resizable-panel"

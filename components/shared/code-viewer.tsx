@@ -1,8 +1,9 @@
 "use client";
 
 import React, { forwardRef } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import Editor from '@monaco-editor/react';
+import { useTheme } from 'next-themes';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface CodeViewerProps {
     content: string;
@@ -12,39 +13,38 @@ interface CodeViewerProps {
     wrapLines?: boolean;
 }
 
-export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content, language, className, showLineNumbers = true, wrapLines = true }, ref) => {
+export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content, language, className, wrapLines = true }, ref) => {
+    const { resolvedTheme } = useTheme();
+    const [prefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize] = useLocalStorage('editorTabSize', 4);
+
     return (
-        <div ref={ref} className={className}>
-            <SyntaxHighlighter
+        <div ref={ref} className={`h-full w-full ${className}`}>
+            <Editor
+                height="100%"
                 language={language}
-                style={atomDark}
-                wrapLines={wrapLines}
-                lineProps={{
-                    style: {
-                        wordBreak: 'break-all',
-                        whiteSpace: wrapLines ? 'pre-wrap' : 'pre',
-                    }
+                value={content}
+                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    fontSize: prefFontSize,
+                    tabSize: prefTabSize,
+                    wordWrap: wrapLines ? "on" : "off",
+                    automaticLayout: true,
+                    scrollBeyondLastLine: false,
+                    lineNumbers: "on",
+                    renderLineHighlight: "none",
+                    scrollbar: {
+                        vertical: "hidden",
+                        horizontal: "hidden"
+                    },
+                    overviewRulerLanes: 0,
+                    hideCursorInOverviewRuler: true,
+                    contextmenu: false,
+                    padding: { top: 8 }
                 }}
-                customStyle={{
-                    margin: 0,
-                    padding: 0,
-                    background: 'transparent',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    lineHeight: 'inherit',
-                }}
-                showLineNumbers={showLineNumbers}
-                lineNumberStyle={{
-                    minWidth: '3em',
-                    paddingRight: '1em',
-                    color: '#636e7b',
-                    textAlign: 'right',
-                    userSelect: 'none',
-                    opacity: 0.5
-                }}
-            >
-                {content}
-            </SyntaxHighlighter>
+            />
         </div>
     );
 });

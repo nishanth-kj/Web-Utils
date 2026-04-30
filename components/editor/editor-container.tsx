@@ -1,28 +1,31 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
+import Editor, { OnMount } from '@monaco-editor/react';
+import { useTheme } from 'next-themes';
 import {
     Save,
-    Check,
     FileEdit,
-    RotateCcw,
-    FileType,
-
-    Download,
-    Terminal,
     Plus,
     Table as TableIcon,
-    Code,
-    ChevronDown,
     Trash,
-    Eye,
-
+    Copy as CopyIcon,
+    Settings,
+    Type as TypeIcon,
+    Code2,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Maximize2,
+    ChevronDown,
+    Layout as LayoutIcon,
+    AlignLeft,
+    Download
 } from "lucide-react";
-import { CodeViewer } from '@/components/shared/code-viewer';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { TableViewer } from '@/components/shared/table-viewer';
-import { Format, ContainerProps } from '@/types';
+import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
 import {
     DropdownMenu,
@@ -30,394 +33,400 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
-    DropdownMenuLabel,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-
-import { PREVIEWABLE_FORMATS, ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { useEditor } from '@/lib/hooks/use-editor';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { Separator } from '@/components/ui/separator';
+import {
+    ResizableHandle,
+    ResizablePanel,
+    ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HTMLViewer } from '@/components/shared/html-viewer';
+import { CodeViewer } from '@/components/shared/code-viewer';
 
 export function EditorContainer({ initialContent, initialFormat }: ContainerProps) {
-    const router = useRouter();
-    const [content, setContent] = useState(initialContent);
-    const [format, setFormat] = useState<Format>(initialFormat);
-    const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
-    const [isSaved, setIsSaved] = useState(true);
-    const [copied, setCopied] = useState(false);
-    const [wordWrap, setWordWrap] = useState(true);
-    const [autoFormat, setAutoFormat] = useState(false);
-    const [viewMode, setViewMode] = useState<'code' | 'table'>('code');
-    const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-    const codeViewerRef = useRef<HTMLDivElement>(null);
+    const { resolvedTheme } = useTheme();
+    const { content, setContent, format, setFormat, isSaved, setIsSaved } = useEditor({
+        initialContent,
+        initialFormat,
+    });
 
-    const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        if (codeViewerRef.current) {
-            codeViewerRef.current.scrollTop = e.currentTarget.scrollTop;
-            codeViewerRef.current.scrollLeft = e.currentTarget.scrollLeft;
-        }
+    const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
+    
+    // Editor Settings from LocalStorage
+    const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
+    const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'on');
+    
+    const handleWordWrapToggle = () => {
+        const newVal = prefWordWrap === 'on' ? 'off' : 'on';
+        setPrefWordWrap(newVal);
     };
 
-    const updateCursorPosition = (e: React.UIEvent<HTMLTextAreaElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
-        const target = e.currentTarget as HTMLTextAreaElement;
-        const textBeforeCursor = target.value.substring(0, target.selectionStart);
-        const lines = textBeforeCursor.split("\n");
-        setCursorPos({
-            line: lines.length,
-            col: lines[lines.length - 1].length + 1
+    const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
+    const [showPreview, setShowPreview] = useState(true);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const editorRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const handleEditorDidMount: OnMount = (editor) => {
+        editorRef.current = editor;
+        editor.onDidChangeCursorPosition((e) => {
+            setCursorPos({ line: e.position.lineNumber, col: e.position.column });
         });
     };
 
-    const [prevInitialContent, setPrevInitialContent] = useState(initialContent);
-    const [prevInitialFormat, setPrevInitialFormat] = useState(initialFormat);
-
-    // Sync to sessionStorage automatically for the Viewer to pick up
-    React.useEffect(() => {
-        if (typeof window !== 'undefined') {
-            sessionStorage.setItem(`web-viewer-content-${format}`, content);
-        }
-    }, [content, format]);
-
-    if (initialContent !== prevInitialContent || initialFormat !== prevInitialFormat) {
-        setPrevInitialContent(initialContent);
-        setPrevInitialFormat(initialFormat);
-        setContent(initialContent);
-        setFormat(initialFormat);
-
-        if (initialFormat !== prevInitialFormat) {
-            const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-            setFileName(`${namePart}.${getLanguage(initialFormat)}`);
-        }
-    }
+    const handleSave = () => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.click();
+        URL.revokeObjectURL(url);
+        setIsSaved(true);
+    };
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleFormat = () => {
+    const handleFormatChange = (newFormat: Format) => {
+        setFormat(newFormat);
+        setFileName(prev => {
+            const parts = prev.split('.');
+            if (parts.length > 1) parts.pop();
+            return [...parts, getLanguage(newFormat)].join('.');
+        });
+    };
+
+    const handleAutoFormat = async () => {
         try {
             if (format === 'json') {
-                const parsed = JSON.parse(content);
-                setContent(JSON.stringify(parsed, null, 2));
+                setContent(JSON.stringify(JSON.parse(content), null, prefTabSize));
             } else if (format === 'yaml') {
-                const parsed = yaml.load(content);
-                setContent(yaml.dump(parsed));
+                setContent(yaml.dump(yaml.load(content)));
             }
-            setIsSaved(false);
-        } catch (e) {
-            console.error(e);
+        } catch {
+            console.error("Format error");
         }
-    };
-
-    const handleSave = () => {
-        setIsSaved(true);
-        const element = document.createElement("a");
-        const file = new Blob([content], { type: 'text/plain' });
-        element.href = URL.createObjectURL(file);
-        // If fileName already has an extension, use it; otherwise append current format
-        const finalName = fileName.includes('.') ? fileName : `${fileName}.${getLanguage(format)}`;
-        element.download = finalName;
-        document.body.appendChild(element);
-        element.click();
-        document.body.removeChild(element);
     };
 
     const handleNewFile = () => {
         setContent("");
-        setFileName("untitled");
         setIsSaved(true);
-        setViewMode('code');
     };
 
     const handleNewTable = () => {
-        const defaultTable = JSON.stringify([
-            { id: "1", name: "Sample Item", price: "$10.00" },
-            { id: "2", name: "Another Item", price: "$20.00" }
-        ], null, 2);
-        setContent(defaultTable);
-        setFormat('json');
-        setFileName("table.json");
-        setIsSaved(false);
-        setViewMode('table');
+        const csvHeader = "id,name,value\n1,example,data";
+        setContent(csvHeader);
+        setFormat("csv");
+        setFileName("table.csv");
     };
+
+    const tableRows = useMemo<Record<string, string>[] | null>(() => {
+        if (format === 'csv' || format === 'json' || format === 'yaml') {
+            try {
+                if (format === 'csv') {
+                    const lines = content.trim().split('\n');
+                    if (lines.length < 2) return null;
+                    const headers = lines[0].split(',');
+                    return lines.slice(1).map(line => {
+                        const values = line.split(',');
+                        return headers.reduce((obj, header, i) => {
+                            obj[header.trim()] = values[i]?.trim();
+                            return obj;
+                        }, {} as Record<string, string>);
+                    });
+                }
+                if (format === 'json') {
+                    const data = JSON.parse(content);
+                    if (Array.isArray(data) && data.length > 0) {
+                        return data as Record<string, string>[];
+                    }
+                }
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }, [content, format]);
 
     const handleTableDataChange = (newData: Record<string, string>[]) => {
-        setContent(JSON.stringify(newData, null, 2));
-        setIsSaved(false);
-    };
-
-    const isTabularData = () => {
-        try {
-            const parsed = JSON.parse(content);
-            return Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object';
-        } catch {
-            return false;
+        if (format === 'csv') {
+            if (newData.length === 0) return;
+            const headers = Object.keys(newData[0]);
+            const csv = [
+                headers.join(','),
+                ...newData.map(row => headers.map(h => row[h]).join(','))
+            ].join('\n');
+            setContent(csv);
+        } else if (format === 'json') {
+            setContent(JSON.stringify(newData, null, prefTabSize));
         }
     };
 
-    const isPreviewable = PREVIEWABLE_FORMATS.includes(format.toLowerCase() as Format);
-
-    const handlePreview = () => {
-        if (isPreviewable) {
-            router.push(`/view/${format}`);
-        }
-    };
+    const monacoWordWrap = (prefWordWrap === 'on' || prefWordWrap === 'off') ? prefWordWrap : 'off';
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-zinc-950 font-sans border-t border-zinc-200 dark:border-zinc-800">
-            {/* Notepad-style Ribbon Toolbar */}
-            <div className="flex flex-col border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                {/* Menu Bar */}
-                <div className="flex items-center px-1 py-0.5 gap-1 border-b border-zinc-200/50 dark:border-zinc-800/50">
+        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full border-t"}`}>
+            {/* Header / Standard Toolbar */}
+            <div className="flex h-11 items-center justify-between px-3 border-b bg-muted/30">
+                <div className="flex items-center gap-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 px-3 text-[11px] font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-none">
-                                File
+                            <Button variant="ghost" size="sm" className="h-8 px-3 text-xs font-bold uppercase tracking-widest text-muted-foreground gap-2">
+                                <span className="text-foreground">{format}</span>
+                                <ChevronDown className="size-3" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="rounded-none min-w-[180px]">
-                            <DropdownMenuItem onClick={handleNewFile} className="gap-2 text-xs">
-                                <Plus className="size-3.5" /> New File
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleNewTable} className="gap-2 text-xs">
-                                <TableIcon className="size-3.5" /> New Table
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleSave} className="gap-2 text-xs">
-                                <Save className="size-3.5" /> Save to System
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setContent("")} className="gap-2 text-xs text-red-500">
-                                <Trash className="size-3.5" /> Clear Content
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 px-3 text-[11px] font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-none">
-                                Options
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="rounded-none min-w-[200px]">
-                            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-zinc-400">Editor Settings</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => setWordWrap(!wordWrap)} className="justify-between text-xs">
-                                Word Wrap
-                                <span className="text-[10px] text-zinc-400 font-mono">{wordWrap ? "ON" : "OFF"}</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setAutoFormat(!autoFormat)} className="justify-between text-xs">
-                                Auto-Format
-                                <span className="text-[10px] text-zinc-400 font-mono">{autoFormat ? "ON" : "OFF"}</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-[10px] uppercase font-bold text-zinc-400">Language / Format</DropdownMenuLabel>
-                            <DropdownMenuRadioGroup value={format} onValueChange={(v) => {
-                                setFormat(v as Format);
-                                const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-                                setFileName(`${namePart}.${getLanguage(v as string)}`);
-                            }}>
-                                {ALL_FORMATS.slice(0, 10).map((fmt) => (
-                                    <DropdownMenuRadioItem key={fmt} value={fmt} className="text-xs uppercase">
-                                        {fmt}
-                                    </DropdownMenuRadioItem>
-                                ))}
-                            </DropdownMenuRadioGroup>
-                            <DropdownMenuSeparator />
-                            <div className="p-2">
-                                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-zinc-400 mb-1 text-left">Custom Format</DropdownMenuLabel>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. cpp, rust"
-                                    className="w-full h-7 px-2 text-xs border rounded bg-zinc-50 dark:bg-zinc-800 outline-none focus:ring-1 ring-indigo-500"
-                                    defaultValue={format}
-                                    onBlur={(e) => {
-                                        if (e.target.value) setFormat(e.target.value.toLowerCase() as Format);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') setFormat(e.currentTarget.value.toLowerCase() as Format);
-                                    }}
-                                />
-                            </div>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <Button variant="ghost" size="sm" onClick={handleFormat} className="h-7 px-3 text-[11px] font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-none">
-                        Format Code
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 px-3 text-[11px] font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-none gap-2">
-                        {copied ? <Check className="size-3 text-green-500" /> : null}
-                        {copied ? "Copied" : "Copy"}
-                    </Button>
-
-                    {isPreviewable && (
-                        <Button variant="ghost" size="sm" onClick={handlePreview} className="h-7 px-3 text-[11px] font-medium hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-none text-indigo-600 dark:text-indigo-400 gap-1.5 transition-all">
-                            <Eye className="size-3" /> View in Viewer
-                        </Button>
-                    )}
-                </div>
-
-                {/* Quick Actions Toolbar */}
-                <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-zinc-900 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 group">
-                            <div className="p-1.5 bg-indigo-500/10 rounded-md">
-                                <FileEdit className="size-4 text-indigo-500" />
-                            </div>
-                            <div className="flex items-center gap-1 border-b border-transparent hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors py-1">
-                                <input
-                                    type="text"
-                                    value={fileName}
-                                    onChange={(e) => setFileName(e.target.value)}
-                                    className="bg-transparent border-none outline-none text-sm font-bold text-zinc-700 dark:text-zinc-200 w-auto min-w-[120px]"
-                                    style={{ width: `${Math.max(fileName.length, 10)}ch` }}
-                                    spellCheck={false}
-                                />
-                            </div>
-                            {!isSaved && <div className="size-2 rounded-full bg-amber-500 animate-pulse" />}
-                        </div>
-
-                        {isTabularData() && (
-                            <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1 gap-1">
-                                <Button
-                                    variant={viewMode === 'code' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setViewMode('code')}
-                                    className={`h-7 px-3 rounded-md text-[11px] gap-1.5 transition-all ${viewMode === 'code' ? 'bg-white dark:bg-zinc-700 shadow-sm text-indigo-600' : 'text-zinc-500'}`}
-                                >
-                                    <Code className="size-3.5" /> Code
-                                </Button>
-                                <Button
-                                    variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setViewMode('table')}
-                                    className={`h-7 px-3 rounded-md text-[11px] gap-1.5 transition-all ${viewMode === 'table' ? 'bg-white dark:bg-zinc-700 shadow-sm text-indigo-600' : 'text-zinc-500'}`}
-                                >
-                                    <TableIcon className="size-3.5" /> Table
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {isPreviewable && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handlePreview}
-                                className="h-8 border-indigo-200 dark:border-indigo-900 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 gap-2 font-bold px-4 rounded-md text-xs transition-all"
-                            >
-                                <Eye className="size-3.5" /> Preview
-                            </Button>
-                        )}
-                        <Button onClick={handleSave} size="sm" className="h-8 bg-indigo-600 hover:bg-indigo-700 text-white gap-2 font-bold px-4 rounded-md text-xs shadow-md shadow-indigo-500/20 active:scale-95 transition-all">
-                            <Download className="size-3.5" /> Download
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Editor Area */}
-            <div className="flex-1 flex overflow-hidden">
-                <div className="flex-1 relative overflow-hidden">
-                    {viewMode === 'code' ? (
-                        <>
-                            {/* Line Numbers Column */}
-                            <div className="absolute top-0 left-0 w-12 h-full bg-zinc-50/50 dark:bg-zinc-900/20 border-r border-zinc-200 dark:border-zinc-800 flex flex-col items-end pr-3 pt-4 text-[11px] font-mono text-zinc-400 select-none overflow-hidden z-20">
-                                {content.split('\n').map((_: string, i: number) => (
-                                    <div key={i} className="h-[21px] flex items-center shrink-0">{i + 1}</div>
-                                ))}
-                            </div>
-
-                            <div className="absolute inset-0 left-12">
-                                <CodeViewer
-                                    ref={codeViewerRef}
-                                    content={content}
-                                    language={getLanguage(format)}
-                                    className="editor-code-view absolute inset-0 pointer-events-none p-4 font-mono text-[14px] leading-[21px] border-none rounded-none overflow-hidden opacity-100 bg-transparent"
-                                    showLineNumbers={false}
-                                    wrapLines={wordWrap}
-                                />
-                                <textarea
-                                    className={`absolute inset-0 w-full h-full p-4 font-mono text-[14px] bg-transparent resize-none outline-none focus:ring-0 text-transparent caret-zinc-800 dark:caret-zinc-100 leading-[21px] z-10 custom-scrollbar selection:bg-indigo-500/30 ${wordWrap ? 'whitespace-pre-wrap' : 'whitespace-pre'}`}
-                                    value={content}
-                                    onChange={(e) => {
-                                        setContent(e.target.value);
-                                        setIsSaved(false);
-                                    }}
-                                    onScroll={handleScroll}
-                                    onSelect={updateCursorPosition}
-                                    onKeyUp={updateCursorPosition}
-                                    onClick={updateCursorPosition}
-                                    spellCheck={false}
-                                    autoCapitalize="off"
-                                    autoComplete="off"
-                                    autoCorrect="off"
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="p-8 h-full overflow-auto custom-scrollbar bg-white dark:bg-zinc-950">
-                            <TableViewer
-                                data={JSON.parse(content)}
-                                onDataChange={handleTableDataChange}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Editor Footer / Status Bar */}
-            <div className="h-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-between px-3 text-[10px] font-medium text-zinc-500 uppercase tracking-wider">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <FileType className="size-3" />
-                        <span>UTF-8</span>
-                    </div>
-                    <span>Spaces: 4</span>
-                    <div className="w-px h-2.5 bg-zinc-300 dark:bg-zinc-700" />
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger className="flex items-center gap-1 hover:text-indigo-500 transition-colors uppercase font-bold text-indigo-600 outline-none">
-                            {format} <ChevronDown className="size-2.5" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-none min-w-[120px]">
+                        <DropdownMenuContent align="start" className="min-w-[150px]">
                             {ALL_FORMATS.slice(0, 10).map((fmt) => (
-                                <DropdownMenuItem key={fmt} onClick={() => setFormat(fmt)} className="text-[10px] uppercase font-bold">
+                                <DropdownMenuItem key={fmt} onClick={() => handleFormatChange(fmt as Format)} className="text-[10px] font-bold uppercase">
                                     {fmt}
                                 </DropdownMenuItem>
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <div className="w-px h-2.5 bg-zinc-300 dark:border-zinc-700" />
-                    <div className="flex items-center gap-1 text-green-500 font-bold">
-                        <Terminal className="size-3" />
-                        <span>{content.length} characters</span>
-                        <div className="ml-2 w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="In Sync" />
+                    <Separator orientation="vertical" className="h-4" />
+
+                    <div className="flex items-center gap-2">
+                        <div className="p-1 bg-primary/10 rounded-md">
+                            <FileEdit className="size-3.5 text-primary" />
+                        </div>
+                        <input
+                            type="text"
+                            value={fileName}
+                            onChange={(e) => setFileName(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[11px] font-bold text-foreground min-w-[120px] placeholder:text-muted-foreground/50"
+                            spellCheck={false}
+                        />
+                        {!isSaved && <div className="size-1.5 rounded-full bg-amber-500 animate-pulse" />}
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
-                    <div className="flex items-center gap-1.5 text-zinc-400">
-                        <RotateCcw className="size-3" />
-                        <span>Notepad+ v1.0</span>
-                    </div>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-md text-muted-foreground"
+                        onClick={() => setShowPreview(!showPreview)}
+                    >
+                        {showPreview ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
+                        <Maximize2 className="size-4" />
+                    </Button>
+
+                    <Separator orientation="vertical" className="h-6 mx-1" />
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                                <Settings className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <TypeIcon className="size-3" /> Font Size
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="range" 
+                                        min="10" 
+                                        max="24" 
+                                        value={prefFontSize} 
+                                        onChange={(e) => setPrefFontSize(Number(e.target.value))}
+                                        className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Code2 className="size-3" /> Tab Size
+                                </label>
+                                <div className="flex gap-2">
+                                    {[2, 4, 8].map(size => (
+                                        <Button 
+                                            key={size}
+                                            variant={prefTabSize === size ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="h-7 flex-1 text-[10px] font-bold"
+                                            onClick={() => setPrefTabSize(size)}
+                                        >
+                                            {size}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <AlignLeft className="size-3" /> Word Wrap
+                                </label>
+                                <Button 
+                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'} 
+                                    size="sm" 
+                                    className="h-7 w-full text-[10px] font-bold"
+                                    onClick={handleWordWrapToggle}
+                                >
+                                    {prefWordWrap === 'on' ? 'Enabled' : 'Disabled'}
+                                </Button>
+                            </div>
+                            <DropdownMenuSeparator />
+                            <div className="space-y-1.5 pt-1">
+                                <Button variant="ghost" size="sm" onClick={handleNewFile} className="w-full justify-start h-8 text-[10px] font-bold uppercase gap-2">
+                                    <Plus className="size-3.5" /> New File
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={handleNewTable} className="w-full justify-start h-8 text-[10px] font-bold uppercase gap-2">
+                                    <TableIcon className="size-3.5" /> New Table
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={handleSave} className="w-full justify-start h-8 text-[10px] font-bold uppercase gap-2 text-primary">
+                                    <Save className="size-3.5" /> Save
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setContent("")} className="w-full justify-start h-8 text-[10px] font-bold uppercase gap-2 text-destructive">
+                                    <Trash className="size-3.5" /> Clear
+                                </Button>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(161, 161, 170, 0.2); border-radius: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(161, 161, 170, 0.4); }
-                textarea { scrollbar-width: thin; scrollbar-color: rgba(161, 161, 170, 0.2) transparent; font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
-                .editor-code-view { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; scrollbar-gutter: stable; font-variant-ligatures: none; letter-spacing: normal; tab-size: 4; }
-                .editor-code-view code, .editor-code-view pre { font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important; tab-size: 4; }
-                /* Ensure CodeViewer matches textarea width minus scrollbar */
-                textarea { scrollbar-gutter: stable; }
-            `}} />
+            {/* Main Split Canvas */}
+            <div className="flex-1 flex overflow-hidden">
+                <ResizablePanelGroup direction="horizontal">
+                    <ResizablePanel defaultSize={showPreview ? 40 : 100} minSize={20}>
+                        <div className="flex flex-col h-full border-r bg-muted/5">
+                            <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+                                <div className="flex items-center gap-2">
+                                    <Code2 className="size-4 text-primary" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7 text-muted-foreground hover:text-foreground" title="Format">
+                                        <AlignLeft className="size-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7 text-muted-foreground hover:text-foreground" title="Wrap">
+                                        <TypeIcon className="size-3.5" />
+                                    </Button>
+                                    <Separator orientation="vertical" className="h-4 mx-1" />
+                                    <Button variant="ghost" size="icon" onClick={handleCopy} className="size-7 text-muted-foreground hover:text-foreground" title="Copy">
+                                        <CopyIcon className="size-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={handleSave} className="size-7 text-muted-foreground hover:text-primary" title="Save">
+                                        <Download className="size-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => setContent("")} className="size-7 text-muted-foreground hover:text-destructive" title="Clear">
+                                        <Trash className="size-3.5" />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="flex-1 relative overflow-hidden">
+                                <Editor
+                                    height="100%"
+                                    language={getLanguage(format)}
+                                    theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                                    value={content}
+                                    onChange={(val) => setContent(val || "")}
+                                    onMount={handleEditorDidMount}
+                                    options={{
+                                        fontSize: prefFontSize,
+                                        tabSize: prefTabSize,
+                                        wordWrap: monacoWordWrap,
+                                        minimap: { enabled: false },
+                                        scrollBeyondLastLine: false,
+                                        automaticLayout: true,
+                                        lineNumbers: 'on',
+                                        glyphMargin: false,
+                                        folding: true,
+                                        lineDecorationsWidth: 10,
+                                        lineNumbersMinChars: 3,
+                                        padding: { top: 10, bottom: 10 },
+                                        fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+                                        fontLigatures: true,
+                                    }}
+                                />
+                                <div className="absolute bottom-4 right-6 px-2 py-1 bg-background/50 backdrop-blur-sm border rounded text-[9px] font-bold tabular-nums text-muted-foreground select-none pointer-events-none">
+                                    LN {cursorPos.line}, COL {cursorPos.col}
+                                </div>
+                            </div>
+                        </div>
+                    </ResizablePanel>
+
+                    {showPreview && (
+                        <>
+                            <ResizableHandle withHandle className="bg-border/50" />
+                            <ResizablePanel defaultSize={60} minSize={20}>
+                                <div className="h-full bg-background flex flex-col">
+                                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5">
+                                        <div className="flex items-center gap-2">
+                                            <LayoutIcon className="size-4 text-primary" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Preview</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 overflow-auto custom-scrollbar p-0">
+                                        <Tabs defaultValue="preview" className="h-full flex flex-col">
+                                            <div className="px-4 border-b bg-muted/5">
+                                                <TabsList className="h-9 bg-transparent p-0 gap-4">
+                                                    <TabsTrigger value="preview" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Live View</TabsTrigger>
+                                                    {tableRows && <TabsTrigger value="table" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Table View</TabsTrigger>}
+                                                    <TabsTrigger value="raw" className="h-9 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent text-[10px] font-bold uppercase tracking-widest">Raw Output</TabsTrigger>
+                                                </TabsList>
+                                            </div>
+
+                                            <div className="flex-1 overflow-hidden">
+                                                <TabsContent value="preview" className="h-full m-0 p-0 border-none outline-none overflow-auto">
+                                                    {format === 'html' ? (
+                                                        <HTMLViewer content={content} />
+                                                    ) : format === 'markdown' ? (
+                                                        <div className="p-8 max-w-4xl mx-auto prose dark:prose-invert">
+                                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                                                        </div>
+                                                    ) : (
+                                                        <CodeViewer content={content} language={getLanguage(format)} />
+                                                    )}
+                                                </TabsContent>
+                                                {tableRows && (
+                                                    <TabsContent value="table" className="h-full m-0 p-0 border-none outline-none overflow-auto p-6">
+                                                        <TableViewer data={tableRows} onDataChange={handleTableDataChange} />
+                                                    </TabsContent>
+                                                )}
+                                                <TabsContent value="raw" className="h-full m-0 p-0 border-none outline-none">
+                                                    <pre className="p-4 text-xs font-mono whitespace-pre-wrap break-all h-full overflow-auto bg-muted/5">
+                                                        {content}
+                                                    </pre>
+                                                </TabsContent>
+                                            </div>
+                                        </Tabs>
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                        </>
+                    )}
+                </ResizablePanelGroup>
+            </div>
+
+            {/* Footer / Status Bar */}
+            <div className="h-7 border-t bg-muted/30 px-3 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                        <div className={`size-1.5 rounded-full ${isSaved ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground">{isSaved ? 'Synced' : 'Modified'}</span>
+                    </div>
+                    <Separator orientation="vertical" className="h-3" />
+                    <span className="text-[9px] font-bold text-muted-foreground">{content.length} characters</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{format}</span>
+                    <Separator orientation="vertical" className="h-3" />
+                    <span className="text-[9px] font-bold text-muted-foreground tabular-nums">UTF-8</span>
+                </div>
+            </div>
         </div>
     );
 }

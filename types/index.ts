@@ -1,2 +1,2 @@
 export * from "./format";
-export * from "./container";
+export * from "./props/container";
