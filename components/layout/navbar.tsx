@@ -6,6 +6,8 @@ import {useTheme} from 'next-themes';
 import {Button} from '@/components/ui/button';
 import Link from 'next/link';
 
+import { useSidebar } from "@/components/ui/sidebar";
+
 interface NavbarProps {
     searchQuery?: string;
     setSearchQuery?: (query: string) => void;
@@ -15,9 +17,10 @@ interface NavbarProps {
 
 export function Navbar({searchQuery, setSearchQuery, activeCategory, setActiveCategory}: NavbarProps = {}) {
     const { theme, setTheme } = useTheme();
+    const { open, state } = useSidebar();
 
     return (
-        <nav className="fixed top-0 w-full z-[100] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <nav className={`fixed top-0 right-0 z-[100] border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out ${state === 'collapsed' ? 'left-0' : 'left-[var(--sidebar-width)]'}`}>
             <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-4 md:px-6">
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center space-x-2.5">

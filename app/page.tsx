@@ -122,8 +122,8 @@ export default function ToolsListingPage() {
                     </div>
                 </div>
 
-                {/* Tools Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Unified Tools Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {filteredTools.map((tool: Tool) => (
                         <Card 
                             key={tool.id} 
@@ -144,9 +144,8 @@ export default function ToolsListingPage() {
                             </CardHeader>
                         </Card>
                     ))}
-
-                    <AdsCard variant="horizontal" className="col-span-1 md:col-span-2 lg:col-span-3 mt-2" />
                 </div>
+                <AdsCard variant="horizontal" className="mt-8 mb-12" />
             </div>
             <div className="mt-auto">
                 <Footer />
