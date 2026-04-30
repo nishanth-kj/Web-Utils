@@ -1,225 +1,299 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { 
-    Eraser, 
-    Square, 
-    Circle, 
-    Minus, 
-    Download, 
-    Trash2, 
-    Undo2, 
-    Type,
-    MousePointer2,
-    Palette,
-    PenTool
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
+import Script from 'next/script';
+
+import { Element, ElementType } from './types';
+import { Toolbar } from './toolbar';
+import { StylePanel } from './style-panel';
+import { ZoomControls } from './zoom-controls';
+import { ActionMenu } from './action-menu';
 
 export function DrawPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [color, setColor] = useState('#3b82f6');
-    const [brushSize, setBrushSize] = useState(5);
-    const [tool, setTool] = useState<'brush' | 'eraser' | 'rect' | 'circle'>('brush');
-    const [history, setHistory] = useState<string[]>([]);
-    const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+    const [elements, setElements] = useState<Element[]>([]);
+    const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning'>('none');
+    const [tool, setTool] = useState<ElementType>('freehand');
+    const [color, setColor] = useState('#1e1e1e');
+    const [strokeWidth, setStrokeWidth] = useState(2);
+    const [roughCanvas, setRoughCanvas] = useState<any>(null);
+    const [history, setHistory] = useState<Element[][]>([]);
+    const [redoStack, setRedoStack] = useState<Element[][]>([]);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [scale, setScale] = useState(1);
+    const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
+    const [isLocked, setIsLocked] = useState(false);
 
-    useEffect(() => {
+    // Initialize RoughJS
+    const onScriptLoad = () => {
+        if (typeof window !== 'undefined' && (window as any).rough) {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                setRoughCanvas((window as any).rough.canvas(canvas));
+            }
+        }
+    };
+
+    useLayoutEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!roughCanvas) return;
+
+        ctx.save();
+        ctx.translate(offset.x, offset.y);
+        ctx.scale(scale, scale);
+
+        elements.forEach((element) => {
+            drawElement(roughCanvas, ctx, element);
+        });
+
+        ctx.restore();
+    }, [elements, roughCanvas, offset, scale]);
+
+    useEffect(() => {
         const updateSize = () => {
-            const parent = canvas.parentElement;
-            if (parent) {
-                const tempImage = canvas.toDataURL();
-                canvas.width = parent.clientWidth;
-                canvas.height = parent.clientHeight;
-                const img = new Image();
-                img.src = tempImage;
-                img.onload = () => ctx.drawImage(img, 0, 0);
+            const canvas = canvasRef.current;
+            if (canvas && canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
             }
         };
-
         updateSize();
         window.addEventListener('resize', updateSize);
         return () => window.removeEventListener('resize', updateSize);
     }, []);
 
-    const saveToHistory = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            setHistory(prev => [...prev, canvas.toDataURL()].slice(-20));
+    const drawElement = (rc: any, ctx: CanvasRenderingContext2D, element: Element) => {
+        const generator = rc.generator;
+        const options = {
+            stroke: element.color,
+            strokeWidth: element.strokeWidth,
+            roughness: 1.2,
+            bowing: 1.5,
+            seed: element.id + 1,
+        };
+
+        switch (element.type) {
+            case 'line':
+                rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options));
+                break;
+            case 'rectangle':
+                rc.draw(generator.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options));
+                break;
+            case 'diamond':
+                const midX = (element.x1 + element.x2) / 2;
+                const midY = (element.y1 + element.y2) / 2;
+                rc.draw(generator.polygon([
+                    [midX, element.y1],
+                    [element.x2, midY],
+                    [midX, element.y2],
+                    [element.x1, midY]
+                ], options));
+                break;
+            case 'circle':
+                const width = element.x2 - element.x1;
+                const height = element.y2 - element.y1;
+                rc.draw(generator.ellipse(element.x1 + width / 2, element.y1 + height / 2, width, height, options));
+                break;
+            case 'arrow':
+                const headlen = 15;
+                const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
+                rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options));
+                rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle - Math.PI / 6), element.y2 - headlen * Math.sin(angle - Math.PI / 6), options));
+                rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle + Math.PI / 6), element.y2 - headlen * Math.sin(angle + Math.PI / 6), options));
+                break;
+            case 'freehand':
+                if (element.points && element.points.length > 1) {
+                    const stroke = element.points.map(p => [p.x, p.y] as [number, number]);
+                    rc.draw(generator.curve(stroke, options));
+                }
+                break;
         }
     };
 
-    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.nativeEvent.offsetX;
-        const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.nativeEvent.offsetY;
-
-        setIsDrawing(true);
-        setStartPos({ x, y });
-        saveToHistory();
-
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = tool === 'eraser' ? '#ffffff' : color;
-        ctx.lineWidth = brushSize;
+    const getMousePos = (e: React.MouseEvent) => {
+        const rect = canvasRef.current!.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left - offset.x) / scale,
+            y: (e.clientY - rect.top - offset.y) / scale
+        };
     };
 
-    const draw = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!isDrawing) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!roughCanvas) return;
+        
+        if (e.button === 1 || tool === 'hand') {
+            setAction('panning');
+            setStartPanPos({ x: e.clientX, y: e.clientY });
+            return;
+        }
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const { x, y } = getMousePos(e);
 
-        const rect = canvas.getBoundingClientRect();
-        const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.nativeEvent.offsetX;
-        const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.nativeEvent.offsetY;
+        if (tool === 'selection') return;
 
-        if (tool === 'brush' || tool === 'eraser') {
-            ctx.lineTo(x, y);
-            ctx.stroke();
+        setAction('drawing');
+        const id = Date.now();
+        const newElement: Element = { 
+            id, 
+            x1: x, 
+            y1: y, 
+            x2: x, 
+            y2: y, 
+            type: tool, 
+            color, 
+            strokeWidth, 
+            points: tool === 'freehand' ? [{x, y}] : undefined 
+        };
+        setElements(prev => [...prev, newElement]);
+        setHistory(prev => [...prev, elements]);
+        setRedoStack([]);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (action === 'none') return;
+
+        if (action === 'panning') {
+            setOffset(prev => ({
+                x: prev.x + (e.clientX - startPanPos.x),
+                y: prev.y + (e.clientY - startPanPos.y)
+            }));
+            setStartPanPos({ x: e.clientX, y: e.clientY });
+            return;
+        }
+
+        const { x, y } = getMousePos(e);
+
+        if (action === 'drawing') {
+            const elementsCopy = [...elements];
+            const index = elementsCopy.length - 1;
+            const current = elementsCopy[index];
+            
+            if (current.type === 'freehand') {
+                current.points = [...(current.points || []), { x, y }];
+            } else {
+                current.x2 = x;
+                current.y2 = y;
+            }
+            setElements(elementsCopy);
+        }
+    };
+
+    const handleMouseUp = () => {
+        setAction('none');
+    };
+
+    const handleWheel = (e: React.WheelEvent) => {
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            setScale(prev => Math.max(0.1, Math.min(10, prev * delta)));
         } else {
-            // Shapes handling (preview would be better but let's keep it simple)
+            setOffset(prev => ({
+                x: prev.x - e.deltaX,
+                y: prev.y - e.deltaY
+            }));
         }
     };
 
-    const stopDrawing = () => {
-        setIsDrawing(false);
+    const handleUndo = () => {
+        if (history.length === 0) return;
+        const prev = history[history.length - 1];
+        setRedoStack(prevStack => [...prevStack, elements]);
+        setElements(prev);
+        setHistory(prevHistory => prevHistory.slice(0, -1));
     };
 
-    const handleClear = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            ctx?.clearRect(0, 0, canvas.width, canvas.height);
-            saveToHistory();
-        }
+    const handleRedo = () => {
+        if (redoStack.length === 0) return;
+        const next = redoStack[redoStack.length - 1];
+        setHistory(prevHistory => [...prevHistory, elements]);
+        setElements(next);
+        setRedoStack(prevStack => prevStack.slice(0, -1));
     };
 
     const handleDownload = () => {
         const canvas = canvasRef.current;
         if (canvas) {
             const link = document.createElement('a');
-            link.download = 'quick-draw.png';
+            link.download = 'sketch.png';
             link.href = canvas.toDataURL();
             link.click();
         }
     };
 
-    const handleUndo = () => {
-        if (history.length === 0) return;
-        const last = history[history.length - 1];
-        const newHistory = history.slice(0, -1);
-        setHistory(newHistory);
-
-        const canvas = canvasRef.current;
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                const img = new Image();
-                img.src = last;
-                img.onload = () => ctx.drawImage(img, 0, 0);
-            }
-        }
+    const handleClear = () => {
+        setHistory(prev => [...prev, elements]);
+        setElements([]);
     };
 
+    const zoomIn = () => setScale(prev => Math.min(10, prev + 0.1));
+    const zoomOut = () => setScale(prev => Math.max(0.1, prev - 0.1));
+    const resetZoom = () => setScale(1);
+
     return (
-        <div className="flex flex-col h-full bg-background overflow-hidden">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between px-6 h-14 border-b bg-muted/20 backdrop-blur-md z-10">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-primary/10 rounded-md">
-                            <PenTool className="size-4 text-primary" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Quick Draw</span>
-                    </div>
-                    
-                    <Separator orientation="vertical" className="h-6 mx-2" />
-                    
-                    <ToggleGroup 
-                        type="single" 
-                        value={tool} 
-                        onValueChange={(v) => v && setTool(v as any)}
-                        className="bg-muted/40 p-1 rounded-lg"
-                    >
-                        <ToggleGroupItem value="brush" className="size-8 rounded-md" aria-label="Brush">
-                            <MousePointer2 className="size-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="eraser" className="size-8 rounded-md" aria-label="Eraser">
-                            <Eraser className="size-4" />
-                        </ToggleGroupItem>
-                    </ToggleGroup>
+        <div className="flex flex-col h-full bg-[#f9f9fb] dark:bg-zinc-950 overflow-hidden font-sans select-none relative">
+            <Script 
+                src="https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js" 
+                onLoad={onScriptLoad}
+            />
 
-                    <Separator orientation="vertical" className="h-6 mx-2" />
+            <ActionMenu handleDownload={handleDownload} />
+            
+            <Toolbar 
+                tool={tool} 
+                setTool={setTool} 
+                isLocked={isLocked} 
+                setIsLocked={setIsLocked} 
+            />
 
-                    <div className="flex items-center gap-3 px-3">
-                        <input 
-                            type="color" 
-                            value={color} 
-                            onChange={(e) => setColor(e.target.value)}
-                            className="size-6 rounded-full overflow-hidden border-none cursor-pointer bg-transparent"
-                        />
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Size</span>
-                            <input 
-                                type="range" 
-                                min="1" 
-                                max="50" 
-                                value={brushSize} 
-                                onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                                className="w-24 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="size-8" onClick={handleUndo} disabled={history.length === 0}>
-                        <Undo2 className="size-4" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-6 mx-1" />
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:bg-destructive/10" onClick={handleClear}>
-                        <Trash2 className="size-4" />
-                    </Button>
-                    <Button variant="default" size="sm" className="h-8 gap-2 font-bold uppercase tracking-widest text-[10px]" onClick={handleDownload}>
-                        <Download className="size-3" /> Save Image
-                    </Button>
-                </div>
+            {/* Canvas Instructions (Bottom Center) */}
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 text-[11px] font-medium text-zinc-400">
+                To move canvas, hold <span className="border px-1 rounded-sm bg-zinc-50 dark:bg-zinc-800">Scroll wheel</span> or <span className="border px-1 rounded-sm bg-zinc-50 dark:bg-zinc-800">Space</span> while dragging, or use the hand tool
             </div>
 
+            <ZoomControls 
+                scale={scale}
+                zoomIn={zoomIn}
+                zoomOut={zoomOut}
+                resetZoom={resetZoom}
+                handleUndo={handleUndo}
+                handleRedo={handleRedo}
+                canUndo={history.length > 0}
+                canRedo={redoStack.length > 0}
+            />
+
+            <StylePanel 
+                color={color}
+                setColor={setColor}
+                strokeWidth={strokeWidth}
+                setStrokeWidth={setStrokeWidth}
+                handleClear={handleClear}
+            />
+
             {/* Canvas Area */}
-            <div className="flex-1 relative bg-[#f8fafc] dark:bg-zinc-950 overflow-hidden cursor-crosshair">
+            <div className="flex-1 relative overflow-hidden bg-white dark:bg-zinc-950">
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" 
+                     style={{ 
+                         backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', 
+                         backgroundSize: `${20 * scale}px ${20 * scale}px`,
+                         backgroundPosition: `${offset.x}px ${offset.y}px`
+                     }} 
+                />
+                
                 <canvas
                     ref={canvasRef}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    onTouchStart={startDrawing}
-                    onTouchMove={draw}
-                    onTouchEnd={stopDrawing}
-                    className="absolute inset-0 w-full h-full touch-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onWheel={handleWheel}
+                    className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
                 />
             </div>
         </div>
