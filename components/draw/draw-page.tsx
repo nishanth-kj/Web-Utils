@@ -66,10 +66,17 @@ export function DrawPage() {
             drawElement(roughCanvas, ctx, element);
             
             if (selectedElementIds.includes(element.id)) {
-                const minX = Math.min(element.x1, element.x2);
-                const maxX = Math.max(element.x1, element.x2);
-                const minY = Math.min(element.y1, element.y2);
-                const maxY = Math.max(element.y1, element.y2);
+                let minX = Math.min(element.x1, element.x2);
+                let maxX = Math.max(element.x1, element.x2);
+                let minY = Math.min(element.y1, element.y2);
+                let maxY = Math.max(element.y1, element.y2);
+
+                if (element.type === 'freehand' && element.points && element.points.length > 0) {
+                    minX = Math.min(...element.points.map(p => p.x));
+                    maxX = Math.max(...element.points.map(p => p.x));
+                    minY = Math.min(...element.points.map(p => p.y));
+                    maxY = Math.max(...element.points.map(p => p.y));
+                }
                 
                 ctx.strokeStyle = '#3b82f6';
                 ctx.setLineDash([5, 5]);
@@ -317,10 +324,41 @@ export function DrawPage() {
             setElements(prev => prev.map(e => {
                 if (e.id !== resizeHandle.id) return e;
                 const newEl = { ...e };
-                if (resizeHandle.type.includes('e')) newEl.x2 = x;
-                if (resizeHandle.type.includes('w')) newEl.x1 = x;
-                if (resizeHandle.type.includes('s')) newEl.y2 = y;
-                if (resizeHandle.type.includes('n')) newEl.y1 = y;
+                
+                // For freehand, we need to scale all points
+                if (e.type === 'freehand' && e.points) {
+                    const minX = Math.min(...e.points.map(p => p.x));
+                    const maxX = Math.max(...e.points.map(p => p.x));
+                    const minY = Math.min(...e.points.map(p => p.y));
+                    const maxY = Math.max(...e.points.map(p => p.y));
+                    const oldWidth = maxX - minX || 1;
+                    const oldHeight = maxY - minY || 1;
+
+                    let newMinX = minX, newMaxX = maxX, newMinY = minY, newMaxY = maxY;
+                    if (resizeHandle.type.includes('e')) newMaxX = x;
+                    if (resizeHandle.type.includes('w')) newMinX = x;
+                    if (resizeHandle.type.includes('s')) newMaxY = y;
+                    if (resizeHandle.type.includes('n')) newMinY = y;
+
+                    const scaleX = (newMaxX - newMinX) / oldWidth;
+                    const scaleY = (newMaxY - newMinY) / oldHeight;
+
+                    newEl.points = e.points.map(p => ({
+                        x: newMinX + (p.x - minX) * scaleX,
+                        y: newMinY + (p.y - minY) * scaleY
+                    }));
+                    
+                    // Update bounding box for selection highlight
+                    newEl.x1 = newMinX;
+                    newEl.y1 = newMinY;
+                    newEl.x2 = newMaxX;
+                    newEl.y2 = newMaxY;
+                } else {
+                    if (resizeHandle.type.includes('e')) newEl.x2 = x;
+                    if (resizeHandle.type.includes('w')) newEl.x1 = x;
+                    if (resizeHandle.type.includes('s')) newEl.y2 = y;
+                    if (resizeHandle.type.includes('n')) newEl.y1 = y;
+                }
                 return newEl;
             }));
             return;
