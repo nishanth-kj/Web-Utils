@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {SidebarProvider} from "@/components/ui/sidebar";
 import {SplashScreen} from "@/components/layout/splash-screen";
-import {CommandMenu} from "@/components/layout/command-menu";
 import {Navbar} from "@/components/layout/navbar";
 import Footer from "@/components/common/Footer";
 import {AppSidebar} from "@/components/layout/app-sidebar";
@@ -48,8 +47,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     setActiveCategory={setActiveCategory}
                 />
             )}
-
-            <CommandMenu />
 
             <div className={`flex flex-1 ${isToolPage ? 'pt-0' : 'pt-16'} overflow-hidden w-full`}>
           <div className="flex-1 h-full overflow-hidden relative flex flex-col">

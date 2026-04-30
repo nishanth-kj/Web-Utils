@@ -3,6 +3,7 @@
 import React, { forwardRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 interface CodeViewerProps {
     content: string;
@@ -14,6 +15,8 @@ interface CodeViewerProps {
 
 export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content, language, className, wrapLines = true }, ref) => {
     const { resolvedTheme } = useTheme();
+    const [prefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize] = useLocalStorage('editorTabSize', 4);
 
     return (
         <div ref={ref} className={`h-full w-full ${className}`}>
@@ -25,7 +28,8 @@ export const CodeViewer = forwardRef<HTMLDivElement, CodeViewerProps>(({ content
                 options={{
                     readOnly: true,
                     minimap: { enabled: false },
-                    fontSize: 13,
+                    fontSize: prefFontSize,
+                    tabSize: prefTabSize,
                     wordWrap: wrapLines ? "on" : "off",
                     automaticLayout: true,
                     scrollBeyondLastLine: false,

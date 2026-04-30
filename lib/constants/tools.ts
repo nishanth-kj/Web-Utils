@@ -157,7 +157,7 @@ export const TOOLS: Tool[] = [
         id: "epoch-converter",
         name: "Epoch Converter",
         description: "Convert between Unix timestamps and human-readable dates",
-        href: "/convert",
+        href: "/time",
         category: "time",
         status: "Available",
         icon: Clock

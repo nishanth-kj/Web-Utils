@@ -19,6 +19,9 @@ import {
     Maximize2,
     PanelLeftClose,
     PanelLeftOpen,
+    Settings,
+    Type as TypeIcon,
+    Code2
 } from "lucide-react";
 import { TableViewer } from '@/components/shared/table-viewer';
 import { HTMLViewer } from '@/components/shared/html-viewer';
@@ -39,6 +42,7 @@ import {
 } from "@/components/ui/resizable";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { PREVIEWABLE_FORMATS, ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { format as formatSql } from 'sql-formatter';
@@ -66,7 +70,25 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
     // UI State
     const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
     const [copied, setCopied] = useState(false);
-    const [wordWrap, setWordWrap] = useState<"on" | "off">("on");
+    
+    // Editor Settings from LocalStorage
+    const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
+    const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'on');
+    
+    const [wordWrap, setWordWrap] = useState<"on" | "off">(prefWordWrap as "on" | "off");
+    
+    // Sync local wordWrap with preference when preference changes
+    React.useEffect(() => {
+        setWordWrap(prefWordWrap as "on" | "off");
+    }, [prefWordWrap]);
+
+    const handleWordWrapToggle = () => {
+        const newVal = wordWrap === "on" ? "off" : "on";
+        setWordWrap(newVal);
+        setPrefWordWrap(newVal);
+    };
+
     const [showEditor, setShowEditor] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [activeTab, setActiveTab] = useState("preview");
@@ -193,7 +215,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
     }, [content]);
 
     return (
-        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-[calc(100vh-56px)]"}`}>
+        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full"}`}>
             {/* Unified Workspace Toolbar */}
             <div className="flex items-center justify-between px-4 h-14 border-b bg-muted/20 backdrop-blur-md">
                 <div className="flex items-center gap-4">
@@ -230,9 +252,53 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                             </DropdownMenuContent>
                         </DropdownMenu>
                         
-                        <Button variant="ghost" size="sm" onClick={() => setWordWrap(wordWrap === "on" ? "off" : "on")} className="h-8 text-[10px] font-bold uppercase text-muted-foreground">
+                        <Button variant="ghost" size="sm" onClick={handleWordWrapToggle} className="h-8 text-[10px] font-bold uppercase text-muted-foreground">
                             Wrap: {wordWrap}
                         </Button>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                                    <Settings className="size-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <TypeIcon className="size-3" /> Font Size
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="range" 
+                                            min="10" 
+                                            max="24" 
+                                            value={prefFontSize} 
+                                            onChange={(e) => setPrefFontSize(Number(e.target.value))}
+                                            className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                                        />
+                                        <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <Code2 className="size-3" /> Tab Size
+                                    </label>
+                                    <div className="flex gap-2">
+                                        {[2, 4, 8].map(size => (
+                                            <Button 
+                                                key={size}
+                                                variant={prefTabSize === size ? "secondary" : "ghost"}
+                                                size="sm"
+                                                className="h-7 flex-1 text-[10px] font-bold"
+                                                onClick={() => setPrefTabSize(size)}
+                                            >
+                                                {size}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -275,7 +341,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                         theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
                                         options={{
                                             minimap: { enabled: false },
-                                            fontSize: 14,
+                                            fontSize: prefFontSize,
+                                            tabSize: prefTabSize,
                                             wordWrap: wordWrap,
                                             automaticLayout: true,
                                             padding: { top: 16 },

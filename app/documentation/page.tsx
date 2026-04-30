@@ -7,8 +7,8 @@ import Footer from "@/components/common/Footer";
 
 export default function DocumentationPage() {
     return (
-        <div className="h-full overflow-auto bg-background p-6 custom-scrollbar w-full">
-            <div className="max-w-4xl mx-auto space-y-8">
+        <div className="h-full overflow-auto bg-background custom-scrollbar w-full flex flex-col">
+            <div className="max-w-4xl mx-auto space-y-8 flex-1 w-full p-6">
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
@@ -94,7 +94,7 @@ export default function DocumentationPage() {
                     </Card>
                 </div>
             </div>
-            <div className="mt-16">
+            <div className="mt-auto">
                 <Footer />
             </div>
         </div>

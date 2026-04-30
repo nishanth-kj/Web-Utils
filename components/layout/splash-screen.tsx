@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import {Layout, Zap} from 'lucide-react';
+import {Command} from 'lucide-react';
 import gsap from 'gsap';
 import {useGSAP} from '@gsap/react';
 
@@ -15,7 +15,7 @@ export function SplashScreen({ onCompleteAction }: { onCompleteAction: () => voi
             onComplete: () => {
                 gsap.to(container.current, {
                     opacity: 0,
-                    duration: 0.8,
+                    duration: 0.3,
                     ease: "power2.inOut",
                     onComplete: onCompleteAction
                 });
@@ -25,23 +25,23 @@ export function SplashScreen({ onCompleteAction }: { onCompleteAction: () => voi
         tl.from(logoRef.current, {
             scale: 0.5,
             opacity: 0,
-            duration: 1,
+            duration: 0.4,
             ease: "back.out(1.7)"
         })
         .from(textRef.current, {
             y: 20,
             opacity: 0,
-            duration: 0.8,
+            duration: 0.3,
             ease: "power3.out"
-        }, "-=0.5")
+        }, "-=0.2")
         .to(logoRef.current, {
             rotation: 360,
-            duration: 2,
+            duration: 0.6,
             ease: "power1.inOut"
-        }, "-=0.2")
+        }, "-=0.1")
         .to(container.current, {
-            delay: 0.5,
-            duration: 0.5
+            delay: 0.1,
+            duration: 0.2
         });
 
     }, { scope: container });
@@ -49,39 +49,38 @@ export function SplashScreen({ onCompleteAction }: { onCompleteAction: () => voi
     return (
         <div 
             ref={container}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-zinc-950 text-white select-none overflow-hidden"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background text-foreground select-none overflow-hidden"
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent opacity-50" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-foreground/5 via-transparent to-transparent opacity-100" />
             
-            <div className="relative flex flex-col items-center gap-6" style={{ perspective: "1000px" }}>
+            <div className="relative flex flex-col items-center gap-8" style={{ perspective: "1000px" }}>
                 <div 
                     ref={logoRef}
-                    className="size-24 rounded-3xl bg-indigo-600 flex items-center justify-center shadow-[0_0_50px_rgba(79,70,229,0.3)] border border-indigo-400/20"
+                    className="size-20 rounded-2xl bg-secondary flex items-center justify-center shadow-xl border border-border"
                 >
-                    <Layout className="size-12" />
+                    <Command className="size-10 text-foreground" />
                 </div>
                 
-                <div ref={textRef} className="text-center space-y-2">
-                    <h1 className="text-4xl font-black tracking-tighter flex items-center gap-2">
-                        WEB UTILS <span className="text-indigo-500 italic">PRO</span>
-                        <Zap className="size-6 text-indigo-400 animate-pulse" />
+                <div ref={textRef} className="text-center flex flex-col items-center">
+                    <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                        Web Utils
                     </h1>
-                    <p className="text-zinc-500 text-sm font-medium tracking-widest uppercase">
-                        The Ultimate Developer Workspace
+                    <p className="text-muted-foreground text-sm font-medium tracking-wide mt-2">
+                        The Developer Workspace
                     </p>
-                </div>
-            </div>
 
-            {/* Progress bar simulation */}
-            <div className="absolute bottom-20 w-48 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                <style dangerouslySetInnerHTML={{ __html: `
-                    @keyframes loading {
-                        0% { width: 0%; transform: translateX(-100%); }
-                        50% { width: 50%; transform: translateX(0%); }
-                        100% { width: 100%; transform: translateX(100%); }
-                    }
-                ` }} />
-                <div className="h-full bg-indigo-600" style={{ animation: "loading 3s ease-in-out infinite" }} />
+                    {/* Progress bar simulation correctly placed under text */}
+                    <div className="w-48 h-1 bg-muted rounded-full overflow-hidden mt-8 relative">
+                        <style dangerouslySetInnerHTML={{ __html: `
+                            @keyframes loading {
+                                0% { left: -100%; width: 100%; }
+                                50% { left: 0%; width: 50%; }
+                                100% { left: 100%; width: 100%; }
+                            }
+                        ` }} />
+                        <div className="absolute top-0 bottom-0 bg-foreground rounded-full" style={{ animation: "loading 0.8s ease-in-out infinite" }} />
+                    </div>
+                </div>
             </div>
         </div>
     );

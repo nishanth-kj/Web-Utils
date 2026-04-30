@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from "@/lib/constants/tools";
@@ -34,6 +35,19 @@ export function AppSidebar() {
     const pathname = usePathname();
     const { toggleSidebar, state } = useSidebar();
     const [searchQuery, setSearchQuery] = React.useState("");
+    const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        const down = (e: KeyboardEvent) => {
+            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+        };
+        document.addEventListener("keydown", down);
+        return () => document.removeEventListener("keydown", down);
+    }, []);
+
     const isCollapsed = state === "collapsed";
 
     return (
@@ -45,18 +59,28 @@ export function AppSidebar() {
 
             {/* Toggle Button "On the Line" - Placed Between Header and Content */}
             <div className={`absolute right-0 bottom-12 z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleSidebar}
-                    className="size-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-xl text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-indigo-500/10"
-                >
-                    {isCollapsed ? (
-                        <ChevronRight className="size-4" />
-                    ) : (
-                        <ChevronLeft className="size-4" />
-                    )}
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={toggleSidebar}
+                            className="size-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-xl text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-indigo-500/10"
+                        >
+                            {isCollapsed ? (
+                                <ChevronRight className="size-4" />
+                            ) : (
+                                <ChevronLeft className="size-4" />
+                            )}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side={isCollapsed ? "right" : "left"} className="flex items-center gap-2">
+                        <span>Toggle Sidebar</span>
+                        <kbd className="inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                            <span className="text-xs">⌘</span>B
+                        </kbd>
+                    </TooltipContent>
+                </Tooltip>
             </div>
 
             <SidebarHeader className="border-b border-sidebar-border px-4 py-4 flex flex-col gap-4">
@@ -72,14 +96,20 @@ export function AppSidebar() {
                         <span>Home</span>
                     </Link>
                 </div>
-                <div className="relative">
+                <div className="relative group">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                     <Input 
+                        ref={searchInputRef}
                         placeholder="Search tools..." 
-                        className="pl-8 h-8 text-xs bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-indigo-500"
+                        className="pl-8 pr-8 h-8 text-xs bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-indigo-500"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
+                        <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border bg-background px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100 transition-opacity group-focus-within:opacity-0">
+                            <span className="text-[10px]">⌘</span>K
+                        </kbd>
+                    </div>
                 </div>
             </SidebarHeader>
 

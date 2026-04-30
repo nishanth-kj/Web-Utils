@@ -25,6 +25,7 @@ import {
     ExternalLink,
     PanelLeftClose,
     PanelLeftOpen,
+    Settings,
     AlignLeft,
     Copy,
     FileEdit,
@@ -49,6 +50,7 @@ import {
 } from "@/components/ui/resizable";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 
@@ -65,7 +67,24 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
-    const [wordWrap, setWordWrap] = useState<"on" | "off">("off");
+    
+    // Editor Settings from LocalStorage
+    const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
+    const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
+    const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'off');
+    
+    const [wordWrap, setWordWrap] = useState<"on" | "off">(prefWordWrap as "on" | "off");
+
+    // Sync local wordWrap with preference when preference changes
+    React.useEffect(() => {
+        setWordWrap(prefWordWrap as "on" | "off");
+    }, [prefWordWrap]);
+
+    const handleWordWrapToggle = () => {
+        const newVal = wordWrap === "on" ? "off" : "on";
+        setWordWrap(newVal);
+        setPrefWordWrap(newVal);
+    };
 
     const handleClear = () => {
         if (confirm("Are you sure you want to clear the editor?")) {
@@ -188,7 +207,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     };
 
     return (
-        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-[calc(100vh-64px)]"}`}>
+        <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full"}`}>
             {/* Minimalist Top Toolbar */}
             <div className="flex items-center justify-between px-6 h-14 border-b bg-muted/20 backdrop-blur-md">
                 <div className="flex items-center gap-4">
@@ -229,6 +248,51 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                     >
                         {showEditor ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
                     </Button>
+                    
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                                <Settings className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Type className="size-3" /> Font Size
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="range" 
+                                        min="10" 
+                                        max="24" 
+                                        value={prefFontSize} 
+                                        onChange={(e) => setPrefFontSize(Number(e.target.value))}
+                                        className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Code2 className="size-3" /> Tab Size
+                                </label>
+                                <div className="flex gap-2">
+                                    {[2, 4, 8].map(size => (
+                                        <Button 
+                                            key={size}
+                                            variant={prefTabSize === size ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="h-7 flex-1 text-[10px] font-bold"
+                                            onClick={() => setPrefTabSize(size)}
+                                        >
+                                            {size}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
                         <Maximize2 className="size-4" />
                     </Button>
@@ -251,7 +315,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <Button variant="ghost" size="icon" onClick={handleFormat} className="size-7" title="Format">
                                                 <AlignLeft className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => setWordWrap(wordWrap === "on" ? "off" : "on")} className="size-7" title="Wrap">
+                                            <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Wrap">
                                                 <Type className="size-3.5" />
                                             </Button>
                                             <Separator orientation="vertical" className="h-4 mx-1" />
@@ -275,7 +339,8 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
                                             options={{
                                                 minimap: { enabled: false },
-                                                fontSize: 13,
+                                                fontSize: prefFontSize,
+                                                tabSize: prefTabSize,
                                                 wordWrap: wordWrap,
                                                 automaticLayout: true,
                                                 padding: { top: 16 },
