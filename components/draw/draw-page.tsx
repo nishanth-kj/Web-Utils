@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 export function DrawPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -156,24 +157,19 @@ export function DrawPage() {
                     
                     <Separator orientation="vertical" className="h-6 mx-2" />
                     
-                    <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-lg">
-                        <Button 
-                            variant={tool === 'brush' ? "secondary" : "ghost"} 
-                            size="icon" 
-                            className="size-8"
-                            onClick={() => setTool('brush')}
-                        >
+                    <ToggleGroup 
+                        type="single" 
+                        value={tool} 
+                        onValueChange={(v) => v && setTool(v as any)}
+                        className="bg-muted/40 p-1 rounded-lg"
+                    >
+                        <ToggleGroupItem value="brush" className="size-8 rounded-md" aria-label="Brush">
                             <MousePointer2 className="size-4" />
-                        </Button>
-                        <Button 
-                            variant={tool === 'eraser' ? "secondary" : "ghost"} 
-                            size="icon" 
-                            className="size-8"
-                            onClick={() => setTool('eraser')}
-                        >
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="eraser" className="size-8 rounded-md" aria-label="Eraser">
                             <Eraser className="size-4" />
-                        </Button>
-                    </div>
+                        </ToggleGroupItem>
+                    </ToggleGroup>
 
                     <Separator orientation="vertical" className="h-6 mx-2" />
 

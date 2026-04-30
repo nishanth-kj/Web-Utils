@@ -89,11 +89,7 @@ export function AppSidebar() {
                         <div className="size-7 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                             <Command className="size-4" />
                         </div>
-                        <span className="font-bold text-xl tracking-tight">Web Utils</span>
-                    </Link>
-                    <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors ml-1">
-                        <Home className="size-4" />
-                        <span>Home</span>
+                        <span className="font-black text-lg uppercase tracking-widest text-foreground">Web Utils</span>
                     </Link>
                 </div>
                 <div className="relative group">
@@ -140,7 +136,12 @@ export function AppSidebar() {
                                                     className={`rounded-lg h-10 transition-all w-full ${pathname === tool.href ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                                                 >
                                                     <tool.icon className={`size-4 ${pathname === tool.href ? 'text-indigo-500' : 'text-muted-foreground'}`} />
-                                                    <span className={`text-sm ${pathname === tool.href ? 'font-bold' : 'font-medium'}`}>{tool.name}</span>
+                                                    <div className="flex items-center justify-between flex-1">
+                                                        <span className={`text-sm ${pathname === tool.href ? 'font-bold' : 'font-medium'}`}>{tool.name}</span>
+                                                        {['draw-tool', 'dummy-file', 'blockchain-tool', 'uuid-generator'].includes(tool.id) && (
+                                                            <span className="text-[7px] font-black bg-indigo-500 text-white px-1 rounded-sm leading-none py-0.5 ml-auto">NEW</span>
+                                                        )}
+                                                    </div>
                                                 </SidebarMenuButton>
                                             </Link>
                                         </SidebarMenuItem>

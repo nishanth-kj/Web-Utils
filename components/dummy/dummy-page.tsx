@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function DummyFilePage() {
     const [size, setSize] = useState(1);
@@ -101,18 +102,17 @@ export function DummyFilePage() {
                                         onChange={(e) => setSize(parseInt(e.target.value) || 1)}
                                         className="h-12 text-lg font-bold w-32"
                                     />
-                                    <div className="flex-1 flex gap-1 bg-muted/50 p-1 rounded-lg">
-                                        {(['KB', 'MB', 'GB'] as const).map((u) => (
-                                            <Button
-                                                key={u}
-                                                variant={unit === u ? "secondary" : "ghost"}
-                                                className="flex-1 h-10 font-black text-xs"
-                                                onClick={() => setUnit(u)}
-                                            >
-                                                {u}
-                                            </Button>
-                                        ))}
-                                    </div>
+                                    <Tabs 
+                                        value={unit} 
+                                        onValueChange={(v) => setUnit(v as any)} 
+                                        className="flex-1"
+                                    >
+                                        <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50">
+                                            <TabsTrigger value="KB" className="font-black text-xs">KB</TabsTrigger>
+                                            <TabsTrigger value="MB" className="font-black text-xs">MB</TabsTrigger>
+                                            <TabsTrigger value="GB" className="font-black text-xs">GB</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
                                 </div>
                             </div>
 

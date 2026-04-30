@@ -10,7 +10,7 @@ import {AppSidebar} from "@/components/layout/app-sidebar";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isToolPage = pathname !== "/";
+  const isHomePage = pathname === "/";
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       {showSplash && <SplashScreen onCompleteAction={handleSplashComplete} />}
 
-      {isToolPage && <AppSidebar />}
+      <AppSidebar />
 
         <div
             className={`transition-opacity duration-1000 flex flex-col flex-1 min-w-0 h-screen overflow-hidden bg-background ${
@@ -39,7 +39,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             }`}
         >
 
-            {!isToolPage && (
+            {isHomePage && (
                 <Navbar
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
@@ -48,7 +48,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 />
             )}
 
-            <div className={`flex flex-1 ${isToolPage ? 'pt-0' : 'pt-16'} overflow-hidden w-full`}>
+            <div className={`flex flex-1 ${isHomePage ? 'pt-16' : 'pt-0'} overflow-hidden w-full`}>
           <div className="flex-1 h-full overflow-hidden relative flex flex-col">
             <div className="flex-1 relative overflow-hidden">
               {children}

@@ -53,51 +53,46 @@ export function BlockchainPage() {
         <div className="h-full overflow-auto bg-background custom-scrollbar w-full flex flex-col">
             <div className="max-w-6xl mx-auto space-y-8 flex-1 w-full p-6">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 py-4">
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-500/10 rounded-xl">
-                                <Bitcoin className="size-8 text-amber-500" />
-                            </div>
-                            <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase">
-                                Blockchain Inspector
-                            </h1>
-                        </div>
-                        <p className="text-muted-foreground text-sm font-medium max-w-xl">
-                            Real-time on-chain analytics and address tracking. Explore transactions, blocks, and wallet histories across multiple networks.
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-6">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3 uppercase">
+                            <Bitcoin className="size-6 text-amber-500" />
+                            Blockchain Inspector
+                        </h1>
+                        <p className="text-muted-foreground text-xs font-medium">
+                            On-chain analytics and address tracking.
                         </p>
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className="px-4 py-2 bg-muted/30 rounded-lg border border-border/50">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">BTC Price</span>
-                            <span className="text-sm font-mono font-bold">$63,412.00</span>
+                    <div className="flex gap-2">
+                        <div className="px-3 py-1.5 bg-muted/20 rounded-md border border-border/50">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground block">BTC</span>
+                            <span className="text-xs font-mono font-bold">$63,412.00</span>
                         </div>
-                        <div className="px-4 py-2 bg-muted/30 rounded-lg border border-border/50">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">Gas Fee</span>
-                            <span className="text-sm font-mono font-bold">12 Gwei</span>
+                        <div className="px-3 py-1.5 bg-muted/20 rounded-md border border-border/50">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground block">Gas</span>
+                            <span className="text-xs font-mono font-bold">12 Gwei</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Search Box */}
-                <form onSubmit={handleSearch} className="relative group">
-                    <div className="absolute inset-0 bg-primary/5 blur-xl group-focus-within:bg-primary/10 transition-all rounded-2xl" />
-                    <div className="relative flex items-center gap-3 p-2 bg-background border-2 border-border/50 rounded-2xl shadow-xl focus-within:border-primary/50 transition-all">
-                        <Search className="size-6 text-muted-foreground ml-4" />
+                <form onSubmit={handleSearch} className="relative">
+                    <div className="relative flex items-center gap-2 p-1.5 bg-background border rounded-lg shadow-sm focus-within:ring-2 ring-primary/20 transition-all">
+                        <Search className="size-5 text-muted-foreground ml-3" />
                         <input 
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Search by Address / Tx Hash / Block..." 
-                            className="flex-1 bg-transparent border-none outline-none text-lg font-medium py-3 placeholder:text-muted-foreground/30"
+                            placeholder="Address / Tx Hash / Block..." 
+                            className="flex-1 bg-transparent border-none outline-none text-sm py-2 placeholder:text-muted-foreground/50"
                         />
                         <Button 
                             type="submit"
-                            size="lg"
-                            className="rounded-xl px-8 font-black uppercase tracking-widest h-12"
+                            size="sm"
+                            className="rounded-md px-6 font-bold uppercase tracking-widest h-9"
                             disabled={isSearching}
                         >
-                            {isSearching ? <Cpu className="size-5 animate-spin" /> : 'Inspect'}
+                            {isSearching ? <Cpu className="size-4 animate-spin" /> : 'Inspect'}
                         </Button>
                     </div>
                 </form>
