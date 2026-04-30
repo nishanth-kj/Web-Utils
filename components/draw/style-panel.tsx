@@ -11,8 +11,8 @@ import { Element } from './types';
 
 export interface StylePanelProps {
     elements: Element[];
-    selectedElements: Element[];
-    setSelectedElements: (elements: Element[]) => void;
+    selectedElementIds: number[];
+    setSelectedElementIds: (ids: number[]) => void;
     color: string;
     setColor: (color: string) => void;
     strokeWidth: number;
@@ -33,7 +33,7 @@ const DEFAULT_COLORS = [
 ];
 
 export function StylePanel({ 
-    elements, selectedElements, setSelectedElements, color, setColor, strokeWidth, setStrokeWidth, handleClear, bringToFront, sendToBack 
+    elements, selectedElementIds, setSelectedElementIds, color, setColor, strokeWidth, setStrokeWidth, handleClear, bringToFront, sendToBack 
 }: StylePanelProps) {
     const colorInputRef = useRef<HTMLInputElement>(null);
     const isCustomColor = !DEFAULT_COLORS.some(c => c.value === color);
@@ -58,13 +58,14 @@ export function StylePanel({
         document.addEventListener('mouseup', onMouseUp);
     };
 
-    const isSelected = (id: number) => selectedElements.some(el => el.id === id);
+    const isSelected = (id: number) => selectedElementIds.includes(id);
     
     return (
         <div 
             className="absolute top-24 right-4 z-50 flex flex-col gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl shadow-2xl w-52 animate-in slide-in-from-right-2 max-h-[85vh] overflow-y-auto"
             onMouseDown={handleDragStart}
         >
+            {/* Color Palette */}
             <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Palette className="size-3" /> Color
@@ -99,6 +100,7 @@ export function StylePanel({
 
             <Separator />
 
+            {/* Thickness */}
             <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Thickness</label>
                 <div className="flex gap-2">
@@ -118,32 +120,38 @@ export function StylePanel({
 
             <Separator />
 
+            {/* Elements List */}
             <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nodes ({elements.length})</label>
-                <ScrollArea className="h-32 border rounded-lg bg-zinc-50 dark:bg-zinc-950 p-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Layers className="size-3" /> Nodes ({elements.length})
+                </label>
+                <ScrollArea className="h-40 border rounded-lg bg-zinc-50 dark:bg-zinc-950 p-1">
                     <div className="flex flex-col gap-1">
                         {[...elements].reverse().map(el => (
                             <button
                                 key={el.id}
-                                onClick={() => setSelectedElements(isSelected(el.id) ? selectedElements.filter(s => s.id !== el.id) : [...selectedElements, el])}
-                                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] transition-all ${isSelected(el.id) ? 'bg-primary text-white' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800'}`}
+                                onClick={() => setSelectedElementIds(isSelected(el.id) ? selectedElementIds.filter(id => id !== el.id) : [...selectedElementIds, el.id])}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] transition-all ${isSelected(el.id) ? 'bg-primary text-white' : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-muted-foreground'}`}
                             >
-                                <span className="truncate flex-1 text-left">{el.type}</span>
+                                <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: el.color }} />
+                                <span className="truncate flex-1 text-left capitalize">{el.type}</span>
                                 {isSelected(el.id) && <MousePointer2 className="size-2.5" />}
                             </button>
                         ))}
+                        {elements.length === 0 && <div className="text-[9px] text-center py-4 text-zinc-400 italic">Canvas is empty</div>}
                     </div>
                 </ScrollArea>
             </div>
 
             <Separator />
 
+            {/* Layering */}
             <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1 text-[10px]" onClick={sendToBack} disabled={selectedElements.length === 0}>Back</Button>
-                <Button variant="outline" size="sm" className="flex-1 text-[10px]" onClick={bringToFront} disabled={selectedElements.length === 0}>Front</Button>
+                <Button variant="outline" size="sm" className="flex-1 text-[10px] h-8" onClick={sendToBack} disabled={selectedElementIds.length === 0}>Send Back</Button>
+                <Button variant="outline" size="sm" className="flex-1 text-[10px] h-8" onClick={bringToFront} disabled={selectedElementIds.length === 0}>Bring Front</Button>
             </div>
 
-            <Button variant="ghost" size="sm" className="w-full text-destructive text-[10px] hover:bg-destructive/10" onClick={handleClear}>
+            <Button variant="ghost" size="sm" className="w-full text-destructive text-[10px] hover:bg-destructive/10 h-9" onClick={handleClear}>
                 <Trash2 className="size-3.5 mr-2" /> Clear All
             </Button>
         </div>
