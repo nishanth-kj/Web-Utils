@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { Palette, Trash2, ArrowUp, ArrowDown, Plus, Layers, MousePointer2 } from 'lucide-react';
+import { Palette, Trash2, ArrowUp, ArrowDown, Plus, Layers, MousePointer2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ export interface StylePanelProps {
     strokeWidth: number;
     setStrokeWidth: (width: number) => void;
     handleClear: () => void;
+    updateElement: (id: number, updates: Partial<Element>) => void;
     deleteSelected: () => void;
     bringToFront: () => void;
     sendToBack: () => void;
@@ -34,7 +35,7 @@ const DEFAULT_COLORS = [
 ];
 
 export function StylePanel({ 
-    elements, selectedElementIds, setSelectedElementIds, color, setColor, strokeWidth, setStrokeWidth, handleClear, deleteSelected, bringToFront, sendToBack 
+    elements, selectedElementIds, setSelectedElementIds, color, setColor, strokeWidth, setStrokeWidth, handleClear, updateElement, deleteSelected, bringToFront, sendToBack 
 }: StylePanelProps) {
     const colorInputRef = useRef<HTMLInputElement>(null);
     const isCustomColor = !DEFAULT_COLORS.some(c => c.value === color);
@@ -60,10 +61,11 @@ export function StylePanel({
     };
 
     const isSelected = (id: number) => selectedElementIds.includes(id);
+    const selectedEl = selectedElementIds.length === 1 ? elements.find(el => el.id === selectedElementIds[0]) : null;
     
     return (
         <div 
-            className="absolute top-24 right-4 z-50 flex flex-col gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl shadow-2xl w-52 animate-in slide-in-from-right-2 max-h-[85vh] overflow-y-auto"
+            className="absolute top-24 right-2 z-50 flex flex-col gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl shadow-2xl w-52 animate-in slide-in-from-right-2 max-h-[85vh] overflow-y-auto"
             onMouseDown={handleDragStart}
         >
             {/* Color Palette */}
@@ -118,6 +120,23 @@ export function StylePanel({
                     ))}
                 </div>
             </div>
+
+            <Separator />
+
+            {/* Text Editor (Visible when one text node is selected) */}
+            {selectedEl?.type === 'text' && (
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                        <Type className="size-3" /> Text Content
+                    </label>
+                    <textarea 
+                        className="w-full h-20 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 text-[11px] resize-none focus:ring-1 focus:ring-primary outline-none"
+                        value={selectedEl.text || ''}
+                        onChange={(e) => updateElement(selectedEl.id, { text: e.target.value })}
+                        placeholder="Type something..."
+                    />
+                </div>
+            )}
 
             <Separator />
 

@@ -1,6 +1,6 @@
 import { LucideIcon } from "lucide-react";
 
-export type ElementType = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'circle' | 'arrow' | 'line' | 'freehand' | 'eraser' | 'text';
+export type ElementType = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'circle' | 'arrow' | 'line' | 'freehand' | 'eraser' | 'text' | 'image';
 
 export interface Element {
     id: number;

@@ -24,6 +24,7 @@ export function DrawPage() {
     const [scale, setScale] = useState(1);
     const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
     const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
+    const [resizeHandle, setResizeHandle] = useState<{ id: number, type: string } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [editingElement, setEditingElement] = useState<Element | null>(null);
 
@@ -65,15 +66,32 @@ export function DrawPage() {
             drawElement(roughCanvas, ctx, element);
             
             if (selectedElementIds.includes(element.id)) {
+                const minX = Math.min(element.x1, element.x2);
+                const maxX = Math.max(element.x1, element.x2);
+                const minY = Math.min(element.y1, element.y2);
+                const maxY = Math.max(element.y1, element.y2);
+                
                 ctx.strokeStyle = '#3b82f6';
                 ctx.setLineDash([5, 5]);
                 ctx.lineWidth = 1;
-                const minX = Math.min(element.x1, element.x2) - 5;
-                const maxX = Math.max(element.x1, element.x2) + 5;
-                const minY = Math.min(element.y1, element.y2) - 5;
-                const maxY = Math.max(element.y1, element.y2) + 5;
-                ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+                ctx.strokeRect(minX - 5, minY - 5, (maxX - minX) + 10, (maxY - minY) + 10);
                 ctx.setLineDash([]);
+
+                // Draw handles
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 1.5;
+                const handleSize = 8 / scale;
+                const handles = [
+                    { x: minX, y: minY }, { x: maxX, y: minY },
+                    { x: minX, y: maxY }, { x: maxX, y: maxY },
+                    { x: (minX + maxX) / 2, y: minY }, { x: (minX + maxX) / 2, y: maxY },
+                    { x: minX, y: (minY + maxY) / 2 }, { x: maxX, y: (minY + maxY) / 2 },
+                ];
+                handles.forEach(h => {
+                    ctx.fillRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+                    ctx.strokeRect(h.x - handleSize / 2, h.y - handleSize / 2, handleSize, handleSize);
+                });
             }
         });
 
@@ -142,18 +160,48 @@ export function DrawPage() {
                 }
                 break;
             case 'text':
-                ctx.font = `${20 * element.strokeWidth}px 'Outfit', sans-serif`;
+                ctx.font = `${32 * element.strokeWidth}px 'Outfit', sans-serif`;
                 ctx.fillStyle = element.color;
                 ctx.textBaseline = 'top';
                 const lines = (element.text || '').split('\n');
                 lines.forEach((line, i) => {
-                    ctx.fillText(line, element.x1, element.y1 + i * (24 * element.strokeWidth));
+                    ctx.fillText(line, element.x1, element.y1 + i * (38 * element.strokeWidth));
                 });
                 break;
         }
     };
 
     const distance = (a: {x: number, y: number}, b: {x: number, y: number}) => Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+
+    const getHandleAtPosition = (x: number, y: number, elements: Element[]) => {
+        for (const id of selectedElementIds) {
+            const el = elements.find(e => e.id === id);
+            if (!el) continue;
+
+            const minX = Math.min(el.x1, el.x2);
+            const maxX = Math.max(el.x1, el.x2);
+            const minY = Math.min(el.y1, el.y2);
+            const maxY = Math.max(el.y1, el.y2);
+
+            const handles = [
+                { x: minX, y: minY, type: 'nw' },
+                { x: maxX, y: minY, type: 'ne' },
+                { x: minX, y: maxY, type: 'sw' },
+                { x: maxX, y: maxY, type: 'se' },
+                { x: (minX + maxX) / 2, y: minY, type: 'n' },
+                { x: (minX + maxX) / 2, y: maxY, type: 's' },
+                { x: minX, y: (minY + maxY) / 2, type: 'w' },
+                { x: maxX, y: (minY + maxY) / 2, type: 'e' },
+            ];
+
+            for (const h of handles) {
+                if (Math.abs(x - h.x) < 8 / scale && Math.abs(y - h.y) < 8 / scale) {
+                    return { id, type: h.type };
+                }
+            }
+        }
+        return null;
+    };
 
     const getElementAtPosition = (x: number, y: number, elements: Element[]) => {
         return [...elements].sort((a, b) => a.zIndex - b.zIndex).findLast(element => {
@@ -179,8 +227,8 @@ export function DrawPage() {
             } else if (element.type === 'freehand') {
                 return element.points?.some(p => distance(p, {x, y}) < 5);
             } else if (element.type === 'text') {
-                const width = (element.text?.length || 0) * 10 * element.strokeWidth;
-                const height = 24 * element.strokeWidth;
+                const width = Math.max(50, (element.text?.length || 0) * 12 * element.strokeWidth);
+                const height = 30 * element.strokeWidth;
                 return x >= element.x1 && x <= element.x1 + width && y >= element.y1 && y <= element.y1 + height;
             }
             return false;
@@ -188,7 +236,6 @@ export function DrawPage() {
     };
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (!roughCanvas) return;
         const { x, y } = getMousePos(e);
 
         if (e.button === 1 || tool === 'hand') {
@@ -197,45 +244,58 @@ export function DrawPage() {
             return;
         }
 
-        if (tool === 'selection') {
-            const element = getElementAtPosition(x, y, elements);
-            if (element) {
-                const isAlreadySelected = selectedElementIds.includes(element.id);
-                if (!isAlreadySelected && !e.shiftKey) {
-                    setSelectedElementIds([element.id]);
-                } else if (!isAlreadySelected && e.shiftKey) {
-                    setSelectedElementIds(prev => [...prev, element.id]);
+        switch (tool) {
+            case 'selection': {
+                const handle = getHandleAtPosition(x, y, elements);
+                if (handle) {
+                    setResizeHandle(handle);
+                    setAction('resizing');
+                    setStartPanPos({ x: e.clientX, y: e.clientY });
+                    return;
                 }
-                setAction('moving');
-                setStartPanPos({ x: e.clientX, y: e.clientY });
-            } else {
-                setSelectedElementIds([]);
-                setAction('selecting');
-                setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
+
+                const element = getElementAtPosition(x, y, elements);
+                if (element) {
+                    const isAlreadySelected = selectedElementIds.includes(element.id);
+                    if (!isAlreadySelected && !e.shiftKey) {
+                        setSelectedElementIds([element.id]);
+                    } else if (!isAlreadySelected && e.shiftKey) {
+                        setSelectedElementIds(prev => [...prev, element.id]);
+                    }
+                    setAction('moving');
+                    setStartPanPos({ x: e.clientX, y: e.clientY });
+                } else {
+                    setSelectedElementIds([]);
+                    setAction('selecting');
+                    setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
+                }
+                break;
             }
-            return;
+            case 'text': {
+                const id = Date.now();
+                const newEl: Element = { 
+                    id, x1: x, y1: y, x2: x + 100, y2: y + 40, 
+                    type: 'text', color, strokeWidth, zIndex: elements.length, text: '' 
+                };
+                setElements(prev => [...prev, newEl]);
+                setEditingElement(newEl);
+                setAction('none');
+                break;
+            }
+            default: {
+                if (!roughCanvas) return;
+                setAction('drawing');
+                const id = Date.now();
+                const newEl: Element = { 
+                    id, x1: x, y1: y, x2: x, y2: y, type: tool, color, strokeWidth, zIndex: elements.length,
+                    points: tool === 'freehand' ? [{x, y}] : undefined 
+                };
+                setElements(prev => [...prev, newEl]);
+                setHistory(prev => [...prev, elements]);
+                setRedoStack([]);
+                break;
+            }
         }
-
-        if (tool === 'text') {
-            const id = Date.now();
-            const newEl: Element = { 
-                id, x1: x, y1: y, x2: x, y2: y, 
-                type: 'text', color, strokeWidth, zIndex: elements.length, text: '' 
-            };
-            setElements(prev => [...prev, newEl]);
-            setEditingElement(newEl);
-            setAction('none');
-            return;
-        }
-
-        setAction('drawing');
-        const newEl: Element = { 
-            id: Date.now(), x1: x, y1: y, x2: x, y2: y, type: tool, color, strokeWidth, zIndex: elements.length,
-            points: tool === 'freehand' ? [{x, y}] : undefined 
-        };
-        setElements(prev => [...prev, newEl]);
-        setHistory(prev => [...prev, elements]);
-        setRedoStack([]);
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -250,6 +310,19 @@ export function DrawPage() {
 
         if (action === 'selecting' && selectionBox) {
             setSelectionBox({ ...selectionBox, x2: x, y2: y });
+            return;
+        }
+
+        if (action === 'resizing' && resizeHandle) {
+            setElements(prev => prev.map(e => {
+                if (e.id !== resizeHandle.id) return e;
+                const newEl = { ...e };
+                if (resizeHandle.type.includes('e')) newEl.x2 = x;
+                if (resizeHandle.type.includes('w')) newEl.x1 = x;
+                if (resizeHandle.type.includes('s')) newEl.y2 = y;
+                if (resizeHandle.type.includes('n')) newEl.y1 = y;
+                return newEl;
+            }));
             return;
         }
 
@@ -297,7 +370,9 @@ export function DrawPage() {
         }
         setAction('none');
         setSelectionBox(null);
+        setResizeHandle(null);
     };
+
     const handleWheel = (e: React.WheelEvent) => {
         if (e.ctrlKey || e.shiftKey) {
             e.preventDefault();
@@ -312,6 +387,10 @@ export function DrawPage() {
     const handleRedo = () => { if (redoStack.length) { setHistory(h => [...h, elements]); setElements(redoStack[redoStack.length - 1]); setRedoStack(r => r.slice(0, -1)); } };
     const handleDownload = () => { const canvas = canvasRef.current; if (canvas) { const a = document.createElement('a'); a.download = 'sketch.png'; a.href = canvas.toDataURL(); a.click(); } };
     
+    const updateElement = (id: number, updates: Partial<Element>) => {
+        setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
+    };
+
     const bringToFront = () => { 
         const maxZ = Math.max(...elements.map(e => e.zIndex), 0); 
         setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: maxZ + 1 } : e)); 
@@ -340,6 +419,7 @@ export function DrawPage() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [selectedElementIds, editingElement, elements]);
+
     const zoomIn = () => setScale(s => Math.min(10, s + 0.1));
     const zoomOut = () => setScale(s => Math.max(0.1, s - 0.1));
     const resetZoom = () => setScale(1);
@@ -360,6 +440,7 @@ export function DrawPage() {
                 strokeWidth={strokeWidth} 
                 setStrokeWidth={setStrokeWidth} 
                 handleClear={handleClear} 
+                updateElement={updateElement}
                 deleteSelected={deleteSelected}
                 bringToFront={bringToFront} 
                 sendToBack={sendToBack} 
@@ -387,11 +468,11 @@ export function DrawPage() {
                             style={{
                                 left: currentEl.x1 * scale + offset.x - 8,
                                 top: currentEl.y1 * scale + offset.y - 8,
-                                minWidth: '150px',
-                                width: `${Math.max(150, (currentEl.text?.length || 0) * 12 * scale)}px`,
+                                minWidth: '200px',
+                                width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
                                 height: 'auto',
-                                minHeight: '50px',
-                                fontSize: `${22 * currentEl.strokeWidth * scale}px`,
+                                minHeight: '60px',
+                                fontSize: `${32 * currentEl.strokeWidth * scale}px`,
                                 color: currentEl.color,
                             }}
                             value={currentEl.text || ''}
