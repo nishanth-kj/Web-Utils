@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type {Metadata} from "next";
+import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/layout/theme-provider";
-import { Navbar } from "@/components/layout/navbar";
+import {ThemeProvider} from "@/components/layout/theme-provider";
+import {ClientLayout} from "@/components/layout/client-layout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,29 +16,28 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Web Utils | Universal Code Previewer",
-  description: "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
+    description:
+        "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+                                   }: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}>
+    <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
+    >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col h-screen overflow-hidden bg-background">
-            <Navbar />
-            <div className="flex-1 overflow-hidden relative pt-16">
-              {children}
-            </div>
-          </div>
+            {/* CLIENT PART MOVED HERE */}
+            <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
       </body>
     </html>

@@ -1,11 +1,11 @@
 "use client";
 
 import React from 'react';
-import { Layout, Zap } from 'lucide-react';
+import {Layout, Zap} from 'lucide-react';
 import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
+import {useGSAP} from '@gsap/react';
 
-export function SplashScreen({ onComplete }: { onComplete: () => void }) {
+export function SplashScreen({ onCompleteAction }: { onCompleteAction: () => void }) {
     const container = React.useRef<HTMLDivElement>(null);
     const logoRef = React.useRef<HTMLDivElement>(null);
     const textRef = React.useRef<HTMLDivElement>(null);
@@ -17,7 +17,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                     opacity: 0,
                     duration: 0.8,
                     ease: "power2.inOut",
-                    onComplete
+                    onComplete: onCompleteAction
                 });
             }
         });

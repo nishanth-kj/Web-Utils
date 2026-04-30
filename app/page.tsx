@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-    Search, 
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AdsCard } from '@/components/shared/ads-card';
-import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from '@/lib/constants/tools';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, {useState} from 'react';
+import {Search,} from 'lucide-react';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {AdsCard} from '@/components/shared/ads-card';
+import {type Category, type Tool, TOOL_CATEGORIES, TOOLS} from '@/lib/constants/tools';
+import {Card, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import Footer from "@/components/common/Footer";
 
 export default function ToolsListingPage() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +26,7 @@ export default function ToolsListingPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                        Web Utils
+                        Developer Tools
                     </h1>
                     <p className="text-muted-foreground">
                         A clean, minimalist suite of developer utilities and converters.
@@ -45,7 +44,15 @@ export default function ToolsListingPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant={activeCategory === 'all' ? "secondary" : "ghost"}
+                            size="sm"
+                            className="h-10 px-4 font-semibold"
+                            onClick={() => setActiveCategory('all')}
+                        >
+                            All
+                        </Button>
                         {TOOL_CATEGORIES.map((cat: Category) => (
                             <Button
                                 key={cat.id}
@@ -83,8 +90,11 @@ export default function ToolsListingPage() {
                         </Card>
                     ))}
 
-                    <AdsCard variant="sidebar" className="h-full min-h-[160px]" />
+                    <AdsCard variant="horizontal" className="col-span-1 md:col-span-2 lg:col-span-3 mt-2" />
                 </div>
+            </div>
+            <div className="mt-16">
+                <Footer />
             </div>
         </div>
     );

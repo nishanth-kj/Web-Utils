@@ -1,8 +1,6 @@
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { ViewerContainer } from "@/components/view/viewer-container";
-import { Format } from "@/types";
-import { DEFAULT_CONTENT } from "@/data/default-content";
+import {ViewerContainer} from "@/components/view/viewer-container";
+import {Format} from "@/types";
+import {DEFAULT_CONTENT} from "@/data/default-content";
 
 export function generateStaticParams() {
     return [
@@ -23,16 +21,13 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
     const content = (DEFAULT_CONTENT as Record<string, string>)[format] || "";
 
     return (
-        <SidebarProvider>
-            <div className="flex w-full h-full overflow-hidden">
-                <AppSidebar />
-                <main className="flex-1 overflow-auto bg-zinc-50/50 dark:bg-zinc-950/50 relative">
-                    <ViewerContainer
-                        initialContent={content}
-                        initialFormat={format}
-                    />
-                </main>
-            </div>
-        </SidebarProvider>
+        <div className="flex w-full h-full overflow-hidden">
+            <main className="flex-1 overflow-auto bg-zinc-50/50 dark:bg-zinc-950/50 relative">
+                <ViewerContainer
+                    initialContent={content}
+                    initialFormat={format}
+                />
+            </main>
+        </div>
     );
 }
