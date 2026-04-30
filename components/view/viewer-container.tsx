@@ -33,7 +33,8 @@ import {
     Download,
     Trash2,
     Type,
-    Layout as LayoutIcon
+    Layout as LayoutIcon,
+    Braces
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -74,6 +75,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'off');
     
     const [wordWrap, setWordWrap] = useState<"on" | "off">(prefWordWrap as "on" | "off");
+    const [fileName, setFileName] = useState(`view.${getLanguage(initialFormat)}`);
 
     // Sync local wordWrap with preference when preference changes
     React.useEffect(() => {
@@ -93,19 +95,18 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     };
 
     const handleDownload = () => {
-        const extension = format === 'react' ? 'tsx' : format;
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `file.${extension}`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
 
-    const handleFormat = async () => {
+    const handleAutoFormat = async () => {
         try {
             if (format === 'json') {
                 const parsed = JSON.parse(content);
@@ -122,10 +123,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                     'javascript': 'babel',
                     'typescript': 'babel-ts',
                     'react': 'babel-ts',
-                    'markdown': 'markdown',
+                    'markdown': 'babel',
                     'xml': 'html',
                 };
-
                 const parser = parserMap[format];
                 if (parser) {
                     const formatted = await prettier.format(content, {
@@ -145,7 +145,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                 }
             }
         } catch (e) {
-            console.error('Formatting error:', e);
+            console.error(e);
         }
     };
 
@@ -229,14 +229,18 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
 
                     <Separator orientation="vertical" className="h-4" />
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push('/editor')}
-                        className="h-8 text-xs font-semibold gap-2"
-                    >
-                        <FileEdit className="size-3.5" /> Open in Editor
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <div className="p-1 bg-primary/10 rounded-md">
+                            <Eye className="size-3.5 text-primary" />
+                        </div>
+                        <input
+                            type="text"
+                            value={fileName}
+                            onChange={(e) => setFileName(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[11px] font-bold text-foreground min-w-[120px] placeholder:text-muted-foreground/50"
+                            spellCheck={false}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -312,7 +316,11 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" onClick={handleFormat} className="size-7" title="Format">
+                                            <Button variant="ghost" size="icon" onClick={() => router.push('/editor')} className="size-7" title="Open in Editor">
+                                                <FileEdit className="size-3.5" />
+                                            </Button>
+                                            <Separator orientation="vertical" className="h-4 mx-1" />
+                                            <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7" title="Format">
                                                 <AlignLeft className="size-3.5" />
                                             </Button>
                                             <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Wrap">

@@ -10,7 +10,10 @@ import {
     Rocket,
     Shield,
     StickyNote,
-    Table
+    Table,
+    PenTool,
+    FilePlus,
+    Bitcoin
 } from 'lucide-react';
 
 export interface Tool {
@@ -168,7 +171,34 @@ export const TOOLS: Tool[] = [
         description: "Generate v4 UUIDs for your applications and tests",
         href: "/crypto",
         category: "crypto",
-        status: "Coming Soon",
+        status: "Available",
         icon: Shield
+    },
+    {
+        id: "draw-tool",
+        name: "Quick Draw",
+        description: "Simple canvas-based sketching and drawing tool for quick ideas",
+        href: "/draw",
+        category: "media",
+        status: "Available",
+        icon: PenTool
+    },
+    {
+        id: "dummy-file",
+        name: "Dummy File Generator",
+        description: "Create placeholder files of any size or type for testing",
+        href: "/dummy",
+        category: "core",
+        status: "Available",
+        icon: FilePlus
+    },
+    {
+        id: "blockchain-tool",
+        name: "Blockchain Inspector",
+        description: "Analyze wallet addresses, transactions, and block data across major chains",
+        href: "/crypto/blockchain",
+        category: "crypto",
+        status: "Available",
+        icon: Bitcoin
     }
 ];

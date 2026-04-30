@@ -93,6 +93,46 @@ export default function DocumentationPage() {
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Learn Section */}
+                <div className="space-y-6 pt-8">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                        <Sparkles className="size-6 text-amber-500" />
+                        How Things Work
+                    </h2>
+                    
+                    <div className="grid gap-6 md:grid-cols-1">
+                        <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Book className="size-5 text-amber-500" /> Blockchain Technology
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+                                <p>
+                                    At its core, a blockchain is a <strong>distributed ledger</strong>. Imagine a digital spreadsheet that is copied thousands of times across a network of computers. This network is designed to regularly update this spreadsheet.
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-4 py-2">
+                                    <div className="space-y-1">
+                                        <div className="font-bold text-foreground">1. Blocks</div>
+                                        <p className="text-xs">Data is bundled into blocks. Each block has a unique hash and the hash of the previous block.</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-bold text-foreground">2. Hashing</div>
+                                        <p className="text-xs">A cryptographic fingerprint. If any data in the block changes, the hash changes completely.</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-bold text-foreground">3. Consensus</div>
+                                        <p className="text-xs">The network must agree on the validity of a block before it is added to the chain.</p>
+                                    </div>
+                                </div>
+                                <p>
+                                    This structure makes the blockchain <strong>immutable</strong>—once a block is added, it cannot be changed without changing all subsequent blocks, which would require the consensus of the entire network.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </div>
             <div className="mt-auto">
                 <Footer />

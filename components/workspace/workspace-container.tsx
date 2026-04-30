@@ -21,7 +21,10 @@ import {
     PanelLeftOpen,
     Settings,
     Type as TypeIcon,
-    Code2
+    Code2,
+    Download,
+    Trash,
+    Type
 } from "lucide-react";
 import { TableViewer } from '@/components/shared/table-viewer';
 import { HTMLViewer } from '@/components/shared/html-viewer';
@@ -113,6 +116,19 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
         setFormat(newFormat);
         const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
         setFileName(`${namePart}.${getLanguage(newFormat)}`);
+    };
+
+    const handleSave = () => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        setIsSaved?.(true);
     };
 
     const handleCopy = () => {
@@ -235,82 +251,24 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
                     <Separator orientation="vertical" className="h-6" />
 
-                    <div className="flex items-center gap-1">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 text-xs font-medium uppercase tracking-widest text-muted-foreground gap-2">
-                                    <span className="text-foreground">{format}</span>
-                                    <ChevronDown className="size-3" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-[180px]">
-                                {ALL_FORMATS.slice(0, 10).map((fmt) => (
-                                    <DropdownMenuItem key={fmt} onClick={() => handleFormatChange(fmt as Format)} className="text-xs uppercase">
-                                        {fmt}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        
-                        <Button variant="ghost" size="sm" onClick={handleWordWrapToggle} className="h-8 text-[10px] font-bold uppercase text-muted-foreground">
-                            Wrap: {wordWrap}
-                        </Button>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
-                                    <Settings className="size-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                        <TypeIcon className="size-3" /> Font Size
-                                    </label>
-                                    <div className="flex items-center gap-2">
-                                        <input 
-                                            type="range" 
-                                            min="10" 
-                                            max="24" 
-                                            value={prefFontSize} 
-                                            onChange={(e) => setPrefFontSize(Number(e.target.value))}
-                                            className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
-                                        />
-                                        <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                        <Code2 className="size-3" /> Tab Size
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {[2, 4, 8].map(size => (
-                                            <Button 
-                                                key={size}
-                                                variant={prefTabSize === size ? "secondary" : "ghost"}
-                                                size="sm"
-                                                className="h-7 flex-1 text-[10px] font-bold"
-                                                onClick={() => setPrefTabSize(size)}
-                                            >
-                                                {size}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs font-medium uppercase tracking-widest text-muted-foreground gap-2">
+                                <span className="text-foreground">{format}</span>
+                                <ChevronDown className="size-3" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-[180px]">
+                            {ALL_FORMATS.slice(0, 10).map((fmt) => (
+                                <DropdownMenuItem key={fmt} onClick={() => handleFormatChange(fmt as Format)} className="text-xs uppercase">
+                                    {fmt}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleAutoFormat} className="h-8 text-xs font-semibold gap-2">
-                        Format
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleCopy} className="h-8 text-xs font-semibold gap-2">
-                        {copied ? <Check className="size-3.5" /> : <CopyIcon className="size-3.5" />}
-                        {copied ? "Copied" : "Copy"}
-                    </Button>
-                    <Separator orientation="vertical" className="h-6 mx-1" />
                     <Button
                         variant="ghost"
                         size="icon"
@@ -322,6 +280,52 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                     <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
                         <Maximize2 className="size-4" />
                     </Button>
+
+                    <Separator orientation="vertical" className="h-6 mx-1" />
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                                <Settings className="size-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] p-3 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <TypeIcon className="size-3" /> Font Size
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="range" 
+                                        min="10" 
+                                        max="24" 
+                                        value={prefFontSize} 
+                                        onChange={(e) => setPrefFontSize(Number(e.target.value))}
+                                        className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                                    />
+                                    <span className="text-[10px] font-bold tabular-nums w-4 text-center">{prefFontSize}</span>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Code2 className="size-3" /> Tab Size
+                                </label>
+                                <div className="flex gap-2">
+                                    {[2, 4, 8].map(size => (
+                                        <Button 
+                                            key={size}
+                                            variant={prefTabSize === size ? "secondary" : "ghost"}
+                                            size="sm"
+                                            className="h-7 flex-1 text-[10px] font-bold"
+                                            onClick={() => setPrefTabSize(size)}
+                                        >
+                                            {size}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
@@ -331,7 +335,32 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                     {showEditor && (
                         <>
                             <ResizablePanel defaultSize={50} minSize={20}>
-                                <div className="flex flex-col h-full relative">
+                                <div className="flex flex-col h-full border-r bg-muted/5">
+                                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+                                        <div className="flex items-center gap-2">
+                                            <Code2 className="size-4 text-primary" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7 text-muted-foreground hover:text-foreground" title="Format">
+                                                <Braces className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7 text-muted-foreground hover:text-foreground" title="Wrap">
+                                                <TypeIcon className="size-3.5" />
+                                            </Button>
+                                            <Separator orientation="vertical" className="h-4 mx-1" />
+                                            <Button variant="ghost" size="icon" onClick={handleCopy} className="size-7 text-muted-foreground hover:text-foreground" title="Copy">
+                                                <CopyIcon className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={handleSave} className="size-7 text-muted-foreground hover:text-primary" title="Save">
+                                                <Download className="size-3.5" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setContent("")} className="size-7 text-muted-foreground hover:text-destructive" title="Clear">
+                                                <Trash className="size-3.5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 relative overflow-hidden">
                                     <Editor
                                         height="100%"
                                         language={getLanguage(format)}
@@ -354,6 +383,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                     <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
                                         <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
                                         <span>{content.length} characters</span>
+                                    </div>
                                     </div>
                                 </div>
                             </ResizablePanel>
