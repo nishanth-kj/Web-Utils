@@ -18,6 +18,7 @@ export interface StylePanelProps {
     strokeWidth: number;
     setStrokeWidth: (width: number) => void;
     handleClear: () => void;
+    deleteSelected: () => void;
     bringToFront: () => void;
     sendToBack: () => void;
 }
@@ -33,7 +34,7 @@ const DEFAULT_COLORS = [
 ];
 
 export function StylePanel({ 
-    elements, selectedElementIds, setSelectedElementIds, color, setColor, strokeWidth, setStrokeWidth, handleClear, bringToFront, sendToBack 
+    elements, selectedElementIds, setSelectedElementIds, color, setColor, strokeWidth, setStrokeWidth, handleClear, deleteSelected, bringToFront, sendToBack 
 }: StylePanelProps) {
     const colorInputRef = useRef<HTMLInputElement>(null);
     const isCustomColor = !DEFAULT_COLORS.some(c => c.value === color);
@@ -151,9 +152,16 @@ export function StylePanel({
                 <Button variant="outline" size="sm" className="flex-1 text-[10px] h-8" onClick={bringToFront} disabled={selectedElementIds.length === 0}>Bring Front</Button>
             </div>
 
-            <Button variant="ghost" size="sm" className="w-full text-destructive text-[10px] hover:bg-destructive/10 h-9" onClick={handleClear}>
-                <Trash2 className="size-3.5 mr-2" /> Clear All
-            </Button>
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+                <Button variant="ghost" size="sm" className="w-full text-destructive text-[10px] hover:bg-destructive/10 h-9" onClick={deleteSelected} disabled={selectedElementIds.length === 0}>
+                    <Trash2 className="size-3.5 mr-2" /> Delete Selected
+                </Button>
+
+                <Button variant="ghost" size="sm" className="w-full text-zinc-400 text-[10px] hover:bg-zinc-100 dark:hover:bg-zinc-800 h-9" onClick={handleClear}>
+                    Clear All
+                </Button>
+            </div>
         </div>
     );
 }

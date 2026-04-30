@@ -12,7 +12,7 @@ import { ActionMenu } from './action-menu';
 export function DrawPage() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<Element[]>([]);
-    const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning'>('none');
+    const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning' | 'selecting'>('none');
     const [tool, setTool] = useState<ElementType>('freehand');
     const [color, setColor] = useState('#1e1e1e');
     const [strokeWidth, setStrokeWidth] = useState(2);
@@ -23,7 +23,9 @@ export function DrawPage() {
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [scale, setScale] = useState(1);
     const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
+    const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
+    const [editingElement, setEditingElement] = useState<Element | null>(null);
 
     const getMousePos = (e: React.MouseEvent) => {
         const rect = canvasRef.current!.getBoundingClientRect();
@@ -75,8 +77,20 @@ export function DrawPage() {
             }
         });
 
+        if (selectionBox) {
+            ctx.strokeStyle = '#3b82f6';
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+            ctx.lineWidth = 1;
+            const x = Math.min(selectionBox.x1, selectionBox.x2);
+            const y = Math.min(selectionBox.y1, selectionBox.y2);
+            const width = Math.abs(selectionBox.x2 - selectionBox.x1);
+            const height = Math.abs(selectionBox.y2 - selectionBox.y1);
+            ctx.fillRect(x, y, width, height);
+            ctx.strokeRect(x, y, width, height);
+        }
+
         ctx.restore();
-    }, [elements, roughCanvas, offset, scale, selectedElementIds]);
+    }, [elements, roughCanvas, offset, scale, selectedElementIds, selectionBox]);
 
     useEffect(() => {
         const updateSize = () => {
@@ -131,7 +145,10 @@ export function DrawPage() {
                 ctx.font = `${20 * element.strokeWidth}px 'Outfit', sans-serif`;
                 ctx.fillStyle = element.color;
                 ctx.textBaseline = 'top';
-                ctx.fillText(element.text || '', element.x1, element.y1);
+                const lines = (element.text || '').split('\n');
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, element.x1, element.y1 + i * (24 * element.strokeWidth));
+                });
                 break;
         }
     };
@@ -162,7 +179,9 @@ export function DrawPage() {
             } else if (element.type === 'freehand') {
                 return element.points?.some(p => distance(p, {x, y}) < 5);
             } else if (element.type === 'text') {
-                return x >= element.x1 && x <= element.x1 + 100 && y >= element.y1 && y <= element.y1 + 30;
+                const width = (element.text?.length || 0) * 10 * element.strokeWidth;
+                const height = 24 * element.strokeWidth;
+                return x >= element.x1 && x <= element.x1 + width && y >= element.y1 && y <= element.y1 + height;
             }
             return false;
         });
@@ -181,22 +200,31 @@ export function DrawPage() {
         if (tool === 'selection') {
             const element = getElementAtPosition(x, y, elements);
             if (element) {
-                setSelectedElementIds(e.shiftKey ? [...selectedElementIds, element.id] : [element.id]);
+                const isAlreadySelected = selectedElementIds.includes(element.id);
+                if (!isAlreadySelected && !e.shiftKey) {
+                    setSelectedElementIds([element.id]);
+                } else if (!isAlreadySelected && e.shiftKey) {
+                    setSelectedElementIds(prev => [...prev, element.id]);
+                }
                 setAction('moving');
                 setStartPanPos({ x: e.clientX, y: e.clientY });
             } else {
                 setSelectedElementIds([]);
+                setAction('selecting');
+                setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
             }
             return;
         }
 
         if (tool === 'text') {
-            const text = prompt('Enter text:');
-            if (text) {
-                const newEl: Element = { id: Date.now(), x1: x, y1: y, x2: x, y2: y, type: 'text', color, strokeWidth, zIndex: elements.length, text };
-                setElements(prev => [...prev, newEl]);
-                setHistory(prev => [...prev, elements]);
-            }
+            const id = Date.now();
+            const newEl: Element = { 
+                id, x1: x, y1: y, x2: x, y2: y, 
+                type: 'text', color, strokeWidth, zIndex: elements.length, text: '' 
+            };
+            setElements(prev => [...prev, newEl]);
+            setEditingElement(newEl);
+            setAction('none');
             return;
         }
 
@@ -220,6 +248,11 @@ export function DrawPage() {
             return;
         }
 
+        if (action === 'selecting' && selectionBox) {
+            setSelectionBox({ ...selectionBox, x2: x, y2: y });
+            return;
+        }
+
         if (action === 'moving' && selectedElementIds.length > 0) {
             const dx = (e.clientX - startPanPos.x) / scale;
             const dy = (e.clientY - startPanPos.y) / scale;
@@ -237,9 +270,36 @@ export function DrawPage() {
         }
     };
 
-    const handleMouseUp = () => setAction('none');
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        const { x, y } = getMousePos(e);
+        const element = getElementAtPosition(x, y, elements);
+        if (element && element.type === 'text') {
+            setEditingElement(element);
+            setSelectedElementIds([]);
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (action === 'selecting' && selectionBox) {
+            const minX = Math.min(selectionBox.x1, selectionBox.x2);
+            const maxX = Math.max(selectionBox.x1, selectionBox.x2);
+            const minY = Math.min(selectionBox.y1, selectionBox.y2);
+            const maxY = Math.max(selectionBox.y1, selectionBox.y2);
+
+            const newlySelected = elements.filter(el => {
+                const elMinX = Math.min(el.x1, el.x2);
+                const elMaxX = Math.max(el.x1, el.x2);
+                const elMinY = Math.min(el.y1, el.y2);
+                const elMaxY = Math.max(el.y1, el.y2);
+                return elMinX >= minX && elMaxX <= maxX && elMinY >= minY && elMaxY <= maxY;
+            });
+            setSelectedElementIds(newlySelected.map(el => el.id));
+        }
+        setAction('none');
+        setSelectionBox(null);
+    };
     const handleWheel = (e: React.WheelEvent) => {
-        if (e.ctrlKey) {
+        if (e.ctrlKey || e.shiftKey) {
             e.preventDefault();
             const delta = e.deltaY > 0 ? 0.9 : 1.1;
             setScale(prev => Math.max(0.1, Math.min(10, prev * delta)));
@@ -263,6 +323,23 @@ export function DrawPage() {
     };
 
     const handleClear = () => { setHistory(h => [...h, elements]); setElements([]); };
+
+    const deleteSelected = () => {
+        if (selectedElementIds.length === 0) return;
+        setHistory(prev => [...prev, elements]);
+        setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
+        setSelectedElementIds([]);
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && !editingElement) {
+                deleteSelected();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedElementIds, editingElement, elements]);
     const zoomIn = () => setScale(s => Math.min(10, s + 0.1));
     const zoomOut = () => setScale(s => Math.max(0.1, s - 0.1));
     const resetZoom = () => setScale(1);
@@ -283,13 +360,59 @@ export function DrawPage() {
                 strokeWidth={strokeWidth} 
                 setStrokeWidth={setStrokeWidth} 
                 handleClear={handleClear} 
+                deleteSelected={deleteSelected}
                 bringToFront={bringToFront} 
                 sendToBack={sendToBack} 
             />
 
             <div className="flex-1 relative overflow-hidden bg-white dark:bg-zinc-950">
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: `${20 * scale}px ${20 * scale}px`, backgroundPosition: `${offset.x}px ${offset.y}px` }} />
-                <canvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onWheel={handleWheel} className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} />
+                <canvas 
+                    ref={canvasRef} 
+                    onMouseDown={handleMouseDown} 
+                    onMouseMove={handleMouseMove} 
+                    onMouseUp={handleMouseUp} 
+                    onWheel={handleWheel}
+                    onDoubleClick={handleDoubleClick}
+                    className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} 
+                />
+
+                {editingElement && (() => {
+                    const currentEl = elements.find(el => el.id === editingElement.id);
+                    if (!currentEl) return null;
+                    return (
+                        <textarea
+                            autoFocus
+                            className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
+                            style={{
+                                left: currentEl.x1 * scale + offset.x - 8,
+                                top: currentEl.y1 * scale + offset.y - 8,
+                                minWidth: '150px',
+                                width: `${Math.max(150, (currentEl.text?.length || 0) * 12 * scale)}px`,
+                                height: 'auto',
+                                minHeight: '50px',
+                                fontSize: `${22 * currentEl.strokeWidth * scale}px`,
+                                color: currentEl.color,
+                            }}
+                            value={currentEl.text || ''}
+                            onChange={(e) => {
+                                const newText = e.target.value;
+                                setElements(prev => prev.map(el => 
+                                    el.id === currentEl.id ? { ...el, text: newText } : el
+                                ));
+                                e.target.style.height = 'auto';
+                                e.target.style.height = e.target.scrollHeight + 'px';
+                            }}
+                            onBlur={() => setEditingElement(null)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    setEditingElement(null);
+                                }
+                            }}
+                        />
+                    );
+                })()}
             </div>
         </div>
     );
