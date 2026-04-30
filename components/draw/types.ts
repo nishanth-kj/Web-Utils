@@ -12,6 +12,7 @@ export interface Element {
     points?: { x: number, y: number }[];
     color: string;
     strokeWidth: number;
+    zIndex: number;
     text?: string;
 }
 
