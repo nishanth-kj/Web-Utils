@@ -14,9 +14,9 @@ import { Slider } from '@/components/ui/slider';
 import { Element } from './types';
 
 export interface StylePanelProps {
-    elements: Element[];
-    selectedElementIds: number[];
-    setSelectedElementIds: (ids: number[]) => void;
+    elements: any[];
+    selectedElementIds: string[];
+    setSelectedElementIds: (ids: string[]) => void;
     
     color: string;
     setColor: (color: string) => void;
@@ -36,7 +36,7 @@ export interface StylePanelProps {
     opacity: number;
     setOpacity: (o: number) => void;
     
-    updateElement: (id: number, updates: Partial<Element>) => void;
+    updateElement: (id: string, updates: any) => void;
     duplicateSelected: () => void;
     deleteSelected: () => void;
     bringToFront: () => void;
@@ -75,11 +75,11 @@ export function StylePanel({
     const strokeInputRef = useRef<HTMLInputElement>(null);
     const bgInputRef = useRef<HTMLInputElement>(null);
 
-    const sortedElements = [...elements].sort((a, b) => b.zIndex - a.zIndex);
-    const isSelected = (id: number) => selectedElementIds.includes(id);
+    const sortedElements = [...elements].sort((a, b) => (b.data?.zIndex || 0) - (a.data?.zIndex || 0));
+    const isSelected = (id: string) => selectedElementIds.includes(id);
 
-    const handleDragStart = (e: React.DragEvent, id: number) => {
-        e.dataTransfer.setData('text/plain', id.toString());
+    const handleDragStart = (e: React.DragEvent, id: string) => {
+        e.dataTransfer.setData('text/plain', id);
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -88,9 +88,9 @@ export function StylePanel({
         e.dataTransfer.dropEffect = 'move';
     };
 
-    const handleDrop = (e: React.DragEvent, targetId: number) => {
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
         e.preventDefault();
-        const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+        const draggedId = e.dataTransfer.getData('text/plain');
         if (draggedId === targetId) return;
 
         const draggedIndex = elements.findIndex(el => el.id === draggedId);

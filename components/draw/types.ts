@@ -1,6 +1,6 @@
 
 
-export type ElementType = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'circle' | 'arrow' | 'line' | 'freehand' | 'eraser' | 'text' | 'image';
+export type ElementType = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'circle' | 'arrow' | 'line' | 'freehand' | 'eraser' | 'text' | 'image' | 'connection';
 
 export interface Element {
     id: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {SidebarProvider, SidebarTrigger, useSidebar} from "@/components/ui/sidebar";
 import {SplashScreen} from "@/components/layout/splash-screen";
@@ -38,17 +38,23 @@ function LayoutContent({ children, isHomePage, showSplash }: { children: React.R
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !localStorage.getItem("hasSeenSplash_v1");
-    }
-    return true;
-  });
+  const [showSplash, setShowSplash] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-    const handleSplashComplete = () => {
+  useEffect(() => {
+    setMounted(true);
+    const hasSeenSplash = localStorage.getItem("hasSeenSplash_v1");
+    if (!hasSeenSplash) {
+      setShowSplash(true);
+    }
+  }, []);
+
+  const handleSplashComplete = () => {
     setShowSplash(false);
     localStorage.setItem("hasSeenSplash_v1", "true");
   };
+
+  if (!mounted) return null;
 
   const isDrawPage = pathname.startsWith("/draw");
 

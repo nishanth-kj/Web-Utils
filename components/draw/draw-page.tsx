@@ -1,625 +1,338 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import ReactFlow, { 
+    addEdge, 
+    Background, 
+    Controls, 
+    Connection, 
+    Edge, 
+    
+    Node, 
+    useNodesState, 
+    useEdgesState,
+    Panel,
+    useReactFlow,
+    ReactFlowProvider,
+    useViewport,
+    XYPosition
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { Sun, Moon, Link2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import Script from 'next/script';
 import { Button } from "../ui/button";
-import { Element, ElementType, RoughCanvas } from './types';
 import { Toolbar } from './toolbar';
 import { StylePanel } from './style-panel';
 import { ZoomControls } from './zoom-controls';
 import { ActionMenu } from './action-menu';
-import { LayerPanel } from './layer-panel';
+import { RoughNode } from './nodes/rough-node';
+import { RoughEdge } from './nodes/rough-edge';
+import { TextNode } from './nodes/text-node';
+import { ImageNode } from './nodes/image-node';
+import { ElementType } from './types';
 
-// Type-safe access to global roughjs
-interface RoughWindow extends Window {
-    rough: {
-        canvas: (canvas: HTMLCanvasElement) => RoughCanvas;
-    }
-}
+const nodeTypes = {
+    rough: RoughNode,
+    text: TextNode,
+    image: ImageNode,
+};
 
-// Define drawElement outside to ensure it's not re-created and is hoisted
-function drawElement(rc: RoughCanvas, ctx: CanvasRenderingContext2D, element: Element) {
-    const generator = rc.generator;
-    const options = {
-        stroke: element.color,
-        strokeWidth: element.strokeWidth,
-        roughness: 1.2,
-        bowing: 1.5,
-        seed: element.id + 1,
-    };
+const edgeTypes = {
+    rough: RoughEdge,
+};
 
-    switch (element.type) {
-        case 'line': rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options)); break;
-        case 'rectangle': rc.draw(generator.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options)); break;
-        case 'diamond': {
-            const midX = (element.x1 + element.x2) / 2;
-            const midY = (element.y1 + element.y2) / 2;
-            rc.draw(generator.polygon([[midX, element.y1], [element.x2, midY], [midX, element.y2], [element.x1, midY]], options));
-            break;
-        }
-        case 'circle': {
-            const width = element.x2 - element.x1;
-            const height = element.y2 - element.y1;
-            rc.draw(generator.ellipse(element.x1 + width / 2, element.y1 + height / 2, width, height, options));
-            break;
-        }
-        case 'arrow': {
-            const headlen = 15;
-            const angle = Math.atan2(element.y2 - element.y1, element.x2 - element.x1);
-            rc.draw(generator.line(element.x1, element.y1, element.x2, element.y2, options));
-            rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle - Math.PI / 6), element.y2 - headlen * Math.sin(angle - Math.PI / 6), options));
-            rc.draw(generator.line(element.x2, element.y2, element.x2 - headlen * Math.cos(angle + Math.PI / 6), element.y2 - headlen * Math.sin(angle + Math.PI / 6), options));
-            break;
-        }
-        case 'freehand':
-            if (element.points && element.points.length > 1) {
-                const stroke = element.points.map(p => [p.x, p.y] as [number, number]);
-                rc.draw(generator.curve(stroke, options));
-            }
-            break;
-    }
-    ctx.restore();
-}
-
-export function DrawPage() {
+function FlowContent() {
     const { theme, setTheme } = useTheme();
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [elements, setElements] = useState<Element[]>([]);
-    const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning' | 'selecting'>('none');
-    const [tool, setTool] = useState<ElementType>('freehand');
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [tool, setTool] = useState<ElementType>('selection');
     const [color, setColor] = useState('#1e1e1e');
     const [backgroundColor, setBackgroundColor] = useState('transparent');
     const [strokeWidth, setStrokeWidth] = useState(2);
     const [strokeStyle, setStrokeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
     const [roughness, setRoughness] = useState(1);
     const [opacity, setOpacity] = useState(100);
-    const [roughCanvas, setRoughCanvas] = useState<RoughCanvas | null>(null);
-    const [history, setHistory] = useState<Element[][]>([]);
-    const [redoStack, setRedoStack] = useState<Element[][]>([]);
-    const [selectedElementIds, setSelectedElementIds] = useState<number[]>([]);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [scale, setScale] = useState(1);
-    const [resizeHandle, setResizeHandle] = useState<string | null>(null);
-    const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
-    const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
-    const [editingElement, setEditingElement] = useState<Element | null>(null);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         setMounted(true);
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js";
+        script.async = true;
+        document.body.appendChild(script);
+        return () => {
+            if (document.body.contains(script)) {
+                document.body.removeChild(script);
+            }
+        }
     }, []);
 
-    const getMousePos = useCallback((e: React.MouseEvent | MouseEvent) => {
-        if (!canvasRef.current) return { x: 0, y: 0 };
-        const rect = canvasRef.current.getBoundingClientRect();
-        return {
-            x: (e.clientX - rect.left - offset.x) / scale,
-            y: (e.clientY - rect.top - offset.y) / scale
-        };
-    }, [offset, scale]);
+    const { screenToFlowPosition, zoomIn, zoomOut, setViewport } = useReactFlow();
+    const { zoom } = useViewport();
+    const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+    const [startPos, setStartPos] = useState<XYPosition | null>(null);
 
-    const onScriptLoad = () => {
-        if (typeof window !== 'undefined') {
-            const roughWindow = window as unknown as RoughWindow;
-            if (roughWindow.rough) {
-                const canvas = canvasRef.current;
-                if (canvas) setRoughCanvas(roughWindow.rough.canvas(canvas));
-            }
-        }
-    };
+    const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'rough' }, eds)), [setEdges]);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const roughWindow = window as unknown as RoughWindow;
-            if (roughWindow.rough && canvasRef.current && !roughCanvas) {
-                setRoughCanvas(roughWindow.rough.canvas(canvasRef.current));
-            }
-        }
-    }, [roughCanvas]);
-
-    useLayoutEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || !roughCanvas) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(offset.x, offset.y);
-        ctx.scale(scale, scale);
-
-        const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
-        sortedElements.forEach((element) => {
-            drawElement(roughCanvas, ctx, element);
-            
-            if (selectedElementIds.includes(element.id)) {
-                let minX = Math.min(element.x1, element.x2);
-                let maxX = Math.max(element.x1, element.x2);
-                let minY = Math.min(element.y1, element.y2);
-                let maxY = Math.max(element.y1, element.y2);
-
-                if (element.type === 'freehand' && element.points && element.points.length > 0) {
-                    minX = Math.min(...element.points.map(p => p.x));
-                    maxX = Math.max(...element.points.map(p => p.x));
-                    minY = Math.min(...element.points.map(p => p.y));
-                    maxY = Math.max(...element.points.map(p => p.y));
-                }
-                
-                ctx.strokeStyle = '#3b82f6';
-                ctx.setLineDash([5, 5]);
-                ctx.lineWidth = 1;
-                ctx.strokeRect(minX - 5, minY - 5, (maxX - minX) + 10, (maxY - minY) + 10);
-                ctx.setLineDash([]);
-
-                // Draw handles
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = '#3b82f6';
-                ctx.lineWidth = 1.5;
-                const handleSize = 8 / scale;
-                
-                [
-                    [minX, minY], [maxX, minY], [minX, maxY], [maxX, maxY],
-                    [(minX + maxX) / 2, minY], [(minX + maxX) / 2, maxY],
-                    [minX, (minY + maxY) / 2], [maxX, (minY + maxY) / 2]
-                ].forEach(([x, y]) => {
-                    ctx.beginPath();
-                    ctx.rect(x - handleSize / 2, y - handleSize / 2, handleSize, handleSize);
-                    ctx.fill();
-                    ctx.stroke();
-                });
-            }
-        });
-
-        if (selectionBox) {
-            ctx.strokeStyle = '#3b82f6';
-            ctx.lineWidth = 1 / scale;
-            ctx.strokeRect(
-                selectionBox.x1, 
-                selectionBox.y1, 
-                selectionBox.x2 - selectionBox.x1, 
-                selectionBox.y2 - selectionBox.y1
-            );
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-            ctx.fillRect(
-                selectionBox.x1, 
-                selectionBox.y1, 
-                selectionBox.x2 - selectionBox.x1, 
-                selectionBox.y2 - selectionBox.y1
-            );
-        }
-
-        ctx.restore();
-    }, [elements, roughCanvas, selectedElementIds, selectionBox, offset, scale]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (selectedElementIds.length > 0 && !editingElement) {
-                    setHistory(prev => [...prev, elements]);
-                    setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
-                    setSelectedElementIds([]);
-                }
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedElementIds, elements, editingElement]);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (isLocked) return;
-        const { x, y } = getMousePos(e);
-
-        if (tool === 'hand') {
-            setAction('panning');
-            setStartPanPos({ x: e.clientX, y: e.clientY });
+    const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
+        if (tool === 'selection' || tool === 'hand' || tool === 'eraser') return;
+        
+        // Only start if clicking on the pane background, not on an existing node/edge or panel
+        const target = e.target as HTMLElement;
+        if (
+            target.closest('.react-flow__node') || 
+            target.closest('.react-flow__edge') || 
+            target.closest('.react-flow__handle') ||
+            target.closest('.react-flow__panel')
+        ) {
             return;
         }
 
-        if (tool === 'selection') {
-            // Check handles first
-            if (selectedElementIds.length === 1) {
-                const el = elements.find(e => e.id === selectedElementIds[0]);
-                if (el) {
-                    const minX = Math.min(el.x1, el.x2);
-                    const maxX = Math.max(el.x1, el.x2);
-                    const minY = Math.min(el.y1, el.y2);
-                    const maxY = Math.max(el.y1, el.y2);
-                    const hSize = 10 / scale;
-                    
-                    const handles = [
-                        { name: 'nw', x: minX, y: minY }, { name: 'ne', x: maxX, y: minY },
-                        { name: 'sw', x: minX, y: maxY }, { name: 'se', x: maxX, y: maxY },
-                        { name: 'n', x: (minX + maxX) / 2, y: minY }, { name: 's', x: (minX + maxX) / 2, y: maxY },
-                        { name: 'w', x: minX, y: (minY + maxY) / 2 }, { name: 'e', x: maxX, y: (minY + maxY) / 2 }
-                    ];
+        const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+        setStartPos(position);
+    }, [tool, screenToFlowPosition]);
 
-                    const clickedHandle = handles.find(h => 
-                        x >= h.x - hSize && x <= h.x + hSize && y >= h.y - hSize && y <= h.y + hSize
-                    );
+    const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
+        if (!startPos) return;
 
-                    if (clickedHandle) {
-                        setAction('resizing');
-                        setResizeHandle(clickedHandle.name);
-                        setStartPanPos({ x, y });
-                        return;
-                    }
-                }
-            }
+        const currentPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+        
+        // If we haven't created the node yet, check if we've dragged far enough
+        if (!draggingNodeId) {
+            const dx = Math.abs(currentPos.x - startPos.x);
+            const dy = Math.abs(currentPos.y - startPos.y);
+            if (dx < 2 && dy < 2) return;
 
-            // Check if clicking on an element
-            const clickedElement = [...elements].reverse().find(el => {
-                const minX = Math.min(el.x1, el.x2) - 5;
-                const maxX = Math.max(el.x1, el.x2) + 5;
-                const minY = Math.min(el.y1, el.y2) - 5;
-                const maxY = Math.max(el.y1, el.y2) + 5;
-                return x >= minX && x <= maxX && y >= minY && y <= maxY;
-            });
+            // Create the node now
+            const id = `node_${Date.now()}`;
+            let nodeType = 'rough';
+            if (tool === 'text') nodeType = 'text';
+            if (tool === 'image') nodeType = 'image';
 
-            if (clickedElement) {
-                if (e.shiftKey) {
-                    setSelectedElementIds(prev => 
-                        prev.includes(clickedElement.id) 
-                            ? prev.filter(id => id !== clickedElement.id)
-                            : [...prev, clickedElement.id]
-                    );
-                } else if (!selectedElementIds.includes(clickedElement.id)) {
-                    setSelectedElementIds([clickedElement.id]);
-                }
-                setAction('moving');
-                setStartPanPos({ x: x, y: y });
-            } else {
-                setSelectedElementIds([]);
-                setAction('selecting');
-                setSelectionBox({ x1: x, y1: y, x2: x, y2: y });
-            }
-            return;
-        }
-
-        setAction('drawing');
-        const id = Date.now();
-        const newElement: Element = {
-            id,
-            type: tool,
-            x1: x,
-            y1: y,
-            x2: x,
-            y2: y,
-            color,
-            backgroundColor,
-            strokeWidth,
-            strokeStyle,
-            roughness,
-            opacity,
-            zIndex: elements.length,
-            points: tool === 'freehand' ? [{ x, y }] : undefined,
-            text: tool === 'text' ? '' : undefined
-        };
-        setElements(prev => [...prev, newElement]);
-        setHistory(prev => [...prev, elements]);
-        if (tool === 'text') {
-            setEditingElement(newElement);
-            setAction('none');
-        }
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        const { x, y } = getMousePos(e);
-
-        if (action === 'panning') {
-            const dx = e.clientX - startPanPos.x;
-            const dy = e.clientY - startPanPos.y;
-            setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-            setStartPanPos({ x: e.clientX, y: e.clientY });
-            return;
-        }
-
-        if (action === 'drawing') {
-            const index = elements.length - 1;
-            const updatedElements = [...elements];
-            const element = updatedElements[index];
-            element.x2 = x;
-            element.y2 = y;
-            if (element.type === 'freehand' && element.points) {
-                element.points.push({ x, y });
-            }
-            setElements(updatedElements);
-        } else if (action === 'moving') {
-            const dx = x - startPanPos.x;
-            const dy = y - startPanPos.y;
-            setElements(prev => prev.map(el => {
-                if (selectedElementIds.includes(el.id)) {
-                    const newEl = { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
-                    if (newEl.type === 'freehand' && newEl.points) {
-                        newEl.points = newEl.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
-                    }
-                    return newEl;
-                }
-                return el;
-            }));
-            setStartPanPos({ x, y });
-        } else if (action === 'resizing' && resizeHandle && selectedElementIds.length === 1) {
-            const id = selectedElementIds[0];
-            const dx = x - startPanPos.x;
-            const dy = y - startPanPos.y;
-            setElements(prev => prev.map(el => {
-                if (el.id !== id) return el;
-                let { x1, y1, x2, y2 } = el;
-                if (resizeHandle.includes('n')) y1 += dy;
-                if (resizeHandle.includes('s')) y2 += dy;
-                if (resizeHandle.includes('w')) x1 += dx;
-                if (resizeHandle.includes('e')) x2 += dx;
-                return { ...el, x1, y1, x2, y2 };
-            }));
-            setStartPanPos({ x, y });
-        } else if (action === 'selecting' && selectionBox) {
-            setSelectionBox({ ...selectionBox, x2: x, y2: y });
-        }
-    };
-
-    const handleDoubleClick = (e: React.MouseEvent) => {
-        const { x, y } = getMousePos(e);
-        const clickedElement = [...elements].reverse().find(el => {
-            const minX = Math.min(el.x1, el.x2) - 5;
-            const maxX = Math.max(el.x1, el.x2) + 5;
-            const minY = Math.min(el.y1, el.y2) - 5;
-            const maxY = Math.max(el.y1, el.y2) + 5;
-            return x >= minX && x <= maxX && y >= minY && y <= maxY;
-        });
-
-        if (clickedElement && clickedElement.type === 'text') {
-            setEditingElement(clickedElement);
-        } else if (!clickedElement) {
-            // Create new text element
-            const id = Date.now();
-            const newElement: Element = {
+            const newNode: Node = {
                 id,
-                type: 'text',
-                x1: x,
-                y1: y,
-                x2: x,
-                y2: y,
-                color,
-                strokeWidth,
-                zIndex: elements.length,
-                text: ''
+                type: nodeType,
+                position: {
+                    x: Math.min(startPos.x, currentPos.x),
+                    y: Math.min(startPos.y, currentPos.y)
+                },
+                data: { 
+                    type: tool,
+                    color,
+                    backgroundColor,
+                    strokeWidth,
+                    strokeStyle,
+                    roughness,
+                    opacity,
+                    text: tool === 'text' ? 'Type here...' : '',
+                    onTextChange: (newText: string) => {
+                        setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, text: newText } } : n));
+                    },
+                    onImageChange: (url: string) => {
+                        setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, url } } : n));
+                    }
+                },
+                width: Math.max(20, dx),
+                height: Math.max(20, dy),
             };
-            setElements(prev => [...prev, newElement]);
-            setEditingElement(newElement);
+
+            setNodes((nds) => nds.concat(newNode));
+            setDraggingNodeId(id);
+            return;
         }
-    };
+
+        // Update existing dragging node
+        const width = Math.max(20, Math.abs(currentPos.x - startPos.x));
+        const height = Math.max(20, Math.abs(currentPos.y - startPos.y));
+        const x = Math.min(startPos.x, currentPos.x);
+        const y = Math.min(startPos.y, currentPos.y);
+
+        setNodes((nds) =>
+            nds.map((n) =>
+                n.id === draggingNodeId
+                    ? { ...n, position: { x, y }, width, height, style: { ...n.style, width, height } }
+                    : n
+            )
+        );
+    }, [startPos, draggingNodeId, tool, color, backgroundColor, strokeWidth, strokeStyle, roughness, opacity, setNodes, screenToFlowPosition]);
+
+    const onPaneMouseUp = useCallback(() => {
+        if (!draggingNodeId) return;
+        
+        setDraggingNodeId(null);
+        setStartPos(null);
+    }, [draggingNodeId]);
+
+    const updateSelectedNodes = useCallback((updates: any) => {
+        setNodes((nds) =>
+            nds.map((node) => {
+                if (node.selected) {
+                    return { ...node, data: { ...node.data, ...updates } };
+                }
+                return node;
+            })
+        );
+    }, [setNodes]);
+
+    const duplicateSelected = useCallback(() => {
+        const selectedNodes = nodes.filter(n => n.selected);
+        const newNodes = selectedNodes.map(node => ({
+            ...node,
+            id: `${node.id}-copy-${Date.now()}`,
+            position: { x: node.position.x + 20, y: node.position.y + 20 },
+            selected: false
+        }));
+        setNodes(nds => nds.concat(newNodes));
+    }, [nodes, setNodes]);
 
     const deleteSelected = useCallback(() => {
-        if (selectedElementIds.length > 0) {
-            setHistory(prev => [...prev, elements]);
-            setElements(prev => prev.filter(el => !selectedElementIds.includes(el.id)));
-            setSelectedElementIds([]);
-        }
-    }, [selectedElementIds, elements]);
+        setNodes(nds => nds.filter(n => !n.selected));
+        setEdges(eds => eds.filter(e => !e.selected));
+    }, [setNodes, setEdges]);
 
-    const handleMouseUp = () => {
-        if (action === 'selecting' && selectionBox) {
-            const minX = Math.min(selectionBox.x1, selectionBox.x2);
-            const maxX = Math.max(selectionBox.x1, selectionBox.x2);
-            const minY = Math.min(selectionBox.y1, selectionBox.y2);
-            const maxY = Math.max(selectionBox.y1, selectionBox.y2);
+    const flowRef = useRef<HTMLDivElement>(null);
 
-            const newlySelected = elements.filter(el => {
-                const elMinX = Math.min(el.x1, el.x2);
-                const elMaxX = Math.max(el.x1, el.x2);
-                const elMinY = Math.min(el.y1, el.y2);
-                const elMaxY = Math.max(el.y1, el.y2);
-                return elMinX >= minX && elMaxX <= maxX && elMinY >= minY && elMaxY <= maxY;
-            });
-            setSelectedElementIds(newlySelected.map(el => el.id));
-        }
-        setAction('none');
-        setSelectionBox(null);
-    };
+    useEffect(() => {
+        const flowContainer = flowRef.current;
+        if (!flowContainer) return;
 
-    const handleWheel = (e: React.WheelEvent) => {
-        if (e.ctrlKey || e.shiftKey) {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? 0.9 : 1.1;
-            setScale(prev => Math.max(0.1, Math.min(10, prev * delta)));
-        } else {
-            setOffset(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
-        }
-    };
+        const handleMouseDown = (e: MouseEvent) => onPaneMouseDown(e as any);
+        const handleMouseMove = (e: MouseEvent) => onPaneMouseMove(e as any);
+        const handleMouseUp = () => onPaneMouseUp();
 
-    const handleUndo = () => { if (history.length) { setRedoStack(p => [...p, elements]); setElements(history[history.length - 1]); setHistory(h => h.slice(0, -1)); } };
-    const handleRedo = () => { if (redoStack.length) { setHistory(h => [...h, elements]); setElements(redoStack[redoStack.length - 1]); setRedoStack(r => r.slice(0, -1)); } };
-    const duplicateSelected = useCallback(() => {
-        if (selectedElementIds.length > 0) {
-            setHistory(prev => [...prev, elements]);
-            const newElements: Element[] = [];
-            const newIds: number[] = [];
-            
-            selectedElementIds.forEach(id => {
-                const el = elements.find(e => e.id === id);
-                if (el) {
-                    const newId = Date.now() + Math.random();
-                    const newEl = { ...el, id: newId, x1: el.x1 + 20, y1: el.y1 + 20, x2: el.x2 + 20, y2: el.y2 + 20, zIndex: elements.length + newElements.length };
-                    if (newEl.points) {
-                        newEl.points = newEl.points.map(p => ({ x: p.x + 20, y: p.y + 20 }));
-                    }
-                    newElements.push(newEl);
-                    newIds.push(newId);
-                }
-            });
-            
-            setElements(prev => [...prev, ...newElements]);
-            setSelectedElementIds(newIds);
-        }
-    }, [selectedElementIds, elements]);
+        flowContainer.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
 
-    const handleDownload = () => { const canvas = canvasRef.current; if (canvas) { const a = document.createElement('a'); a.download = 'sketch.png'; a.href = canvas.toDataURL(); a.click(); } };
-    
-    const updateElement = (id: number, updates: Partial<Element>) => {
-        setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
-    };
+        return () => {
+            flowContainer.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp]);
 
-    const moveUp = () => { 
-        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: e.zIndex + 1 } : e)); 
-    };
-    
-    const moveDown = () => { 
-        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: e.zIndex - 1 } : e)); 
-    };
+    if (!mounted) return null;
 
-    const bringToFront = () => { 
-        const maxZ = Math.max(...elements.map(e => e.zIndex), 0); 
-        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: maxZ + 1 } : e)); 
-    };
-    
-    const sendToBack = () => { 
-        const minZ = Math.min(...elements.map(e => e.zIndex), 0); 
-        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: minZ - 1 } : e)); 
-    };
+    const cursorClass = tool === 'selection' ? 'cursor-default' : tool === 'hand' ? 'cursor-grab' : 'cursor-crosshair';
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-[#fafafa] dark:bg-[#09090b]">
-            <Script 
-                src="https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js" 
-                onLoad={onScriptLoad}
-            />
-            
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50">
-                <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
-            </div>
+        <div 
+            ref={flowRef}
+            className={`relative w-full h-screen overflow-hidden bg-[#fafafa] dark:bg-[#09090b] ${cursorClass}`}
+        >
+            <style jsx global>{`
+                .react-flow__pane {
+                    cursor: inherit !important;
+                }
+                .react-flow__grab {
+                    cursor: inherit !important;
+                }
+                ${tool === 'hand' ? '' : `
+                .react-flow__pane.grabbing {
+                    cursor: crosshair !important;
+                }
+                `}
+                
+                /* Hide handles by default unless in connection mode */
+                .react-flow__handle {
+                    opacity: ${tool === 'connection' ? '1' : '0'} !important;
+                    pointer-events: ${tool === 'connection' ? 'all' : 'none'} !important;
+                    transition: opacity 0.2s ease-in-out;
+                }
+            `}</style>
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                className={`bg-transparent ${cursorClass}`}
+                defaultEdgeOptions={{ type: 'rough' }}
+                proOptions={{ hideAttribution: true }}
+                nodesConnectable={true}
+                nodesDraggable={tool === 'selection'}
+                elementsSelectable={tool === 'selection'}
+                panOnDrag={tool === 'hand'}
+                selectionOnDrag={tool === 'selection'}
+                zoomOnScroll={tool === 'selection' || tool === 'hand'}
+                zoomOnPinch={tool === 'selection' || tool === 'hand'}
+                zoomOnDoubleClick={false}
+            >
+                <Background color="#ccc" gap={20} size={1} />
+                
+                <Panel position="top-center" className="z-50 m-4">
+                    <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
+                </Panel>
 
-            {!mounted ? null : (
-                <>
-                    {/* Canvas Layer (Bottom) */}
-                    <div className="absolute inset-0 z-0 cursor-crosshair overflow-hidden">
-                        <canvas 
-                            ref={canvasRef} 
-                            width={window.innerWidth}
-                            height={window.innerHeight}
-                            onMouseDown={handleMouseDown} 
-                            onMouseMove={handleMouseMove} 
-                            onMouseUp={handleMouseUp} 
-                            onWheel={handleWheel}
-                            onDoubleClick={handleDoubleClick}
-                            className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} 
-                        />
-                    </div>
+                <Panel position="top-right" className="z-50 flex items-center gap-2 m-4">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-2xl border-zinc-200 dark:border-zinc-800 shadow-sm rounded-lg"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    >
+                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    </Button>
+                    <ActionMenu handleDownload={() => {}} />
+                </Panel>
 
-                    {/* UI Layer (Top) */}
-                    <div className="absolute top-6 right-6 z-50 flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-2xl border-zinc-200 dark:border-zinc-800 shadow-sm rounded-lg"
-                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        >
-                            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                            <span className="sr-only">Toggle theme</span>
-                        </Button>
-                        <ActionMenu 
-                            handleDownload={handleDownload} 
-                        />
-                    </div>
-
-                    <div className="absolute bottom-6 left-6 z-50">
-                        <ZoomControls 
-                            scale={scale} 
-                            zoomIn={() => setScale(s => Math.min(10, s * 1.1))} 
-                            zoomOut={() => setScale(s => Math.max(0.1, s * 0.9))} 
-                            resetZoom={() => { setScale(1); setOffset({ x: 0, y: 0 }); }}
-                            handleUndo={handleUndo}
-                            handleRedo={handleRedo}
-                            canUndo={history.length > 0}
-                            canRedo={redoStack.length > 0}
-                        />
-                    </div>
-                    
+                <Panel position="top-right" className="mt-20 mr-4 z-50 pointer-events-auto">
                     <StylePanel 
-                        elements={elements}
-                        selectedElementIds={selectedElementIds}
-                        setSelectedElementIds={setSelectedElementIds}
-                        color={color} 
-                        setColor={(c) => {
-                            setColor(c);
-                            selectedElementIds.forEach(id => updateElement(id, { color: c }));
-                        }} 
+                        elements={nodes} 
+                        selectedElementIds={nodes.filter(n => n.selected).map(n => n.id)}
+                        setSelectedElementIds={(ids) => {
+                            setNodes((nds) => nds.map((n) => ({ ...n, selected: ids.includes(n.id) })));
+                        }}
+                        color={color}
+                        setColor={(c) => { setColor(c); updateSelectedNodes({ color: c }); }}
                         backgroundColor={backgroundColor}
-                        setBackgroundColor={(c) => {
-                            setBackgroundColor(c);
-                            selectedElementIds.forEach(id => updateElement(id, { backgroundColor: c }));
-                        }}
-                        strokeWidth={strokeWidth} 
-                        setStrokeWidth={(w) => {
-                            setStrokeWidth(w);
-                            selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
-                        }}
+                        setBackgroundColor={(c) => { setBackgroundColor(c); updateSelectedNodes({ backgroundColor: c }); }}
+                        strokeWidth={strokeWidth}
+                        setStrokeWidth={(w) => { setStrokeWidth(w); updateSelectedNodes({ strokeWidth: w }); }}
                         strokeStyle={strokeStyle}
-                        setStrokeStyle={(s) => {
-                            setStrokeStyle(s);
-                            selectedElementIds.forEach(id => updateElement(id, { strokeStyle: s }));
-                        }}
+                        setStrokeStyle={(s) => { setStrokeStyle(s); updateSelectedNodes({ strokeStyle: s }); }}
                         roughness={roughness}
-                        setRoughness={(r) => {
-                            setRoughness(r);
-                            selectedElementIds.forEach(id => updateElement(id, { roughness: r }));
-                        }}
+                        setRoughness={(r) => { setRoughness(r); updateSelectedNodes({ roughness: r }); }}
                         opacity={opacity}
-                        setOpacity={(o) => {
-                            setOpacity(o);
-                            selectedElementIds.forEach(id => updateElement(id, { opacity: o }));
+                        setOpacity={(o) => { setOpacity(o); updateSelectedNodes({ opacity: o }); }}
+                        updateElement={(id, updates) => {
+                            setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, ...updates } } : n));
                         }}
-                        updateElement={updateElement}
                         duplicateSelected={duplicateSelected}
                         deleteSelected={deleteSelected}
-                        bringToFront={bringToFront}
-                        sendToBack={sendToBack}
-                        moveUp={moveUp}
-                        moveDown={moveDown}
-                        handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
+                        bringToFront={() => {}}
+                        sendToBack={() => {}}
+                        moveUp={() => {}}
+                        moveDown={() => {}}
+                        handleClear={() => { setNodes([]); setEdges([]); }}
                     />
+                </Panel>
 
-                    {editingElement && (() => {
-                        const currentEl = elements.find(el => el.id === editingElement.id);
-                        if (!currentEl) return null;
-                        return (
-                            <textarea
-                                autoFocus
-                                className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
-                                style={{
-                                    left: currentEl.x1 * scale + offset.x - 8,
-                                    top: currentEl.y1 * scale + offset.y - 8,
-                                    minWidth: '200px',
-                                    width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
-                                    height: 'auto',
-                                    minHeight: '60px',
-                                    fontSize: `${32 * currentEl.strokeWidth * scale}px`,
-                                    color: currentEl.color,
-                                }}
-                                value={currentEl.text || ''}
-                                onChange={(e) => {
-                                    const newText = e.target.value;
-                                    setElements(prev => prev.map(el => 
-                                        el.id === currentEl.id ? { ...el, text: newText } : el
-                                    ));
-                                    e.target.style.height = 'auto';
-                                    e.target.style.height = e.target.scrollHeight + 'px';
-                                }}
-                                onBlur={() => setEditingElement(null)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        setEditingElement(null);
-                                    }
-                                }}
-                            />
-                        );
-                    })()}
-                </>
-            )}
+                <Panel position="bottom-left" className="m-6 z-50">
+                    <ZoomControls 
+                        scale={zoom}
+                        zoomIn={() => zoomIn()}
+                        zoomOut={() => zoomOut()}
+                        resetZoom={() => setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 800 })}
+                        handleUndo={() => {}}
+                        handleRedo={() => {}}
+                        canUndo={false}
+                        canRedo={false}
+                    />
+                </Panel>
+            </ReactFlow>
         </div>
+    );
+}
+
+export function DrawPage() {
+    return (
+        <ReactFlowProvider>
+            <FlowContent />
+        </ReactFlowProvider>
     );
 }
