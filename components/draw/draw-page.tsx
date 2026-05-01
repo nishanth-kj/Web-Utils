@@ -47,7 +47,7 @@ function FlowContent() {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [tool, setTool] = useState<ElementType>('selection');
     const [color, setColor] = useState('#1e1e1e');
-    const [backgroundColor, setBackgroundColor] = useState('transparent');
+    const [backgroundColor, setBackgroundColor] = useState('#ffffff');
     const [strokeWidth, setStrokeWidth] = useState(2);
     const [strokeStyle, setStrokeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
     const [roughness, setRoughness] = useState(1);
@@ -76,7 +76,7 @@ function FlowContent() {
     const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'rough' }, eds)), [setEdges]);
 
     const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
-        if (tool === 'selection' || tool === 'hand' || tool === 'eraser') return;
+        if (tool === 'selection' || tool === 'hand' || tool === 'eraser' || tool === 'connection') return;
         
         // Only start if clicking on the pane background, not on an existing node/edge or panel
         const target = e.target as HTMLElement;
@@ -196,21 +196,35 @@ function FlowContent() {
     useEffect(() => {
         const flowContainer = flowRef.current;
         if (!flowContainer) return;
-
         const handleMouseDown = (e: MouseEvent) => onPaneMouseDown(e as any);
         const handleMouseMove = (e: MouseEvent) => onPaneMouseMove(e as any);
         const handleMouseUp = () => onPaneMouseUp();
 
-        flowContainer.addEventListener('mousedown', handleMouseDown);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't delete if user is typing in an input or contentEditable
+            if (
+                e.target instanceof HTMLInputElement || 
+                e.target instanceof HTMLTextAreaElement ||
+                (e.target as HTMLElement).isContentEditable
+            ) return;
+
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                deleteSelected();
+            }
+        };
+
+        window.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            flowContainer.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp]);
+    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp, deleteSelected]);
 
     if (!mounted) return null;
 
@@ -254,11 +268,11 @@ function FlowContent() {
                 proOptions={{ hideAttribution: true }}
                 nodesConnectable={true}
                 nodesDraggable={tool === 'selection'}
-                elementsSelectable={tool === 'selection'}
+                elementsSelectable={true}
                 panOnDrag={tool === 'hand'}
                 selectionOnDrag={tool === 'selection'}
-                zoomOnScroll={tool === 'selection' || tool === 'hand'}
-                zoomOnPinch={tool === 'selection' || tool === 'hand'}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
                 zoomOnDoubleClick={false}
             >
                 <Background color="#ccc" gap={20} size={1} />

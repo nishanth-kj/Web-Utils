@@ -44,6 +44,8 @@ export function RoughEdge({
         if (!ctx) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(-minX, -minY);
 
         const options = {
             stroke: selected ? '#3b82f6' : (style.stroke as string || '#b1b1b7'),
@@ -63,16 +65,18 @@ export function RoughEdge({
         const x2 = targetX - arrowLength * Math.cos(angle + Math.PI / 6);
         const y2 = targetY - arrowLength * Math.sin(angle + Math.PI / 6);
 
-        // Convert coordinates to canvas space
-        const cx1 = x1 - minX;
-        const cy1 = y1 - minY;
-        const cx2 = x2 - minX;
-        const cy2 = y2 - minY;
-        const ctxX = targetX - minX;
-        const ctyY = targetY - minY;
+        rc.line(targetX, targetY, x1, y1, options);
+        rc.line(targetX, targetY, x2, y2, options);
 
-        rc.line(ctxX, ctyY, cx1, cy1, options);
-        rc.line(ctxX, ctyY, cx2, cy2, options);
+        // Draw arrow head at source (both ends)
+        const sx1 = sourceX + arrowLength * Math.cos(angle - Math.PI / 6);
+        const sy1 = sourceY + arrowLength * Math.sin(angle - Math.PI / 6);
+        const sx2 = sourceX + arrowLength * Math.cos(angle + Math.PI / 6);
+        const sy2 = sourceY + arrowLength * Math.sin(angle + Math.PI / 6);
+
+        rc.line(sourceX, sourceY, sx1, sy1, options);
+        rc.line(sourceX, sourceY, sx2, sy2, options);
+        ctx.restore();
     }, [edgePath, selected, style, targetX, targetY, sourceX, sourceY, minX, minY]);
 
     return (
