@@ -85,6 +85,7 @@ export function DrawPage() {
     const [selectedElementIds, setSelectedElementIds] = useState<number[]>([]);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [scale, setScale] = useState(1);
+    const [resizeHandle, setResizeHandle] = useState<string | null>(null);
     const [startPanPos, setStartPanPos] = useState({ x: 0, y: 0 });
     const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
@@ -223,6 +224,36 @@ export function DrawPage() {
         }
 
         if (tool === 'selection') {
+            // Check handles first
+            if (selectedElementIds.length === 1) {
+                const el = elements.find(e => e.id === selectedElementIds[0]);
+                if (el) {
+                    const minX = Math.min(el.x1, el.x2);
+                    const maxX = Math.max(el.x1, el.x2);
+                    const minY = Math.min(el.y1, el.y2);
+                    const maxY = Math.max(el.y1, el.y2);
+                    const hSize = 10 / scale;
+                    
+                    const handles = [
+                        { name: 'nw', x: minX, y: minY }, { name: 'ne', x: maxX, y: minY },
+                        { name: 'sw', x: minX, y: maxY }, { name: 'se', x: maxX, y: maxY },
+                        { name: 'n', x: (minX + maxX) / 2, y: minY }, { name: 's', x: (minX + maxX) / 2, y: maxY },
+                        { name: 'w', x: minX, y: (minY + maxY) / 2 }, { name: 'e', x: maxX, y: (minY + maxY) / 2 }
+                    ];
+
+                    const clickedHandle = handles.find(h => 
+                        x >= h.x - hSize && x <= h.x + hSize && y >= h.y - hSize && y <= h.y + hSize
+                    );
+
+                    if (clickedHandle) {
+                        setAction('resizing');
+                        setResizeHandle(clickedHandle.name);
+                        setStartPanPos({ x, y });
+                        return;
+                    }
+                }
+            }
+
             // Check if clicking on an element
             const clickedElement = [...elements].reverse().find(el => {
                 const minX = Math.min(el.x1, el.x2) - 5;
@@ -308,6 +339,20 @@ export function DrawPage() {
                     return newEl;
                 }
                 return el;
+            }));
+            setStartPanPos({ x, y });
+        } else if (action === 'resizing' && resizeHandle && selectedElementIds.length === 1) {
+            const id = selectedElementIds[0];
+            const dx = x - startPanPos.x;
+            const dy = y - startPanPos.y;
+            setElements(prev => prev.map(el => {
+                if (el.id !== id) return el;
+                let { x1, y1, x2, y2 } = el;
+                if (resizeHandle.includes('n')) y1 += dy;
+                if (resizeHandle.includes('s')) y2 += dy;
+                if (resizeHandle.includes('w')) x1 += dx;
+                if (resizeHandle.includes('e')) x2 += dx;
+                return { ...el, x1, y1, x2, y2 };
             }));
             setStartPanPos({ x, y });
         } else if (action === 'selecting' && selectionBox) {
@@ -429,43 +474,6 @@ export function DrawPage() {
                             onDoubleClick={handleDoubleClick}
                             className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} 
                         />
-
-                        {editingElement && (() => {
-                            const currentEl = elements.find(el => el.id === editingElement.id);
-                            if (!currentEl) return null;
-                            return (
-                                <textarea
-                                    autoFocus
-                                    className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
-                                    style={{
-                                        left: currentEl.x1 * scale + offset.x - 8,
-                                        top: currentEl.y1 * scale + offset.y - 8,
-                                        minWidth: '200px',
-                                        width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
-                                        height: 'auto',
-                                        minHeight: '60px',
-                                        fontSize: `${32 * currentEl.strokeWidth * scale}px`,
-                                        color: currentEl.color,
-                                    }}
-                                    value={currentEl.text || ''}
-                                    onChange={(e) => {
-                                        const newText = e.target.value;
-                                        setElements(prev => prev.map(el => 
-                                            el.id === currentEl.id ? { ...el, text: newText } : el
-                                        ));
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                    }}
-                                    onBlur={() => setEditingElement(null)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            setEditingElement(null);
-                                        }
-                                    }}
-                                />
-                            );
-                        })()}
                     </div>
 
                     {/* UI Layer (Top) */}
@@ -525,6 +533,43 @@ export function DrawPage() {
                         handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
                         updateElement={updateElement}
                     />
+
+                    {editingElement && (() => {
+                        const currentEl = elements.find(el => el.id === editingElement.id);
+                        if (!currentEl) return null;
+                        return (
+                            <textarea
+                                autoFocus
+                                className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
+                                style={{
+                                    left: currentEl.x1 * scale + offset.x - 8,
+                                    top: currentEl.y1 * scale + offset.y - 8,
+                                    minWidth: '200px',
+                                    width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
+                                    height: 'auto',
+                                    minHeight: '60px',
+                                    fontSize: `${32 * currentEl.strokeWidth * scale}px`,
+                                    color: currentEl.color,
+                                }}
+                                value={currentEl.text || ''}
+                                onChange={(e) => {
+                                    const newText = e.target.value;
+                                    setElements(prev => prev.map(el => 
+                                        el.id === currentEl.id ? { ...el, text: newText } : el
+                                    ));
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = e.target.scrollHeight + 'px';
+                                }}
+                                onBlur={() => setEditingElement(null)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        setEditingElement(null);
+                                    }
+                                }}
+                            />
+                        );
+                    })()}
                 </>
             )}
         </div>
