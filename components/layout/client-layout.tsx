@@ -50,8 +50,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     localStorage.setItem("hasSeenSplash_v1", "true");
   };
 
+  const isDrawPage = pathname.startsWith("/draw");
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={!isDrawPage}>
       {showSplash && <SplashScreen onCompleteAction={handleSplashComplete} />}
       <AppSidebar />
       <LayoutContent isHomePage={isHomePage} showSplash={showSplash}>

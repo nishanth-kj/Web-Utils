@@ -59,16 +59,8 @@ function drawElement(rc: RoughCanvas, ctx: CanvasRenderingContext2D, element: El
                 rc.draw(generator.curve(stroke, options));
             }
             break;
-        case 'text':
-            ctx.font = `${32 * element.strokeWidth}px 'Outfit', sans-serif`;
-            ctx.fillStyle = element.color;
-            ctx.textBaseline = 'top';
-            const lines = (element.text || '').split('\n');
-            lines.forEach((line, i) => {
-                ctx.fillText(line, element.x1, element.y1 + i * (38 * element.strokeWidth));
-            });
-            break;
     }
+    ctx.restore();
 }
 
 export function DrawPage() {
@@ -78,7 +70,11 @@ export function DrawPage() {
     const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning' | 'selecting'>('none');
     const [tool, setTool] = useState<ElementType>('freehand');
     const [color, setColor] = useState('#1e1e1e');
+    const [backgroundColor, setBackgroundColor] = useState('transparent');
     const [strokeWidth, setStrokeWidth] = useState(2);
+    const [strokeStyle, setStrokeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+    const [roughness, setRoughness] = useState(1);
+    const [opacity, setOpacity] = useState(100);
     const [roughCanvas, setRoughCanvas] = useState<RoughCanvas | null>(null);
     const [history, setHistory] = useState<Element[][]>([]);
     const [redoStack, setRedoStack] = useState<Element[][]>([]);
@@ -293,7 +289,11 @@ export function DrawPage() {
             x2: x,
             y2: y,
             color,
+            backgroundColor,
             strokeWidth,
+            strokeStyle,
+            roughness,
+            opacity,
             zIndex: elements.length,
             points: tool === 'freehand' ? [{ x, y }] : undefined,
             text: tool === 'text' ? '' : undefined
@@ -432,10 +432,42 @@ export function DrawPage() {
 
     const handleUndo = () => { if (history.length) { setRedoStack(p => [...p, elements]); setElements(history[history.length - 1]); setHistory(h => h.slice(0, -1)); } };
     const handleRedo = () => { if (redoStack.length) { setHistory(h => [...h, elements]); setElements(redoStack[redoStack.length - 1]); setRedoStack(r => r.slice(0, -1)); } };
+    const duplicateSelected = useCallback(() => {
+        if (selectedElementIds.length > 0) {
+            setHistory(prev => [...prev, elements]);
+            const newElements: Element[] = [];
+            const newIds: number[] = [];
+            
+            selectedElementIds.forEach(id => {
+                const el = elements.find(e => e.id === id);
+                if (el) {
+                    const newId = Date.now() + Math.random();
+                    const newEl = { ...el, id: newId, x1: el.x1 + 20, y1: el.y1 + 20, x2: el.x2 + 20, y2: el.y2 + 20, zIndex: elements.length + newElements.length };
+                    if (newEl.points) {
+                        newEl.points = newEl.points.map(p => ({ x: p.x + 20, y: p.y + 20 }));
+                    }
+                    newElements.push(newEl);
+                    newIds.push(newId);
+                }
+            });
+            
+            setElements(prev => [...prev, ...newElements]);
+            setSelectedElementIds(newIds);
+        }
+    }, [selectedElementIds, elements]);
+
     const handleDownload = () => { const canvas = canvasRef.current; if (canvas) { const a = document.createElement('a'); a.download = 'sketch.png'; a.href = canvas.toDataURL(); a.click(); } };
     
     const updateElement = (id: number, updates: Partial<Element>) => {
         setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
+    };
+
+    const moveUp = () => { 
+        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: e.zIndex + 1 } : e)); 
+    };
+    
+    const moveDown = () => { 
+        setElements(prev => prev.map(e => selectedElementIds.includes(e.id) ? { ...e, zIndex: e.zIndex - 1 } : e)); 
     };
 
     const bringToFront = () => { 
@@ -515,23 +547,39 @@ export function DrawPage() {
                             setColor(c);
                             selectedElementIds.forEach(id => updateElement(id, { color: c }));
                         }} 
+                        backgroundColor={backgroundColor}
+                        setBackgroundColor={(c) => {
+                            setBackgroundColor(c);
+                            selectedElementIds.forEach(id => updateElement(id, { backgroundColor: c }));
+                        }}
                         strokeWidth={strokeWidth} 
                         setStrokeWidth={(w) => {
                             setStrokeWidth(w);
                             selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
                         }}
+                        strokeStyle={strokeStyle}
+                        setStrokeStyle={(s) => {
+                            setStrokeStyle(s);
+                            selectedElementIds.forEach(id => updateElement(id, { strokeStyle: s }));
+                        }}
+                        roughness={roughness}
+                        setRoughness={(r) => {
+                            setRoughness(r);
+                            selectedElementIds.forEach(id => updateElement(id, { roughness: r }));
+                        }}
+                        opacity={opacity}
+                        setOpacity={(o) => {
+                            setOpacity(o);
+                            selectedElementIds.forEach(id => updateElement(id, { opacity: o }));
+                        }}
                         updateElement={updateElement}
-                    />
-
-                    <LayerPanel 
-                        elements={elements}
-                        selectedElementIds={selectedElementIds}
-                        setSelectedElementIds={setSelectedElementIds}
+                        duplicateSelected={duplicateSelected}
                         deleteSelected={deleteSelected}
                         bringToFront={bringToFront}
                         sendToBack={sendToBack}
+                        moveUp={moveUp}
+                        moveDown={moveDown}
                         handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
-                        updateElement={updateElement}
                     />
 
                     {editingElement && (() => {

@@ -11,7 +11,11 @@ export interface Element {
     y2: number;
     points?: { x: number, y: number }[];
     color: string;
+    backgroundColor?: string;
     strokeWidth: number;
+    strokeStyle?: 'solid' | 'dashed' | 'dotted';
+    roughness?: number; // Sloppiness
+    opacity?: number;
     zIndex: number;
     text?: string;
 }
