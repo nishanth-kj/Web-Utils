@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import Script from 'next/script';
-
+import { Button } from "../ui/button";
 import { Element, ElementType, RoughCanvas } from './types';
 import { Toolbar } from './toolbar';
 import { StylePanel } from './style-panel';
 import { ZoomControls } from './zoom-controls';
 import { ActionMenu } from './action-menu';
+import { LayerPanel } from './layer-panel';
 
 // Type-safe access to global roughjs
 interface RoughWindow extends Window {
@@ -69,6 +72,7 @@ function drawElement(rc: RoughCanvas, ctx: CanvasRenderingContext2D, element: El
 }
 
 export function DrawPage() {
+    const { theme, setTheme } = useTheme();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [elements, setElements] = useState<Element[]>([]);
     const [action, setAction] = useState<'none' | 'drawing' | 'moving' | 'resizing' | 'panning' | 'selecting'>('none');
@@ -410,49 +414,10 @@ export function DrawPage() {
                 <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
             </div>
 
-            <div className="absolute top-6 right-6 z-50">
-                <ActionMenu 
-                    handleDownload={handleDownload} 
-                />
-            </div>
-
-            <div className="absolute bottom-6 left-6 z-50">
-                <ZoomControls 
-                    scale={scale} 
-                    zoomIn={() => setScale(s => Math.min(10, s * 1.1))} 
-                    zoomOut={() => setScale(s => Math.max(0.1, s * 0.9))} 
-                    resetZoom={() => { setScale(1); setOffset({ x: 0, y: 0 }); }}
-                    handleUndo={handleUndo}
-                    handleRedo={handleRedo}
-                    canUndo={history.length > 0}
-                    canRedo={redoStack.length > 0}
-                />
-            </div>
-
             {!mounted ? null : (
                 <>
-                    <StylePanel 
-                            elements={elements}
-                            selectedElementIds={selectedElementIds}
-                            setSelectedElementIds={setSelectedElementIds}
-                            color={color} 
-                            setColor={(c) => {
-                                setColor(c);
-                                selectedElementIds.forEach(id => updateElement(id, { color: c }));
-                            }} 
-                            strokeWidth={strokeWidth} 
-                            setStrokeWidth={(w) => {
-                                setStrokeWidth(w);
-                                selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
-                            }}
-                            handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
-                            updateElement={updateElement}
-                            deleteSelected={deleteSelected}
-                            bringToFront={bringToFront}
-                            sendToBack={sendToBack}
-                        />
-
-                    <div className="w-full h-full cursor-crosshair overflow-hidden">
+                    {/* Canvas Layer (Bottom) */}
+                    <div className="absolute inset-0 z-0 cursor-crosshair overflow-hidden">
                         <canvas 
                             ref={canvasRef} 
                             width={window.innerWidth}
@@ -502,6 +467,64 @@ export function DrawPage() {
                             );
                         })()}
                     </div>
+
+                    {/* UI Layer (Top) */}
+                    <div className="absolute top-6 right-6 z-50 flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="size-10 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-2xl border-zinc-200 dark:border-zinc-800 shadow-sm rounded-lg"
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        >
+                            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                            <span className="sr-only">Toggle theme</span>
+                        </Button>
+                        <ActionMenu 
+                            handleDownload={handleDownload} 
+                        />
+                    </div>
+
+                    <div className="absolute bottom-6 left-6 z-50">
+                        <ZoomControls 
+                            scale={scale} 
+                            zoomIn={() => setScale(s => Math.min(10, s * 1.1))} 
+                            zoomOut={() => setScale(s => Math.max(0.1, s * 0.9))} 
+                            resetZoom={() => { setScale(1); setOffset({ x: 0, y: 0 }); }}
+                            handleUndo={handleUndo}
+                            handleRedo={handleRedo}
+                            canUndo={history.length > 0}
+                            canRedo={redoStack.length > 0}
+                        />
+                    </div>
+                    
+                    <StylePanel 
+                        elements={elements}
+                        selectedElementIds={selectedElementIds}
+                        setSelectedElementIds={setSelectedElementIds}
+                        color={color} 
+                        setColor={(c) => {
+                            setColor(c);
+                            selectedElementIds.forEach(id => updateElement(id, { color: c }));
+                        }} 
+                        strokeWidth={strokeWidth} 
+                        setStrokeWidth={(w) => {
+                            setStrokeWidth(w);
+                            selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
+                        }}
+                        updateElement={updateElement}
+                    />
+
+                    <LayerPanel 
+                        elements={elements}
+                        selectedElementIds={selectedElementIds}
+                        setSelectedElementIds={setSelectedElementIds}
+                        deleteSelected={deleteSelected}
+                        bringToFront={bringToFront}
+                        sendToBack={sendToBack}
+                        handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
+                        updateElement={updateElement}
+                    />
                 </>
             )}
         </div>
