@@ -32,9 +32,13 @@ import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from "@/lib/constant
 
 export function AppSidebar() {
     const pathname = usePathname();
-    const { toggleSidebar, state } = useSidebar();
+    const { toggleSidebar, state, setOpenMobile, isMobile, openMobile } = useSidebar();
     const [searchQuery, setSearchQuery] = React.useState("");
     const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+    const closeMobile = () => {
+        if (isMobile) setOpenMobile(false);
+    };
 
     React.useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -66,10 +70,10 @@ export function AppSidebar() {
                             onClick={toggleSidebar}
                             className="size-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-xl text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-indigo-500/10"
                         >
-                            {isCollapsed ? (
-                                <ChevronRight className="size-4" />
+                            {isMobile ? (
+                                openMobile ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />
                             ) : (
-                                <ChevronLeft className="size-4" />
+                                isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />
                             )}
                         </Button>
                     </TooltipTrigger>
@@ -84,7 +88,7 @@ export function AppSidebar() {
 
             <SidebarHeader className="border-b border-sidebar-border px-4 py-4 flex flex-col gap-4">
                 <div className="flex flex-col gap-3">
-                    <Link href="/" className="flex items-center space-x-2.5">
+                    <Link href="/" className="flex items-center space-x-2.5" onClick={closeMobile}>
                         <div className="size-7 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                             <Command className="size-4" />
                         </div>
@@ -93,9 +97,9 @@ export function AppSidebar() {
                 </div>
                 <div className="relative group">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                    <Input 
+                    <Input
                         ref={searchInputRef}
-                        placeholder="Search tools..." 
+                        placeholder="Search tools..."
                         className="pl-8 pr-8 h-8 text-xs bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-indigo-500"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -111,10 +115,10 @@ export function AppSidebar() {
             <SidebarContent className="flex-1 overflow-y-auto overflow-x-visible pt-2 custom-scrollbar">
                 {TOOL_CATEGORIES.map((cat: Category) => {
                     const categoryTools = TOOLS.filter(
-                        (tool: Tool) => 
+                        (tool: Tool) =>
                             tool.category === cat.id &&
-                            (tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                            (tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
                     );
 
                     if (categoryTools.length === 0) return null;
@@ -128,9 +132,9 @@ export function AppSidebar() {
                                 <SidebarMenu className="px-2 transition-all">
                                     {categoryTools.map((tool: Tool) => (
                                         <SidebarMenuItem key={tool.name}>
-                                            <Link href={tool.href} className="w-full">
-                                                <SidebarMenuButton 
-                                                    tooltip={tool.name} 
+                                            <Link href={tool.href} className="w-full" onClick={closeMobile}>
+                                                <SidebarMenuButton
+                                                    tooltip={tool.name}
                                                     isActive={pathname === tool.href}
                                                     className={`rounded-lg h-10 transition-all w-full ${pathname === tool.href ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                                                 >
@@ -155,9 +159,9 @@ export function AppSidebar() {
             <SidebarFooter className="p-4 border-t border-sidebar-border">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <Link href="/documentation" className="w-full">
-                            <SidebarMenuButton 
-                                tooltip="Docs" 
+                        <Link href="/documentation" className="w-full" onClick={closeMobile}>
+                            <SidebarMenuButton
+                                tooltip="Docs"
                                 isActive={pathname === '/documentation'}
                                 className={`rounded-lg h-10 transition-all ${pathname === '/documentation' ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                             >
@@ -167,9 +171,9 @@ export function AppSidebar() {
                         </Link>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <Link href="/settings" className="w-full">
-                            <SidebarMenuButton 
-                                tooltip="Settings" 
+                        <Link href="/settings" className="w-full" onClick={closeMobile}>
+                            <SidebarMenuButton
+                                tooltip="Settings"
                                 isActive={pathname === '/settings'}
                                 className={`rounded-lg h-10 transition-all ${pathname === '/settings' ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                             >
