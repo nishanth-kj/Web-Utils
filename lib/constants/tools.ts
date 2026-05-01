@@ -67,6 +67,15 @@ export const TOOL_CATEGORIES: Category[] = [
 
 export const TOOLS: Tool[] = [
     {
+        id: "draw-tool",
+        name: "Quick Draw",
+        description: "Simple canvas-based sketching and drawing tool for quick ideas",
+        href: "/draw",
+        category: "core",
+        status: "Available",
+        icon: PenTool
+    },
+    {
         id: "editor",
         name: "Code Editor",
         description: "Professional Monaco-based editor with syntax highlighting, auto-save, and formatting",
@@ -173,15 +182,6 @@ export const TOOLS: Tool[] = [
         category: "crypto",
         status: "Available",
         icon: Shield
-    },
-    {
-        id: "draw-tool",
-        name: "Quick Draw",
-        description: "Simple canvas-based sketching and drawing tool for quick ideas",
-        href: "/draw",
-        category: "media",
-        status: "Available",
-        icon: PenTool
     },
     {
         id: "dummy-file",
