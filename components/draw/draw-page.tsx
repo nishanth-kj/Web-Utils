@@ -85,6 +85,11 @@ export function DrawPage() {
     const [selectionBox, setSelectionBox] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [editingElement, setEditingElement] = useState<Element | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const getMousePos = useCallback((e: React.MouseEvent | MouseEvent) => {
         if (!canvasRef.current) return { x: 0, y: 0 };
@@ -424,81 +429,81 @@ export function DrawPage() {
                 />
             </div>
 
-            {selectedElementIds.length > 0 && (
-                <div className="absolute top-24 right-6 z-50">
+            {!mounted ? null : (
+                <>
                     <StylePanel 
-                        elements={elements}
-                        selectedElementIds={selectedElementIds}
-                        setSelectedElementIds={setSelectedElementIds}
-                        color={color} 
-                        setColor={(c) => {
-                            setColor(c);
-                            selectedElementIds.forEach(id => updateElement(id, { color: c }));
-                        }} 
-                        strokeWidth={strokeWidth} 
-                        setStrokeWidth={(w) => {
-                            setStrokeWidth(w);
-                            selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
-                        }}
-                        handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
-                        updateElement={updateElement}
-                        deleteSelected={deleteSelected}
-                        bringToFront={bringToFront}
-                        sendToBack={sendToBack}
-                    />
-                </div>
-            )}
-
-            <div className="w-full h-full cursor-crosshair overflow-hidden">
-                <canvas 
-                    ref={canvasRef} 
-                    width={typeof window !== 'undefined' ? window.innerWidth : 1920}
-                    height={typeof window !== 'undefined' ? window.innerHeight : 1080}
-                    onMouseDown={handleMouseDown} 
-                    onMouseMove={handleMouseMove} 
-                    onMouseUp={handleMouseUp} 
-                    onWheel={handleWheel}
-                    onDoubleClick={handleDoubleClick}
-                    className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} 
-                />
-
-                {editingElement && (() => {
-                    const currentEl = elements.find(el => el.id === editingElement.id);
-                    if (!currentEl) return null;
-                    return (
-                        <textarea
-                            autoFocus
-                            className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
-                            style={{
-                                left: currentEl.x1 * scale + offset.x - 8,
-                                top: currentEl.y1 * scale + offset.y - 8,
-                                minWidth: '200px',
-                                width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
-                                height: 'auto',
-                                minHeight: '60px',
-                                fontSize: `${32 * currentEl.strokeWidth * scale}px`,
-                                color: currentEl.color,
+                            elements={elements}
+                            selectedElementIds={selectedElementIds}
+                            setSelectedElementIds={setSelectedElementIds}
+                            color={color} 
+                            setColor={(c) => {
+                                setColor(c);
+                                selectedElementIds.forEach(id => updateElement(id, { color: c }));
+                            }} 
+                            strokeWidth={strokeWidth} 
+                            setStrokeWidth={(w) => {
+                                setStrokeWidth(w);
+                                selectedElementIds.forEach(id => updateElement(id, { strokeWidth: w }));
                             }}
-                            value={currentEl.text || ''}
-                            onChange={(e) => {
-                                const newText = e.target.value;
-                                setElements(prev => prev.map(el => 
-                                    el.id === currentEl.id ? { ...el, text: newText } : el
-                                ));
-                                e.target.style.height = 'auto';
-                                e.target.style.height = e.target.scrollHeight + 'px';
-                            }}
-                            onBlur={() => setEditingElement(null)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    setEditingElement(null);
-                                }
-                            }}
+                            handleClear={() => { setElements([]); setHistory([]); setRedoStack([]); }}
+                            updateElement={updateElement}
+                            deleteSelected={deleteSelected}
+                            bringToFront={bringToFront}
+                            sendToBack={sendToBack}
                         />
-                    );
-                })()}
-            </div>
+
+                    <div className="w-full h-full cursor-crosshair overflow-hidden">
+                        <canvas 
+                            ref={canvasRef} 
+                            width={window.innerWidth}
+                            height={window.innerHeight}
+                            onMouseDown={handleMouseDown} 
+                            onMouseMove={handleMouseMove} 
+                            onMouseUp={handleMouseUp} 
+                            onWheel={handleWheel}
+                            onDoubleClick={handleDoubleClick}
+                            className={`absolute inset-0 w-full h-full touch-none ${tool === 'hand' || action === 'panning' ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`} 
+                        />
+
+                        {editingElement && (() => {
+                            const currentEl = elements.find(el => el.id === editingElement.id);
+                            if (!currentEl) return null;
+                            return (
+                                <textarea
+                                    autoFocus
+                                    className="absolute z-[100] bg-white/90 dark:bg-zinc-800/90 border-2 border-primary/40 rounded-md shadow-2xl p-2 m-0 resize-none overflow-hidden whitespace-pre-wrap font-sans backdrop-blur-md transition-all pointer-events-auto"
+                                    style={{
+                                        left: currentEl.x1 * scale + offset.x - 8,
+                                        top: currentEl.y1 * scale + offset.y - 8,
+                                        minWidth: '200px',
+                                        width: `${Math.max(200, (currentEl.text?.length || 0) * 18 * scale)}px`,
+                                        height: 'auto',
+                                        minHeight: '60px',
+                                        fontSize: `${32 * currentEl.strokeWidth * scale}px`,
+                                        color: currentEl.color,
+                                    }}
+                                    value={currentEl.text || ''}
+                                    onChange={(e) => {
+                                        const newText = e.target.value;
+                                        setElements(prev => prev.map(el => 
+                                            el.id === currentEl.id ? { ...el, text: newText } : el
+                                        ));
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    }}
+                                    onBlur={() => setEditingElement(null)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            setEditingElement(null);
+                                        }
+                                    }}
+                                />
+                            );
+                        })()}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

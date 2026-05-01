@@ -51,6 +51,13 @@ export function AppSidebar() {
         return () => document.removeEventListener("keydown", down);
     }, []);
 
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+
     const isCollapsed = state === "collapsed";
 
     return (

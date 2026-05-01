@@ -63,7 +63,7 @@ export function StylePanel({
     
     return (
         <div 
-            className="absolute top-24 right-2 z-50 flex flex-col gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl shadow-2xl w-52 animate-in slide-in-from-right-2 max-h-[85vh] overflow-y-auto"
+            className="absolute top-24 right-6 z-50 flex flex-col gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3 rounded-2xl shadow-2xl w-52 animate-in slide-in-from-right-2 max-h-[85vh] overflow-y-auto"
             onMouseDown={handleDragStart}
         >
             {/* Color Palette */}

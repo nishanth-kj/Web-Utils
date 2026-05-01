@@ -17,14 +17,14 @@ interface ActionMenuProps {
 
 export function ActionMenu({ handleDownload }: ActionMenuProps) {
     return (
-        <div className="absolute top-4 left-4 z-50">
+        <div className="relative z-50">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm rounded-lg size-10">
                         <MoreHorizontal className="size-5" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 p-1 rounded-xl shadow-2xl">
+                <DropdownMenuContent align="end" className="w-56 p-1 rounded-xl shadow-2xl">
                     <DropdownMenuItem className="gap-2 h-10 rounded-lg cursor-pointer" onClick={handleDownload}>
                         <Save className="size-4" /> Save to...
                     </DropdownMenuItem>
