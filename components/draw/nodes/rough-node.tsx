@@ -18,7 +18,7 @@ export function RoughNode(props: NodeProps) {
     const { type, color, backgroundColor, strokeWidth, strokeStyle, roughness, opacity, text } = data;
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Get current dimensions from the store for real-time resizing feedback
+    // Get dimensions from store for real-time resizing feedback
     const nodeInternals = useStore(selector);
     const node = nodeInternals.get(id);
     const width = node?.width || 150;
@@ -48,19 +48,24 @@ export function RoughNode(props: NodeProps) {
         };
 
         let drawable;
-        const padding = 10;
-        const w = width - padding;
-        const h = height - padding;
+        const padding = 5;
+        const w = Math.max(1, width - padding * 2);
+        const h = Math.max(1, height - padding * 2);
 
         switch (type) {
             case 'circle':
                 drawable = gen.ellipse(width / 2, height / 2, w, h, options);
                 break;
             case 'diamond':
-                drawable = gen.polygon([[width / 2, 5], [width - 5, height / 2], [width / 2, height - 5], [5, height / 2]], options);
+                drawable = gen.polygon([
+                    [width / 2, padding], 
+                    [width - padding, height / 2], 
+                    [width / 2, height - padding], 
+                    [padding, height / 2]
+                ], options);
                 break;
             default:
-                drawable = gen.rectangle(5, 5, w, h, options);
+                drawable = gen.rectangle(padding, padding, w, h, options);
         }
 
         rc.draw(drawable);
@@ -88,8 +93,20 @@ export function RoughNode(props: NodeProps) {
             <NodeResizer 
                 color="#3b82f6" 
                 isVisible={selected} 
-                minWidth={100} 
-                minHeight={60} 
+                minWidth={20} 
+                minHeight={20} 
+                handleStyle={{
+                    width: '12px',
+                    height: '12px',
+                    background: 'white',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '3px',
+                    margin: '-2px'
+                }}
+                lineStyle={{
+                    borderWidth: '2px',
+                    opacity: 0.2
+                }}
             />
             <div className="relative w-full h-full">
                 {!roughLoaded ? (

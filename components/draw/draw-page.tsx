@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import ReactFlow, { 
-    addEdge, 
-    Background, 
-    Controls, 
-    Connection, 
-    Edge, 
-    
-    Node, 
-    useNodesState, 
+import ReactFlow, {
+    addEdge,
+    Background,
+    Controls,
+    Connection,
+    Edge,
+
+    Node,
+    useNodesState,
     useEdgesState,
     Panel,
     useReactFlow,
@@ -31,16 +31,6 @@ import { TextNode } from './nodes/text-node';
 import { ImageNode } from './nodes/image-node';
 import { ElementType } from './types';
 
-const nodeTypes = {
-    rough: RoughNode,
-    text: TextNode,
-    image: ImageNode,
-};
-
-const edgeTypes = {
-    rough: RoughEdge,
-};
-
 function FlowContent() {
     const { theme, setTheme } = useTheme();
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -54,6 +44,16 @@ function FlowContent() {
     const [opacity, setOpacity] = useState(100);
     const [isLocked, setIsLocked] = useState(false);
     const [mounted, setMounted] = useState(false);
+
+    const nodeTypes = useMemo(() => ({
+        rough: RoughNode,
+        text: TextNode,
+        image: ImageNode,
+    }), []);
+
+    const edgeTypes = useMemo(() => ({
+        rough: RoughEdge,
+    }), []);
 
     useEffect(() => {
         setMounted(true);
@@ -77,14 +77,15 @@ function FlowContent() {
 
     const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
         if (tool === 'selection' || tool === 'hand' || tool === 'eraser' || tool === 'connection') return;
-        
+
         // Only start if clicking on the pane background, not on an existing node/edge or panel
         const target = e.target as HTMLElement;
         if (
-            target.closest('.react-flow__node') || 
-            target.closest('.react-flow__edge') || 
+            target.closest('.react-flow__node') ||
+            target.closest('.react-flow__edge') ||
             target.closest('.react-flow__handle') ||
-            target.closest('.react-flow__panel')
+            target.closest('.react-flow__panel') ||
+            target.closest('.react-flow__resize-control')
         ) {
             return;
         }
@@ -97,15 +98,38 @@ function FlowContent() {
         if (!startPos) return;
 
         const currentPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-        
+
         // If we haven't created the node yet, check if we've dragged far enough
-        if (!draggingNodeId) {
+        if (draggingNodeId) {
+            const dx = Math.abs(currentPos.x - startPos.x);
+            const dy = Math.abs(currentPos.y - startPos.y);
+            const x = Math.min(startPos.x, currentPos.x);
+            const y = Math.min(startPos.y, currentPos.y);
+            const width = Math.max(20, dx);
+            const height = Math.max(20, dy);
+
+            setNodes((nds) =>
+                nds.map((n) =>
+                    n.id === draggingNodeId
+                        ? {
+                            ...n,
+                            position: { x, y },
+                            width,
+                            height,
+                            style: { ...n.style, width, height }
+                        }
+                        : n
+                )
+            );
+        } else {
             const dx = Math.abs(currentPos.x - startPos.x);
             const dy = Math.abs(currentPos.y - startPos.y);
             if (dx < 2 && dy < 2) return;
 
-            // Create the node now
-            const id = `node_${Date.now()}`;
+            const id = `node-${Date.now()}`;
+            const x = Math.min(startPos.x, currentPos.x);
+            const y = Math.min(startPos.y, currentPos.y);
+
             let nodeType = 'rough';
             if (tool === 'text') nodeType = 'text';
             if (tool === 'image') nodeType = 'image';
@@ -113,12 +137,10 @@ function FlowContent() {
             const newNode: Node = {
                 id,
                 type: nodeType,
-                position: {
-                    x: Math.min(startPos.x, currentPos.x),
-                    y: Math.min(startPos.y, currentPos.y)
-                },
-                data: { 
+                position: { x, y },
+                data: {
                     type: tool,
+                    tool,
                     color,
                     backgroundColor,
                     strokeWidth,
@@ -135,31 +157,17 @@ function FlowContent() {
                 },
                 width: Math.max(20, dx),
                 height: Math.max(20, dy),
+                selected: true,
             };
 
             setNodes((nds) => nds.concat(newNode));
             setDraggingNodeId(id);
-            return;
         }
-
-        // Update existing dragging node
-        const width = Math.max(20, Math.abs(currentPos.x - startPos.x));
-        const height = Math.max(20, Math.abs(currentPos.y - startPos.y));
-        const x = Math.min(startPos.x, currentPos.x);
-        const y = Math.min(startPos.y, currentPos.y);
-
-        setNodes((nds) =>
-            nds.map((n) =>
-                n.id === draggingNodeId
-                    ? { ...n, position: { x, y }, width, height, style: { ...n.style, width, height } }
-                    : n
-            )
-        );
     }, [startPos, draggingNodeId, tool, color, backgroundColor, strokeWidth, strokeStyle, roughness, opacity, setNodes, screenToFlowPosition]);
 
     const onPaneMouseUp = useCallback(() => {
         if (!draggingNodeId) return;
-        
+
         setDraggingNodeId(null);
         setStartPos(null);
     }, [draggingNodeId]);
@@ -203,7 +211,7 @@ function FlowContent() {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Don't delete if user is typing in an input or contentEditable
             if (
-                e.target instanceof HTMLInputElement || 
+                e.target instanceof HTMLInputElement ||
                 e.target instanceof HTMLTextAreaElement ||
                 (e.target as HTMLElement).isContentEditable
             ) return;
@@ -213,48 +221,35 @@ function FlowContent() {
             }
         };
 
-        window.addEventListener('mousedown', handleMouseDown);
+        flowContainer.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            window.removeEventListener('mousedown', handleMouseDown);
+            flowContainer.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp, deleteSelected]);
+    }, [onPaneMouseMove, onPaneMouseUp, deleteSelected]);
+
+    useEffect(() => {
+        setNodes((nds) => nds.map(node => ({
+            ...node,
+            data: { ...node.data, tool }
+        })));
+    }, [tool, setNodes]);
 
     if (!mounted) return null;
 
     const cursorClass = tool === 'selection' ? 'cursor-default' : tool === 'hand' ? 'cursor-grab' : 'cursor-crosshair';
 
     return (
-        <div 
+        <div
             ref={flowRef}
             className={`relative w-full h-screen overflow-hidden bg-[#fafafa] dark:bg-[#09090b] ${cursorClass}`}
         >
-            <style jsx global>{`
-                .react-flow__pane {
-                    cursor: inherit !important;
-                }
-                .react-flow__grab {
-                    cursor: inherit !important;
-                }
-                ${tool === 'hand' ? '' : `
-                .react-flow__pane.grabbing {
-                    cursor: crosshair !important;
-                }
-                `}
-                
-                /* Hide handles by default unless in connection mode */
-                .react-flow__handle {
-                    opacity: ${tool === 'connection' ? '1' : '0'} !important;
-                    pointer-events: ${tool === 'connection' ? 'all' : 'none'} !important;
-                    transition: opacity 0.2s ease-in-out;
-                }
-            `}</style>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -276,7 +271,7 @@ function FlowContent() {
                 zoomOnDoubleClick={false}
             >
                 <Background color="#ccc" gap={20} size={1} />
-                
+
                 <Panel position="top-center" className="z-50 m-4">
                     <Toolbar tool={tool} setTool={setTool} isLocked={isLocked} setIsLocked={setIsLocked} />
                 </Panel>
@@ -291,12 +286,12 @@ function FlowContent() {
                         <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                         <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     </Button>
-                    <ActionMenu handleDownload={() => {}} />
+                    <ActionMenu handleDownload={() => { }} />
                 </Panel>
 
                 <Panel position="top-right" className="mt-20 mr-4 z-50 pointer-events-auto">
-                    <StylePanel 
-                        elements={nodes} 
+                    <StylePanel
+                        elements={nodes}
                         selectedElementIds={nodes.filter(n => n.selected).map(n => n.id)}
                         setSelectedElementIds={(ids) => {
                             setNodes((nds) => nds.map((n) => ({ ...n, selected: ids.includes(n.id) })));
@@ -318,22 +313,22 @@ function FlowContent() {
                         }}
                         duplicateSelected={duplicateSelected}
                         deleteSelected={deleteSelected}
-                        bringToFront={() => {}}
-                        sendToBack={() => {}}
-                        moveUp={() => {}}
-                        moveDown={() => {}}
+                        bringToFront={() => { }}
+                        sendToBack={() => { }}
+                        moveUp={() => { }}
+                        moveDown={() => { }}
                         handleClear={() => { setNodes([]); setEdges([]); }}
                     />
                 </Panel>
 
                 <Panel position="bottom-left" className="m-6 z-50">
-                    <ZoomControls 
+                    <ZoomControls
                         scale={zoom}
                         zoomIn={() => zoomIn()}
                         zoomOut={() => zoomOut()}
                         resetZoom={() => setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 800 })}
-                        handleUndo={() => {}}
-                        handleRedo={() => {}}
+                        handleUndo={() => { }}
+                        handleRedo={() => { }}
                         canUndo={false}
                         canRedo={false}
                     />

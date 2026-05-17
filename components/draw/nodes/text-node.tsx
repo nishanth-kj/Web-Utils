@@ -15,8 +15,20 @@ export function TextNode(props: NodeProps) {
                 isVisible={selected} 
                 minWidth={30} 
                 minHeight={20} 
+                handleStyle={{
+                    width: '12px',
+                    height: '12px',
+                    background: 'white',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '3px',
+                    margin: '-2px'
+                }}
+                lineStyle={{
+                    borderWidth: '2px',
+                    opacity: 0.2
+                }}
             />
-            <div className="relative w-full h-full flex items-center justify-center min-h-[40px]">
+            <div className="relative w-full h-full flex items-center justify-center p-2">
                 <div 
                     contentEditable
                     suppressContentEditableWarning
@@ -33,7 +45,7 @@ export function TextNode(props: NodeProps) {
                         color: color || '#1e1e1e',
                         opacity: (opacity ?? 100) / 100
                     }}
-                    className="text-[18px] font-semibold text-center break-words outline-none transition-all duration-200 hover:bg-zinc-100/50 focus:bg-zinc-100 dark:hover:bg-zinc-800/50 dark:focus:bg-zinc-800 rounded-lg px-3 py-1.5 min-w-[80px]"
+                    className="text-[20px] font-medium text-center break-words outline-none transition-all duration-300 hover:bg-black/5 dark:hover:bg-white/5 focus:bg-white/90 dark:focus:bg-zinc-900/90 focus:shadow-xl focus:ring-1 focus:ring-primary/20 backdrop-blur-sm rounded-xl px-4 py-2 min-w-[100px]"
                 >
                     {text || 'Type something...'}
                 </div>

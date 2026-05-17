@@ -59,7 +59,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isDrawPage = pathname.startsWith("/draw");
 
   return (
-    <SidebarProvider defaultOpen={!isDrawPage}>
+    <SidebarProvider defaultOpen={false}>
       {showSplash && <SplashScreen onCompleteAction={handleSplashComplete} />}
       <AppSidebar />
       <LayoutContent isHomePage={isHomePage} showSplash={showSplash}>

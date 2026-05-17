@@ -7,7 +7,7 @@ import { DEFAULT_CONTENT } from "@/data/default-content";
 
 export function ViewPage() {
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <div className="flex w-full h-full overflow-hidden">
         <AppSidebar />
         <main className="flex-1 overflow-auto bg-zinc-50/50 dark:bg-zinc-950/50 relative">

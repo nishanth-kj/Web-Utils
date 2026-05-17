@@ -19,13 +19,33 @@ export function BaseNode({ children, selected, data }: BaseNodeProps) {
         )}>
             {/* Selection Border - only show when selected */}
             {selected && (
-                <div className="absolute inset-0 border-2 border-primary rounded-2xl shadow-[0_0_25px_rgba(59,130,246,0.3)] pointer-events-none" />
+                <div className="absolute -inset-[3px] border-2 border-blue-500 rounded-2xl pointer-events-none z-50" />
             )}
             {/* Connection Handles - Abstracted to the Base Node */}
-            <Handle type="target" position={Position.Top} className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" />
-            <Handle type="target" position={Position.Left} className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" />
-            <Handle type="source" position={Position.Bottom} className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" />
-            <Handle type="source" position={Position.Right} className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" />
+            <Handle 
+                type="target" 
+                position={Position.Top} 
+                style={{ opacity: data.tool === 'connection' ? 1 : 0, pointerEvents: data.tool === 'connection' ? 'all' : 'none' }}
+                className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" 
+            />
+            <Handle 
+                type="target" 
+                position={Position.Left} 
+                style={{ opacity: data.tool === 'connection' ? 1 : 0, pointerEvents: data.tool === 'connection' ? 'all' : 'none' }}
+                className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" 
+            />
+            <Handle 
+                type="source" 
+                position={Position.Right} 
+                style={{ opacity: data.tool === 'connection' ? 1 : 0, pointerEvents: data.tool === 'connection' ? 'all' : 'none' }}
+                className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" 
+            />
+            <Handle 
+                type="source" 
+                position={Position.Bottom} 
+                style={{ opacity: data.tool === 'connection' ? 1 : 0, pointerEvents: data.tool === 'connection' ? 'all' : 'none' }}
+                className="!size-4 !bg-blue-400 !border-2 !border-white dark:!border-zinc-950 !z-[100] !shadow-sm hover:!scale-125 transition-transform" 
+            />
 
             {/* Content Area */}
             <div className="relative w-full h-full p-2 overflow-hidden rounded-2xl z-10">
