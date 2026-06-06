@@ -20,6 +20,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Sun, Moon, Link2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { toPng } from 'html-to-image';
 import { Button } from "../ui/button";
 import { Toolbar } from './toolbar';
 import { StylePanel } from './style-panel';
@@ -234,6 +235,28 @@ function FlowContent() {
         };
     }, [onPaneMouseMove, onPaneMouseUp, deleteSelected]);
 
+    const handleDownload = useCallback(() => {
+        const container = document.querySelector('.react-flow') as HTMLElement;
+        if (!container) return;
+
+        toPng(container, {
+            backgroundColor: theme === 'dark' ? '#09090b' : '#fafafa',
+            filter: (node) => {
+                if (node?.classList?.contains('react-flow__panel') || node?.classList?.contains('react-flow__controls')) {
+                    return false;
+                }
+                return true;
+            }
+        }).then((dataUrl) => {
+            const a = document.createElement('a');
+            a.setAttribute('download', 'web-utils-draw.png');
+            a.setAttribute('href', dataUrl);
+            a.click();
+        }).catch((err) => {
+            console.error('Failed to export image', err);
+        });
+    }, [theme]);
+
     useEffect(() => {
         setNodes((nds) => nds.map(node => ({
             ...node,
@@ -286,7 +309,7 @@ function FlowContent() {
                         <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                         <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     </Button>
-                    <ActionMenu handleDownload={() => { }} />
+                    <ActionMenu handleDownload={handleDownload} />
                 </Panel>
 
                 <Panel position="top-right" className="mt-20 mr-4 z-50 pointer-events-auto">
