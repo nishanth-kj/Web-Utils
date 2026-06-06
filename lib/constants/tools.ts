@@ -87,15 +87,15 @@ export const TOOLS: Tool[] = [
         status: "Available",
         icon: FileCode
     },
-    {
-        id: "ide",
-        name: "Power IDE",
-        description: "Integrated development environment with real-time feedback and advanced debugging",
-        href: "/ide",
-        category: "core",
-        status: "Available",
-        icon: Rocket
-    },
+    // {
+    //     id: "ide",
+    //     name: "Power IDE",
+    //     description: "Integrated development environment with real-time feedback and advanced debugging",
+    //     href: "/ide",
+    //     category: "core",
+    //     status: "Available",
+    //     icon: Rocket
+    // },
     {
         id: "live-previewer",
         name: "Live Previewer",
