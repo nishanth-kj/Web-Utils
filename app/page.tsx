@@ -49,7 +49,7 @@ export default function ToolsListingPage() {
     };
 
     return (
-        <div className="h-full overflow-auto bg-background custom-scrollbar flex flex-col">
+        <main className="h-full overflow-auto bg-background custom-scrollbar flex flex-col">
             <div className="max-w-6xl mx-auto space-y-8 flex-1 w-full p-6">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -150,6 +150,6 @@ export default function ToolsListingPage() {
             <div className="mt-auto">
                 <Footer />
             </div>
-        </div>
+        </main>
     );
 }

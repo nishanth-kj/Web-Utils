@@ -37,9 +37,11 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
         }
 
         const sortedRows = [...rows].sort((a, b) => {
-            if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-            if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
-            return 0;
+            const valA = a[key] || "";
+            const valB = b[key] || "";
+            return direction === 'asc' 
+                ? valA.localeCompare(valB, undefined, { numeric: true }) 
+                : valB.localeCompare(valA, undefined, { numeric: true });
         });
         setRows(sortedRows);
     };

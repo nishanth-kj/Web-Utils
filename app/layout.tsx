@@ -16,8 +16,26 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Web Utils | Universal Code Previewer",
-    description:
-        "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
+  description: "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
+  keywords: ["developer tools", "code editor", "html preview", "json formatter", "yaml parser", "react preview"],
+  authors: [{ name: "Developer" }],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://webutils.dev",
+    title: "Web Utils | Universal Code Previewer",
+    description: "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
+    siteName: "Web Utils",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Web Utils | Universal Code Previewer",
+    description: "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
