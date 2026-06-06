@@ -27,6 +27,7 @@ import { TableViewer } from '@/components/shared/table-viewer';
 import { HTMLViewer } from '@/components/shared/html-viewer';
 import { CodeViewer } from '@/components/shared/code-viewer';
 import { JsonTreeViewer } from '@/components/json/tree-viewer';
+import { PreviewPane } from '@/components/shared/preview-pane';
 import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
 import {
@@ -388,87 +389,23 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
                     <ResizablePanel defaultSize={showEditor ? 50 : 100}>
                         <div className="flex flex-col h-full bg-background border-l">
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                                <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
-                                    <TabsList className="h-8 bg-muted/50">
-                                        <TabsTrigger value="preview" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                            <Eye className="size-3 mr-2" /> Preview
-                                        </TabsTrigger>
-                                        <TabsTrigger value="viewer" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                            <Code className="size-3 mr-2" /> Source
-                                        </TabsTrigger>
-                                        {isTabularData && (
-                                            <TabsTrigger value="table" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                <TableIcon className="size-3 mr-2" /> Data
-                                            </TabsTrigger>
-                                        )}
-                                        {format === 'json' && (
-                                            <TabsTrigger value="tree" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                <Braces className="size-3 mr-2" /> Tree
-                                            </TabsTrigger>
-                                        )}
-                                        <TabsTrigger value="terminal" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                            <TerminalIcon className="size-3 mr-2" /> Shell
-                                        </TabsTrigger>
-                                    </TabsList>
+                            <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+                                <div className="flex items-center h-8">
+                                    <div className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase ring-offset-background transition-all bg-background text-foreground shadow-sm h-7">
+                                        <Eye className="size-3 mr-2" /> Preview
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div className="flex-1 relative overflow-hidden">
-                                    <TabsContent value="preview" className="h-full m-0 p-0 border-none transition-all">
-                                        {format === 'html' ? (
-                                            <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={true} />
-                                        ) : format === 'markdown' ? (
-                                            <div className="prose prose-zinc dark:prose-invert max-w-none bg-background p-8 min-h-full">
-                                                <CodeViewer content={content} language="markdown" wrapLines={true} />
-                                            </div>
-                                        ) : format === 'svg' ? (
-                                            <div className="flex items-center justify-center p-8 bg-background h-full overflow-auto" dangerouslySetInnerHTML={{ __html: content }} />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-30">
-                                                <Layout className="size-16 mb-4 text-primary" />
-                                                <p className="text-sm font-bold uppercase tracking-widest">No Live Preview</p>
-                                            </div>
-                                        )}
-                                    </TabsContent>
-
-                                    <TabsContent value="viewer" className="h-full m-0 p-0 bg-background">
-                                        <CodeViewer content={content} language={getLanguage(format)} wrapLines={wordWrap === 'on'} />
-                                    </TabsContent>
-
-                                    <TabsContent value="table" className="h-full m-0 p-8 overflow-auto">
-                                        <TableViewer data={parsedJson || []} onDataChange={(newData) => {
-                                            setContent(JSON.stringify(newData, null, 2));
-                                            setIsSaved(false);
-                                        }} />
-                                    </TabsContent>
-
-                                    <TabsContent value="tree" className="h-full m-0 p-4 overflow-auto">
-                                        <JsonTreeViewer data={parsedJson} />
-                                    </TabsContent>
-
-                                    <TabsContent value="terminal" className="h-full m-0 bg-zinc-950 p-6 flex flex-col font-mono text-sm lowercase">
-                                        <div className="flex-1 overflow-auto space-y-1 mb-4 custom-scrollbar">
-                                            {terminalOutput.map((line, i) => (
-                                                <div key={i} className={line.startsWith('$') ? "text-primary font-bold" : "text-muted-foreground"}>
-                                                    {line}
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="flex items-center gap-2 border-t border-zinc-900 pt-4">
-                                            <span className="text-primary font-black">$</span>
-                                            <input
-                                                className="bg-transparent border-none outline-none text-zinc-100 flex-1"
-                                                autoFocus
-                                                spellCheck={false}
-                                                value={terminalInput}
-                                                onChange={(e) => setTerminalInput(e.target.value)}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleTerminalSubmit()}
-                                                placeholder="type 'help'..."
-                                            />
-                                        </div>
-                                    </TabsContent>
-                                </div>
-                            </Tabs>
+                            <div className="flex-1 relative overflow-hidden">
+                                <PreviewPane 
+                                    format={format as any}
+                                    content={content}
+                                    setContent={setContent}
+                                    useBootstrap={useBootstrap}
+                                    useTailwind={useTailwind}
+                                />
+                            </div>
                         </div>
                     </ResizablePanel>
                 </ResizablePanelGroup>

@@ -2,9 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { HTMLViewer } from '@/components/shared/html-viewer';
-import { CodeViewer } from '@/components/shared/code-viewer';
-import { TableViewer } from '@/components/shared/table-viewer';
+import { PreviewPane } from '@/components/shared/preview-pane';
 import { ContainerProps } from '@/types';
 import yaml from 'js-yaml';
 import * as prettier from 'prettier/standalone';
@@ -35,8 +33,6 @@ import {
     Type,
     Layout as LayoutIcon
 } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -151,30 +147,6 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
         return content;
     }, [content, format]);
 
-    const tableData = useMemo(() => {
-        try {
-            if (format === 'json') {
-                const parsed = JSON.parse(content);
-                return Array.isArray(parsed) ? parsed : null;
-            }
-            if (format === 'csv') {
-                const lines = content.trim().split('\n');
-                if (lines.length >= 2) {
-                    const headers = lines[0].split(',');
-                    return lines.slice(1).map((line: string) => {
-                        const values = line.split(',');
-                        return headers.reduce((acc: Record<string, string>, header: string, i: number) => ({ ...acc, [header]: values[i] }), {});
-                    });
-                }
-            }
-        } catch {
-            return null;
-        }
-        return null;
-    }, [content, format]);
-
-    const canPreviewTable = (format === 'json' && Array.isArray(tableData)) || format === 'csv';
-
     const openFullPage = () => {
         const htmlContent = `
             <!DOCTYPE html>
@@ -212,7 +184,10 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="min-w-[150px]">
                             {ALL_FORMATS.slice(0, 10).map((fmt) => (
-                                <DropdownMenuItem key={fmt} onClick={() => setFormat(fmt)} className="text-[10px] font-bold uppercase">
+                                <DropdownMenuItem key={fmt} onClick={() => {
+                                    setFormat(fmt);
+                                    router.push(`/view/${fmt}`);
+                                }} className="text-[10px] font-bold uppercase">
                                     {fmt}
                                 </DropdownMenuItem>
                             ))}
@@ -370,18 +345,13 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
 
                     <ResizablePanel defaultSize={showEditor ? 60 : 100}>
                         <div className="flex flex-col h-full bg-background">
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                            <div className="flex-1 flex flex-col overflow-hidden">
                                 <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
-                                    <TabsList className="h-8 bg-muted/50">
-                                        <TabsTrigger value="preview" className="text-[10px] font-bold uppercase py-1.5 h-7">
+                                    <div className="flex items-center h-8">
+                                        <div className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase ring-offset-background transition-all bg-background text-foreground shadow-sm h-7">
                                             <Eye className="size-3 mr-2" /> Preview
-                                        </TabsTrigger>
-                                        {canPreviewTable && (
-                                            <TabsTrigger value="table" className="text-[10px] font-bold uppercase py-1.5 h-7">
-                                                <TableIcon className="size-3 mr-2" /> Data
-                                            </TabsTrigger>
-                                        )}
-                                    </TabsList>
+                                        </div>
+                                    </div>
                                     
                                     <div className="flex items-center gap-2">
                                         {format === 'html' && (
@@ -410,41 +380,16 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                     </div>
                                 </div>
 
-                                <TabsContent value="preview" className="flex-1 relative overflow-auto m-0 p-0 border-none">
-                                    <div className="absolute inset-0">
-                                        {format === 'html' && <HTMLViewer content={content} useBootstrap={useBootstrap} useTailwind={useTailwind} enableJS={true} />}
-                                        {format === 'json' && <div className="p-4 bg-background h-full overflow-auto"><CodeViewer content={formattedContent} language="json" /></div>}
-                                        {format === 'markdown' && (
-                                            <div className="prose prose-zinc dark:prose-invert max-w-none bg-background p-8 min-h-full">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-                                            </div>
-                                        )}
-                                        {format === 'svg' && (
-                                            <div className="flex items-center justify-center p-8 bg-background min-h-full" dangerouslySetInnerHTML={{ __html: content }} />
-                                        )}
-                                        {format === 'csv' && <div className="p-4 bg-background min-h-full"><TableViewer data={tableData || []} onDataChange={(newData) => {
-                                            const headers = Object.keys(newData[0]);
-                                            setContent([headers.join(','), ...newData.map(row => headers.map(h => row[h]).join(','))].join('\n'));
-                                        }} /></div>}
-                                        {!PREVIEWABLE_FORMATS.includes(format) && (
-                                            <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-30">
-                                                <LayoutIcon className="size-16 mb-4 text-primary" />
-                                                <p className="text-sm font-bold uppercase tracking-widest">No Live Preview</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </TabsContent>
-
-                                <TabsContent value="table" className="flex-1 overflow-auto m-0 p-8 border-none bg-background">
-                                    <TableViewer data={tableData || []} onDataChange={(newData) => {
-                                        if (format === 'json') setContent(JSON.stringify(newData, null, 2));
-                                        else if (format === 'csv') {
-                                            const headers = Object.keys(newData[0]);
-                                            setContent([headers.join(','), ...newData.map(row => headers.map(h => row[h]).join(','))].join('\n'));
-                                        }
-                                    }} />
-                                </TabsContent>
-                            </Tabs>
+                                <div className="flex-1 relative overflow-auto m-0 p-0 border-none bg-background">
+                                    <PreviewPane 
+                                        format={format as any}
+                                        content={content}
+                                        setContent={setContent}
+                                        useBootstrap={useBootstrap}
+                                        useTailwind={useTailwind}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </ResizablePanel>
                 </ResizablePanelGroup>

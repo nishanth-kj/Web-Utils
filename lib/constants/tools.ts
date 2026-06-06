@@ -13,7 +13,8 @@ import {
     Table,
     PenTool,
     FilePlus,
-    Bitcoin
+    Bitcoin,
+    Eye
 } from 'lucide-react';
 
 export interface Tool {
@@ -37,11 +38,6 @@ export const TOOL_CATEGORIES: Category[] = [
         id: "core",
         label: "Core Workspace",
         description: "Primary development environments for coding and previewing"
-    },
-    {
-        id: "json",
-        label: "JSON Suite",
-        description: "A comprehensive set of tools to manipulate and format JSON data"
     },
     {
         id: "formats",
@@ -94,76 +90,13 @@ export const TOOLS: Tool[] = [
         icon: Rocket
     },
     {
-        id: "html-preview",
-        name: "HTML Preview",
-        description: "Live preview and editor for HTML documents",
-        href: "/view/html",
+        id: "live-previewer",
+        name: "Live Previewer",
+        description: "Unified all-in-one viewer and editor for HTML, JSON, Markdown, CSV, SVG, and more formats",
+        href: "/view",
         category: "formats",
         status: "Available",
-        icon: Globe
-    },
-    {
-        id: "json-formatter",
-        name: "JSON Formatter",
-        description: "Clean up and validate messy JSON strings instantly",
-        href: "/view/json",
-        category: "json",
-        status: "Available",
-        icon: Braces
-    },
-    {
-        id: "yaml-view",
-        name: "YAML Viewer",
-        description: "Validate and visualize YAML configuration files",
-        href: "/view/yaml",
-        category: "formats",
-        status: "Available",
-        icon: StickyNote
-    },
-    {
-        id: "react-code",
-        name: "React Playground",
-        description: "Write and preview React components in the browser",
-        href: "/view/react",
-        category: "core",
-        status: "Available",
-        icon: Box
-    },
-    {
-        id: "markdown-view",
-        name: "Markdown Editor",
-        description: "Write and preview Markdown with GitHub-flavored support",
-        href: "/view/markdown",
-        category: "formats",
-        status: "Available",
-        icon: FileEdit
-    },
-    {
-        id: "xml-viewer",
-        name: "XML Viewer",
-        description: "Format and inspect XML documents",
-        href: "/view/xml",
-        category: "formats",
-        status: "Available",
-        icon: FileCode
-    },
-    {
-        id: "svg-render",
-        name: "SVG Renderer",
-        description: "Live preview for SVG graphics and icons",
-        href: "/view/svg",
-        category: "media",
-        status: "Available",
-        icon: Image
-    },
-    {
-        id: "csv-viewer",
-        name: "CSV Viewer",
-        description: "View and filter comma-separated values as tables",
-        href: "/view/csv",
-        category: "formats",
-        status: "Available",
-        icon: Table
+        icon: Eye
     },
     {
         id: "epoch-converter",

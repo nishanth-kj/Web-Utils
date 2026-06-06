@@ -68,7 +68,7 @@ export function AppSidebar() {
         >
 
             {/* Toggle Button "On the Line" - Placed Between Header and Content */}
-            <div className={`absolute right-0 top-32 z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
+            <div className={`absolute right-0 top-16 z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button

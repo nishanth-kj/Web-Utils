@@ -19,10 +19,25 @@ export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: U
     if (initialContent !== prevInitialContent || initialFormat !== prevInitialFormat) {
         setPrevInitialContent(initialContent);
         setPrevInitialFormat(initialFormat);
-        setContent(initialContent);
+        
+        let savedContent = null;
+        if (typeof window !== 'undefined') {
+            savedContent = sessionStorage.getItem(`web-viewer-content-${initialFormat}`);
+        }
+
+        setContent(savedContent !== null ? savedContent : initialContent);
         setFormat(initialFormat);
         setIsSaved(true);
     }
+
+    // Load initial data on mount
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const savedContent = sessionStorage.getItem(`web-viewer-content-${format}`);
+        if (savedContent !== null && savedContent !== content) {
+            setContent(savedContent);
+        }
+    }, []);
 
     // Debounced sessionStorage persistence
     useEffect(() => {
