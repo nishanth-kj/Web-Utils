@@ -21,14 +21,20 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarGroupContent,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
+    SidebarMenuAction,
     useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from "@/lib/constants/tools";
+import { PREVIEWABLE_FORMATS } from "@/lib/formats";
 
 export function AppSidebar() {
     const pathname = usePathname();
@@ -137,25 +143,76 @@ export function AppSidebar() {
                             </SidebarGroupLabel>
                             <SidebarGroupContent>
                                 <SidebarMenu className="px-2 transition-all">
-                                    {categoryTools.map((tool: Tool) => (
-                                        <SidebarMenuItem key={tool.name}>
-                                            <Link href={tool.href} className="w-full" onClick={closeMobile}>
-                                                <SidebarMenuButton
-                                                    tooltip={tool.name}
-                                                    isActive={pathname === tool.href}
-                                                    className={`rounded-lg h-10 transition-all w-full ${pathname === tool.href ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-                                                >
-                                                    <tool.icon className={`size-4 ${pathname === tool.href ? 'text-indigo-500' : 'text-muted-foreground'}`} />
-                                                    <div className="flex items-center justify-between flex-1">
-                                                        <span className={`text-sm ${pathname === tool.href ? 'font-bold' : 'font-medium'}`}>{tool.name}</span>
-                                                        {['draw-tool', 'dummy-file', 'blockchain-tool', 'uuid-generator'].includes(tool.id) && (
-                                                            <span className="text-[7px] font-black bg-indigo-500 text-white px-1 rounded-sm leading-none py-0.5 ml-auto">NEW</span>
-                                                        )}
-                                                    </div>
-                                                </SidebarMenuButton>
-                                            </Link>
-                                        </SidebarMenuItem>
-                                    ))}
+                                    {categoryTools.map((tool: Tool) => {
+                                        const hasSubOptions = tool.subOptions && tool.subOptions.length > 0;
+                                        const isActive = pathname === tool.href || (hasSubOptions && tool.subOptions!.some(sub => pathname.startsWith(sub.href)));
+                                        
+                                        if (hasSubOptions) {
+                                            return (
+                                                <Collapsible key={tool.name} asChild defaultOpen={isActive} className="group/collapsible">
+                                                    <SidebarMenuItem>
+                                                        <SidebarMenuButton
+                                                            tooltip={tool.name}
+                                                            isActive={isActive}
+                                                            asChild
+                                                            className={`rounded-lg h-10 transition-all w-full pr-8 ${isActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                                        >
+                                                            <Link href={tool.href} onClick={closeMobile}>
+                                                                <tool.icon className={`size-4 ${isActive ? 'text-indigo-500' : 'text-muted-foreground'}`} />
+                                                                <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'} flex-1`}>{tool.name}</span>
+                                                            </Link>
+                                                        </SidebarMenuButton>
+                                                        <CollapsibleTrigger asChild>
+                                                            <SidebarMenuAction showOnHover={false} className="mt-0.5 hover:bg-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
+                                                                <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                                                <span className="sr-only">Toggle</span>
+                                                            </SidebarMenuAction>
+                                                        </CollapsibleTrigger>
+                                                        
+                                                        <CollapsibleContent>
+                                                            <SidebarMenuSub>
+                                                                {tool.subOptions!.map(sub => {
+                                                                    const isSubActive = pathname === sub.href;
+                                                                    return (
+                                                                        <SidebarMenuSubItem key={sub.name}>
+                                                                            <Link href={sub.href} className="w-full" onClick={closeMobile}>
+                                                                                <SidebarMenuSubButton
+                                                                                    isActive={isSubActive}
+                                                                                    className={`rounded-md h-8 transition-all w-full ${isSubActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                                                                >
+                                                                                    <span className="uppercase text-[10px] tracking-wider">{sub.name}</span>
+                                                                                </SidebarMenuSubButton>
+                                                                            </Link>
+                                                                        </SidebarMenuSubItem>
+                                                                    );
+                                                                })}
+                                                            </SidebarMenuSub>
+                                                        </CollapsibleContent>
+                                                    </SidebarMenuItem>
+                                                </Collapsible>
+                                            );
+                                        }
+
+                                        return (
+                                            <SidebarMenuItem key={tool.name}>
+                                                <Link href={tool.href} className="w-full" onClick={closeMobile}>
+                                                    <SidebarMenuButton
+                                                        tooltip={tool.name}
+                                                        isActive={isActive}
+                                                        className={`rounded-lg h-10 transition-all w-full ${isActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                                    >
+                                                        <tool.icon className={`size-4 ${isActive ? 'text-indigo-500' : 'text-muted-foreground'}`} />
+                                                        <div className="flex items-center justify-between flex-1">
+                                                            <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{tool.name}</span>
+                                                            {['draw-tool', 'dummy-file', 'blockchain-tool', 'uuid-generator'].includes(tool.id) && (
+                                                                <span className="text-[7px] font-black bg-indigo-500 text-white px-1 rounded-sm leading-none py-0.5 ml-auto">NEW</span>
+                                                            )}
+                                                        </div>
+                                                    </SidebarMenuButton>
+                                                </Link>
+                                            </SidebarMenuItem>
+                                        );
+                                    })}
                                 </SidebarMenu>
                             </SidebarGroupContent>
                         </SidebarGroup>

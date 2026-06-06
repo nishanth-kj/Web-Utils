@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useState, useEffect, useRef} from 'react';
-import {Search, Copy, Check} from 'lucide-react';
+import {Search, Copy, Check, ChevronRight} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {AdsCard} from '@/components/shared/ads-card';
@@ -123,26 +123,27 @@ export default function ToolsListingPage() {
                 </div>
 
                 {/* Unified Tools Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                     {filteredTools.map((tool: Tool) => (
-                        <Card 
+                        <div 
                             key={tool.id} 
-                            className="group hover:border-primary/50 transition-colors cursor-pointer"
                             onClick={() => window.open(tool.href, '_self')}
+                            className="group flex flex-col p-5 bg-card border border-border rounded-xl transition-all hover:border-foreground/20 hover:shadow-sm cursor-pointer"
                         >
-                            <CardHeader className="p-5">
-                                <div className="size-10 rounded-lg bg-muted flex items-center justify-center text-primary mb-3">
-                                    <tool.icon className="size-5" />
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 rounded-md bg-muted text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                                    <tool.icon className="size-4" />
                                 </div>
-                                <CardTitle className="text-base font-bold uppercase tracking-tight">{tool.name}</CardTitle>
-                                <CardDescription className="text-xs line-clamp-2 mt-1">{tool.description}</CardDescription>
-                                <div className="pt-2">
-                                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${tool.status === 'Available' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                        {tool.status}
-                                    </span>
-                                </div>
-                            </CardHeader>
-                        </Card>
+                                <h3 className="font-semibold text-foreground tracking-tight">{tool.name}</h3>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-4">{tool.description}</p>
+                            <div className="mt-auto flex items-center justify-between">
+                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${tool.status === 'Available' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
+                                    {tool.status}
+                                </span>
+                                <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground transition-colors -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100" />
+                            </div>
+                        </div>
                     ))}
                 </div>
                 <AdsCard variant="horizontal" className="mt-8 mb-12" />

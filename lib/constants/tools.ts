@@ -16,6 +16,12 @@ import {
     Bitcoin,
     Eye
 } from 'lucide-react';
+import { PREVIEWABLE_FORMATS } from '@/lib/formats';
+
+export interface ToolSubOption {
+    name: string;
+    href: string;
+}
 
 export interface Tool {
     id: string;
@@ -25,6 +31,7 @@ export interface Tool {
     category: string;
     status: 'Available' | 'Coming Soon' | 'Beta';
     icon: LucideIcon;
+    subOptions?: ToolSubOption[];
 }
 
 export interface Category {
@@ -96,7 +103,11 @@ export const TOOLS: Tool[] = [
         href: "/view",
         category: "formats",
         status: "Available",
-        icon: Eye
+        icon: Eye,
+        subOptions: PREVIEWABLE_FORMATS.map(fmt => ({
+            name: fmt,
+            href: `/view/${fmt}`
+        }))
     },
     {
         id: "epoch-converter",
