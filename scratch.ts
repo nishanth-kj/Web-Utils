@@ -1,10 +1,9 @@
 import { jsonrepair } from 'jsonrepair';
 
-export function parseMultipleJson(content: string): any[] {
+function parseMultipleJson(content: string): any[] {
     const text = content.trim();
     if (!text) return [];
 
-    // Try a single JSON object first (most common case, fastest)
     try {
         return [JSON.parse(text)];
     } catch {}
@@ -26,7 +25,6 @@ export function parseMultipleJson(content: string): any[] {
         let start = i;
 
         if (char === '{' || char === '[') {
-            // Read until balanced
             let braces = 0;
             let brackets = 0;
             let inString = false;
@@ -65,11 +63,9 @@ export function parseMultipleJson(content: string): any[] {
                     } catch (e2) {}
                 }
             } else {
-                // Unbalanced, skip one char to prevent infinite loop
                 i++;
             }
         } else if (char === '"') {
-            // String literal
             let escape = false;
             i++;
             while (i < text.length) {
@@ -88,7 +84,6 @@ export function parseMultipleJson(content: string): any[] {
                 results.push(JSON.parse(text.substring(start, i)));
             } catch {}
         } else {
-            // Number, boolean, null
             while (i < text.length && !/\s|,|\]|\}/.test(text[i])) {
                 i++;
             }
@@ -108,15 +103,53 @@ export function parseMultipleJson(content: string): any[] {
     }
 
     if (results.length > 0) return results;
-
     throw new Error('Invalid JSON format');
 }
 
-export function formatMultipleJson(content: string): string {
-    try {
-        const parsedArray = parseMultipleJson(content);
-        return parsedArray.map(obj => JSON.stringify(obj, null, 2)).join('\n\n');
-    } catch {
-        return content;
-    }
+const text = `
+{
+  {"asf":"asfd"},
+  "tool": "Web Utils Pro",
+  "status": "ready",
+  "capabilities": {
+    "syntax_highlighting": true,
+    "formatting": "automatic",
+    "supported_formats": [
+      "JSON",
+      "YAML", 
+      "XML", 
+      "CSV", 
+      "Markdown"
+    ]
+  },
+  "metrics": {
+    "speed": "instant",
+    "reliability": 0.999,
+    "latency": "14ms"
+  },
+  "author": "Nishanth KJ"
+}som thliek this {
+  {"asf":"asfd"},
+  "tool": "Web Utils Pro",
+  "status": "ready",
+  "capabilities": {
+    "syntax_highlighting": true,
+    "formatting": "automatic",
+    "supported_formats": [
+      "JSON",
+      "YAML", 
+      "XML", 
+      "CSV", 
+      "Markdown"
+    ]
+  },
+  "metrics": {
+    "speed": "instant",
+    "reliability": 0.999,
+    "latency": "14ms"
+  },
+  "author": "Nishanth KJ"
 }
+`;
+
+console.log(JSON.stringify(parseMultipleJson(text), null, 2));
