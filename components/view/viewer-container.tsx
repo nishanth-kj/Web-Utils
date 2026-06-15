@@ -12,6 +12,7 @@ import * as prettierPluginBabel from 'prettier/plugins/babel';
 import * as prettierPluginEstree from 'prettier/plugins/estree';
 import * as prettierPluginMarkdown from 'prettier/plugins/markdown';
 import { format as formatSql } from 'sql-formatter';
+import { formatMultipleJson } from '@/lib/utils/json-parser';
 import { Button } from "@/components/ui/button";
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
@@ -97,8 +98,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     const handleAutoFormat = async () => {
         try {
             if (format === 'json') {
-                const parsed = JSON.parse(content);
-                setContent(JSON.stringify(parsed, null, 2));
+                setContent(formatMultipleJson(content));
             } else if (format === 'yaml') {
                 const parsed = yaml.load(content);
                 setContent(yaml.dump(parsed));
@@ -139,7 +139,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
 
     const formattedContent = useMemo(() => {
         try {
-            if (format === 'json') return JSON.stringify(JSON.parse(content), null, 2);
+            if (format === 'json') return formatMultipleJson(content);
             if (format === 'yaml') return yaml.dump(yaml.load(content));
         } catch {
             return content;
