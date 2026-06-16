@@ -61,10 +61,13 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
         }
 
         const newData = rows.map(row => {
-            const newRow = { ...row };
-            if (oldHeader in newRow) {
-                newRow[trimmedNew] = newRow[oldHeader];
-                delete newRow[oldHeader];
+            const newRow: Record<string, string> = {};
+            for (const key of Object.keys(row)) {
+                if (key === oldHeader) {
+                    newRow[trimmedNew] = row[key];
+                } else {
+                    newRow[key] = row[key];
+                }
             }
             return newRow;
         });
@@ -209,23 +212,15 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
                 <Table style={{ tableLayout: 'fixed', width: 'max-content', minWidth: '100%' }}>
                     <TableHeader className="bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-md">
                         <TableRow className="border-zinc-200 dark:border-zinc-800">
-                            {activeHeaders.map(header => (
+                            {activeHeaders.map(header => {
+                                const isHeaderMatch = searchQuery && header.toLowerCase().includes(searchQuery.toLowerCase());
+                                return (
                                 <TableHead
                                     key={header}
                                     style={{ width: columnWidths[header] ? `${columnWidths[header]}px` : '150px' }}
-                                    className="relative font-black text-zinc-600 dark:text-zinc-400 uppercase text-[10px] tracking-widest px-6 py-4"
+                                    className={`relative font-black uppercase text-[10px] tracking-widest px-6 py-4 transition-colors ${isHeaderMatch ? 'bg-yellow-200/50 dark:bg-yellow-500/20 text-yellow-900 dark:text-yellow-100' : 'text-zinc-600 dark:text-zinc-400'}`}
                                 >
-                                    <div 
-                                        className="flex items-center gap-2 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                                        onClick={() => {
-                                            if (editingHeader !== header) handleSort(header);
-                                        }}
-                                        onDoubleClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingHeader(header);
-                                            setHeaderEditValue(header);
-                                        }}
-                                    >
+                                    <div className="flex items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                         {editingHeader === header ? (
                                             <Input
                                                 value={headerEditValue}
@@ -241,12 +236,31 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
                                             />
                                         ) : (
                                             <>
-                                                <span className="truncate" title="Double-click to rename">{header}</span>
-                                                {sortConfig.key === header ? (
-                                                    sortConfig.direction === 'asc' ? <ArrowUp className="size-3 shrink-0" /> : <ArrowDown className="size-3 shrink-0" />
-                                                ) : (
-                                                    <ArrowUpDown className="size-3 opacity-30 shrink-0" />
-                                                )}
+                                                <span 
+                                                    className="truncate cursor-text flex-1" 
+                                                    title="Click to rename"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingHeader(header);
+                                                        setHeaderEditValue(header);
+                                                    }}
+                                                >
+                                                    {header}
+                                                </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSort(header);
+                                                    }}
+                                                    className="cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 p-0.5 rounded transition-colors flex items-center justify-center"
+                                                    title="Sort column"
+                                                >
+                                                    {sortConfig.key === header ? (
+                                                        sortConfig.direction === 'asc' ? <ArrowUp className="size-3 shrink-0" /> : <ArrowDown className="size-3 shrink-0" />
+                                                    ) : (
+                                                        <ArrowUpDown className="size-3 opacity-30 shrink-0" />
+                                                    )}
+                                                </button>
                                             </>
                                         )}
                                     </div>
@@ -255,7 +269,8 @@ export function TableViewer({ data, onDataChange }: TableViewerProps) {
                                         onMouseDown={(e) => handleResizeStart(e, header)}
                                     />
                                 </TableHead>
-                            ))}
+                                );
+                            })}
                             <TableHead className="w-[80px] px-6 py-4"></TableHead>
                         </TableRow>
                     </TableHeader>
