@@ -47,7 +47,7 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.3rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -163,5 +163,31 @@
 
 .monaco-editor {
   padding-top: 8px;
+}
+
+@keyframes float-rise {
+  0%, 100% {
+    transform: translateY(1px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.animate-float-rise {
+  animation: float-rise 4s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
 }
 

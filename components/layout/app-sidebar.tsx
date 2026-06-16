@@ -7,7 +7,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Command,
-    Search
+    Search,
+    Sun,
+    Moon
 } from "lucide-react";
 
 import {
@@ -35,12 +37,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from "@/lib/constants/tools";
 import { PREVIEWABLE_FORMATS } from "@/lib/formats";
+import { useTheme } from "next-themes";
 
 export function AppSidebar() {
     const pathname = usePathname();
     const { toggleSidebar, state, setOpenMobile, isMobile, openMobile } = useSidebar();
     const [searchQuery, setSearchQuery] = React.useState("");
     const searchInputRef = React.useRef<HTMLInputElement>(null);
+    const { theme, setTheme } = useTheme();
 
     const closeMobile = () => {
         if (isMobile) setOpenMobile(false);
@@ -74,7 +78,7 @@ export function AppSidebar() {
         >
 
             {/* Toggle Button "On the Line" - Placed Between Header and Content */}
-            <div className={`absolute right-0 top-16 z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
+            <div className={`absolute right-0 top-[100px] z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -100,13 +104,27 @@ export function AppSidebar() {
             </div>
 
             <SidebarHeader className="border-b border-sidebar-border px-4 py-4 flex flex-col gap-4">
-                <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
                     <Link href="/" className="flex items-center space-x-2.5" onClick={closeMobile}>
                         <div className="size-7 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                             <Command className="size-4" />
                         </div>
                         <span className="font-black text-lg uppercase tracking-widest text-foreground">Web Utils</span>
                     </Link>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="relative size-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all duration-500 ease-in-out hover:rotate-12 overflow-hidden shadow-inner shrink-0"
+                    >
+                        <div className="absolute inset-0 m-auto h-4 w-4 rotate-0 scale-100 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:-rotate-90 dark:scale-0 dark:opacity-0 text-amber-500">
+                            <Sun className="h-full w-full animate-spin-slow" />
+                        </div>
+                        <div className="absolute inset-0 m-auto h-4 w-4 rotate-90 scale-0 opacity-0 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:rotate-0 dark:scale-100 dark:opacity-100 text-indigo-400">
+                            <Moon className="h-full w-full animate-float-rise" />
+                        </div>
+                        <span className="sr-only">Toggle theme</span>
+                    </Button>
                 </div>
                 <div className="relative group">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
