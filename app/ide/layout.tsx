@@ -1,12 +1,45 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Web IDE Workspace | Web Utils",
-  description: "A complete online IDE workspace for web development. Write, test, and preview code directly in your browser.",
-  keywords: ["online ide", "web ide", "javascript playground", "browser ide", "code sandbox"],
-  alternates: { canonical: '/ide' },
+  title: "Online IDE & Sandbox | Web Utils",
+  description: "A fully-featured online Integrated Development Environment (IDE). Write, run, and test your code securely in the browser.",
+  keywords: ["online IDE", "code runner", "developer environment", "browser sandbox", "web IDE", "javascript runner", "typescript compiler", "sandbox editor"],
+  openGraph: {
+    title: "Online IDE & Sandbox | Web Utils",
+    description: "A fully-featured online Integrated Development Environment (IDE). Write, run, and test your code securely in the browser.",
+    url: "https://webutils.site/ide",
+  },
+  twitter: {
+    title: "Online IDE & Sandbox | Web Utils",
+    description: "A fully-featured online Integrated Development Environment (IDE).",
+  },
+  alternates: {
+    canonical: "/ide",
+  }
 };
 
-export default function IdeLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Online IDE & Sandbox | Web Utils",
+    "description": "A fully-featured online Integrated Development Environment (IDE). Write, run, and test your code securely in the browser.",
+    "url": "https://webutils.site/ide",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any"
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }
