@@ -1,12 +1,45 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Online Code Editor & Formatter | Web Utils",
-  description: "Format, validate, and preview JSON, YAML, HTML, and React code in a powerful Monaco-based online editor.",
-  keywords: ["online code editor", "json formatter", "yaml validator", "html preview", "monaco editor"],
-  alternates: { canonical: '/editor' },
+  title: "Code Editor & Formatter | Web Utils",
+  description: "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer. Edit code quickly with syntax highlighting.",
+  keywords: ["code editor", "JSON formatter", "YAML parser", "HTML preview", "browser IDE", "syntax highlighter", "online coding", "developer sandbox", "code formatter"],
+  openGraph: {
+    title: "Code Editor & Formatter | Web Utils",
+    description: "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer. Edit code quickly with syntax highlighting.",
+    url: "https://webutils.site/editor",
+  },
+  twitter: {
+    title: "Code Editor & Formatter | Web Utils",
+    description: "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer.",
+  },
+  alternates: {
+    canonical: "/editor",
+  }
 };
 
-export default function EditorLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Code Editor & Formatter | Web Utils",
+    "description": "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer. Edit code quickly with syntax highlighting.",
+    "url": "https://webutils.site/editor",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any"
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }
