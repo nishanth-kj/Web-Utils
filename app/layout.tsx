@@ -103,6 +103,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
+      <head>
+        <meta name="google-site-verification" content="b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw" />
+      </head>
     <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
     >
