@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
+import { GoogleTagManager } from '@next/third-parties/google';
 import "./globals.css";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import {ClientLayout} from "@/components/layout/client-layout";
@@ -105,6 +106,7 @@ export default function RootLayout({
     <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
     >
+        <GoogleTagManager gtmId="GTM-WN2W26ZP" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
