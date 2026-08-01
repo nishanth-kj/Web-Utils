@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   },
   category: "technology",
   other: {
-    "google-adsense-account": "ca-pub-0000000000000000",
+    "google-adsense-account": "ca-pub-2215957287486434",
     "msvalidate.01": "bing-verification-placeholder"
   },
 };
