@@ -4,6 +4,7 @@ import { GoogleTagManager } from '@next/third-parties/google';
 import "./globals.css";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import {ClientLayout} from "@/components/layout/client-layout";
+import { CookieConsent } from "@/components/common/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -139,6 +140,7 @@ export default function RootLayout({
             {/* CLIENT PART MOVED HERE */}
             <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
+        <CookieConsent />
       </body>
     </html>
   );
