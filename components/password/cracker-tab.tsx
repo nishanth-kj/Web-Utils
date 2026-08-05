@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TabsContent } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { getWasmModule } from "@/lib/wasm-loader";
 const HASH_ALGORITHMS = ["MD5", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "SHA3-224", "SHA3-256", "SHA3-384", "SHA3-512", "RIPEMD-160", "BLAKE3"];
@@ -35,6 +36,33 @@ function indexToPassword(idx: bigint, charset: string): string {
   return result.split("").reverse().join("");
 }
 
+function getStartIndexForLength(length: number, charsetLength: number): bigint {
+  const base = BigInt(charsetLength);
+  let startIdx = BigInt(0);
+  let maxForLength = base;
+  for (let i = 1; i < length; i++) {
+    startIdx += maxForLength;
+    maxForLength *= base;
+  }
+  return startIdx;
+}
+
+function formatEstimatedTime(combinations: number, hashesPerSecond: number = 1_000_000): string {
+  const seconds = combinations / hashesPerSecond;
+  if (seconds < 1) return "Instantly";
+  if (seconds < 60) return `${Math.round(seconds)} seconds`;
+  const minutes = seconds / 60;
+  if (minutes < 60) return `${Math.round(minutes)} minutes`;
+  const hours = minutes / 60;
+  if (hours < 24) return `${Math.round(hours)} hours`;
+  const days = hours / 24;
+  if (days < 365) return `${Math.round(days)} days`;
+  const years = days / 365;
+  if (years < 100) return `${Math.round(years)} years`;
+  if (years < 1000) return `${Math.round(years / 100)} centuries`;
+  return "Millions of years";
+}
+
 export function CrackerTab({ dbContent }: CrackerTabProps) {
   const [wasmModule, setWasmModule] = useState<any>(null);
 
@@ -42,6 +70,7 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
   const [targetHash, setTargetHash] = useState("");
   const [crackAlgo, setCrackAlgo] = useState(HASH_ALGORITHMS[0]);
   const [bruteCharset, setBruteCharset] = useState("abcdefghijklmnopqrstuvwxyz0123456789");
+  const [bruteMinLen, setBruteMinLen] = useState([1]);
   
   const [crackResult, setCrackResult] = useState<string | null>(null);
   const [crackProgress, setCrackProgress] = useState(0);
@@ -123,8 +152,8 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
     } else {
       // Brute Force Mode
       const batchSize = 100_000;
-      let currentIdx = BigInt(0);
-      const limit = BigInt(1_000_000_000); // 1 Billion limit for demo purposes
+      let currentIdx = getStartIndexForLength(bruteMinLen[0], bruteCharset.length);
+      const limit = currentIdx + BigInt(1_000_000_000); // 1 Billion limit for demo purposes
 
       while (crackRef.current && currentIdx < limit) {
         const res = wasmModule.brute_force_batch(targetClean, crackAlgo, bruteCharset, currentIdx, batchSize);
@@ -228,16 +257,57 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
             </div>
 
             {crackMode === "bruteforce" && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Charset</Label>
-                <input
-                  type="text"
-                  value={bruteCharset}
-                  onChange={(e) => setBruteCharset(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg bg-background border border-muted/50 focus:border-primary/50 outline-none transition-all text-sm font-mono shadow-sm"
-                  disabled={isCracking}
-                />
-                <p className="text-[10px] text-muted-foreground">Limited to ~10 million guesses for browser demonstration.</p>
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Charset</Label>
+                  <input
+                    type="text"
+                    value={bruteCharset}
+                    onChange={(e) => setBruteCharset(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg bg-background border border-muted/50 focus:border-primary/50 outline-none transition-all text-sm font-mono shadow-sm"
+                    disabled={isCracking}
+                  />
+                </div>
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Start Length</Label>
+                    <span className="text-sm font-mono bg-muted px-2 py-0.5 rounded-md">{bruteMinLen[0]} chars</span>
+                  </div>
+                  <Slider
+                    min={1}
+                    max={12}
+                    step={1}
+                    value={bruteMinLen}
+                    onValueChange={setBruteMinLen}
+                    disabled={isCracking}
+                  />
+                  <div className="flex flex-col gap-2 pt-2 border-t text-[10px] text-muted-foreground mt-2">
+                    <div className="flex justify-between items-center">
+                      <span>Total Combinations:</span>
+                      <span className="font-mono">{Math.pow(bruteCharset.length, bruteMinLen[0]).toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="space-y-1 mt-2">
+                      <span className="font-bold uppercase tracking-wider text-[9px]">Big O Time Complexity</span>
+                      
+                      <div className="flex justify-between items-center">
+                        <span>Best Case <span className="font-mono opacity-80">O(1)</span></span>
+                        <span className="font-bold text-foreground">Instantly</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span>Average Case <span className="font-mono opacity-80">O(Bᴸ / 2)</span></span>
+                        <span className="font-bold text-foreground">{formatEstimatedTime(Math.pow(bruteCharset.length, bruteMinLen[0]) / 2)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span>Worst Case <span className="font-mono opacity-80">O(Bᴸ)</span></span>
+                        <span className="font-bold text-foreground">{formatEstimatedTime(Math.pow(bruteCharset.length, bruteMinLen[0]))}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground pt-1 text-center">B = Charset Size, L = Password Length. Limited to ~10 million guesses for browser demo.</p>
+                </div>
               </div>
             )}
           </div>
