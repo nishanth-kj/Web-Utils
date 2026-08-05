@@ -1,4 +1,4 @@
-import { ALL_FORMATS } from '@/lib/formats';
+import { ALL_FORMATS, PREVIEWABLE_FORMATS } from '@/lib/formats';
 import Link from 'next/link';
 import { 
   FileCode, 
@@ -8,7 +8,8 @@ import {
   Table, 
   Image as ImageIcon, 
   FileJson,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 
 const FORMAT_ICONS: Record<string, any> = {
@@ -19,7 +20,8 @@ const FORMAT_ICONS: Record<string, any> = {
   svg: ImageIcon,
   yaml: FileJson,
   react: FileCode,
-  xml: FileCode
+  xml: FileCode,
+  'android-xml': Smartphone
 };
 
 export default function ViewPage() {
@@ -38,7 +40,7 @@ export default function ViewPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {ALL_FORMATS.slice(0, 8).map((fmt) => {
+          {PREVIEWABLE_FORMATS.map((fmt) => {
             const Icon = FORMAT_ICONS[fmt] || FileCode;
             
             return (

@@ -12,6 +12,7 @@ export function generateStaticParams() {
         { type: 'xml' },
         { type: 'svg' },
         { type: 'csv' },
+        { type: 'android-xml' },
     ];
 }
 
