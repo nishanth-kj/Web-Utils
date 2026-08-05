@@ -3,6 +3,7 @@ import { HTMLViewer } from '@/components/shared/html-viewer';
 import { CodeViewer } from '@/components/shared/code-viewer';
 import { TableViewer } from '@/components/shared/table-viewer';
 import { JsonTreeViewer } from '@/components/json/tree-viewer';
+import { AndroidXmlViewer } from '@/components/shared/android-viewer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LayoutIcon } from "lucide-react";
@@ -110,10 +111,28 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
                     />
                 </div>
             )}
+            {format === 'android-xml' && (
+                <AndroidXmlViewer content={content} />
+            )}
             {!isPreviewable && (
-                <div className="flex flex-col items-center justify-center text-center h-full p-20 opacity-30">
-                    <LayoutIcon className="size-16 mb-4 text-primary" />
-                    <p className="text-sm font-bold uppercase tracking-widest">No Live Preview</p>
+                <div className="flex flex-col items-center justify-center text-center h-full p-20 relative overflow-hidden bg-background">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+                        <div className="w-96 h-96 bg-primary/40 rounded-full blur-[100px] animate-pulse duration-3000" />
+                        <div className="w-64 h-64 bg-purple-500/30 rounded-full blur-[80px] absolute translate-x-20 -translate-y-20 animate-pulse duration-5000" />
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-700">
+                        <div className="relative mb-8">
+                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse duration-2000" />
+                            <div className="size-24 rounded-2xl bg-card/80 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center justify-center relative overflow-hidden group">
+                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <LayoutIcon className="size-10 text-muted-foreground group-hover:scale-110 group-hover:text-primary transition-all duration-500" strokeWidth={1.5} />
+                            </div>
+                        </div>
+                        <h3 className="text-2xl font-bold tracking-tight mb-3">Preview Unavailable</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+                            The <span className="font-mono text-primary font-bold px-1.5 py-0.5 rounded-md bg-primary/10">{format.toUpperCase()}</span> format cannot be rendered as a live preview. Switch to the Code Viewer or Raw Output to see the contents.
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

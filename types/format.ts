@@ -5,6 +5,7 @@ export type Format =
     | 'react'
     | 'markdown'
     | 'xml'
+    | 'android-xml'
     | 'svg'
     | 'csv'
     | 'typescript'
