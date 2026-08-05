@@ -6,6 +6,7 @@ import {SidebarProvider, SidebarTrigger, useSidebar} from "@/components/ui/sideb
 import {SplashScreen} from "@/components/layout/splash-screen";
 import {Navbar} from "@/components/layout/navbar";
 import {AppSidebar} from "@/components/layout/app-sidebar";
+import {FloatingAd} from "@/components/ads/FloatingAd";
 
 function LayoutContent({ children, isHomePage, showSplash }: { children: React.ReactNode, isHomePage: boolean, showSplash: boolean }) {
     const { isMobile } = useSidebar();
@@ -28,6 +29,7 @@ function LayoutContent({ children, isHomePage, showSplash }: { children: React.R
                 <div className="flex-1 h-full overflow-hidden relative flex flex-col">
                     <div className="flex-1 relative overflow-hidden">
                         {children}
+                        <FloatingAd />
                     </div>
                 </div>
             </div>

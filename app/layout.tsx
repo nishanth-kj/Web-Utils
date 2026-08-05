@@ -1,8 +1,10 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
+import { GoogleTagManager } from '@next/third-parties/google';
 import "./globals.css";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import {ClientLayout} from "@/components/layout/client-layout";
+import { CookieConsent } from "@/components/common/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,7 +76,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "google-site-verification-placeholder",
+    google: "b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw",
     yandex: "yandex-verification-placeholder",
     yahoo: "yahoo-verification-placeholder",
   },
@@ -84,7 +86,7 @@ export const metadata: Metadata = {
   },
   category: "technology",
   other: {
-    "google-adsense-account": "ca-pub-0000000000000000",
+    "google-adsense-account": "ca-pub-2215957287486434",
     "msvalidate.01": "bing-verification-placeholder"
   },
 };
@@ -102,9 +104,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
+      <head>
+        <meta name="google-site-verification" content="b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434" crossOrigin="anonymous"></script>
+      </head>
     <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
     >
+        <GoogleTagManager gtmId="GTM-WN2W26ZP" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -133,6 +140,7 @@ export default function RootLayout({
             {/* CLIENT PART MOVED HERE */}
             <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
+        <CookieConsent />
       </body>
     </html>
   );

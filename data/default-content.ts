@@ -140,5 +140,30 @@ WV-001,Web Utils Pro,Developer Tool,99.00,Active,+12.5%
 WV-002,API Connector,Infrastructure,249.00,Active,+8.2%
 WV-003,Cloud CLI,DevOps,49.00,Beta,+25.0%
 WV-004,Design Suite,Creative,129.00,Active,+4.1%
-WV-005,Analytics Node,Analytics,199.00,Active,+18.7%`
+WV-005,Analytics Node,Analytics,199.00,Active,+18.7%`,
+  'android-xml': `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#121212">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Android Layout Preview"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Click Me"
+        android:backgroundTint="#6200EE"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>`
 };
