@@ -14,7 +14,8 @@ import {
     PenTool,
     FilePlus,
     Bitcoin,
-    Eye
+    Eye,
+    Key
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -117,6 +118,15 @@ export const TOOLS: Tool[] = [
         category: "time",
         status: "Available",
         icon: Clock
+    },
+    {
+        id: "password-tool",
+        name: "Password Generator & Checker",
+        description: "Generate highly secure passwords and check their strength against leaked databases using WebAssembly",
+        href: "/password",
+        category: "crypto",
+        status: "Available",
+        icon: Key
     },
     {
         id: "uuid-generator",
