@@ -5,8 +5,11 @@ import {
     Clock, 
     Calendar,
     Copy,
-    Check,
-    RefreshCw
+    RefreshCw,
+    Globe,
+    X,
+    ChevronsUpDown,
+    Check
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +21,26 @@ import {
     TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 import { 
     formatRelativeTime, 
@@ -33,8 +56,11 @@ export function EpochConverter() {
     const [prefTimeZone, setPrefTimeZone] = useLocalStorage('timeZone', 'UTC');
     const [prefTimeFormat, setPrefTimeFormat] = useLocalStorage('timeFormat', 'seconds');
     const [clockFormat, setClockFormat] = useLocalStorage('clockFormat', '12h');
+    const [customTimezones, setCustomTimezones] = useLocalStorage<string[]>('customTimezones', []);
 
     const [input, setInput] = useState("");
+    const [tzToAdd, setTzToAdd] = useState("");
+    const [openTz, setOpenTz] = useState(false);
     
     const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
     const [copied, setCopied] = useState<CopiedField>(null);
@@ -99,33 +125,36 @@ export function EpochConverter() {
 
                     <div className="h-4 w-px bg-border shrink-0" />
 
-                    <div className="flex items-center gap-3">
-                        <select 
-                            value={prefTimeZone}
-                            onChange={(e) => setPrefTimeZone(e.target.value)}
-                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
-                        >
-                            <option value="UTC">UTC Zone</option>
-                            <option value="Local">Local Zone</option>
-                        </select>
+                    <div className="flex items-center gap-2">
+                        <Select value={prefTimeZone} onValueChange={setPrefTimeZone}>
+                            <SelectTrigger className="h-7 text-xs px-2 w-[110px] bg-transparent border-border hover:bg-muted/50 focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Timezone" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="UTC" className="text-xs">UTC Zone</SelectItem>
+                                <SelectItem value="Local" className="text-xs">Local Zone</SelectItem>
+                            </SelectContent>
+                        </Select>
                         
-                        <select 
-                            value={clockFormat}
-                            onChange={(e) => setClockFormat(e.target.value)}
-                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
-                        >
-                            <option value="12h">12-Hour</option>
-                            <option value="24h">24-Hour</option>
-                        </select>
+                        <Select value={clockFormat} onValueChange={setClockFormat}>
+                            <SelectTrigger className="h-7 text-xs px-2 w-[100px] bg-transparent border-border hover:bg-muted/50 focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Clock" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="12h" className="text-xs">12-Hour</SelectItem>
+                                <SelectItem value="24h" className="text-xs">24-Hour</SelectItem>
+                            </SelectContent>
+                        </Select>
                         
-                        <select 
-                            value={prefTimeFormat}
-                            onChange={(e) => setPrefTimeFormat(e.target.value)}
-                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
-                        >
-                            <option value="seconds">Seconds</option>
-                            <option value="millis">Millis</option>
-                        </select>
+                        <Select value={prefTimeFormat} onValueChange={setPrefTimeFormat}>
+                            <SelectTrigger className="h-7 text-xs px-2 w-[100px] bg-transparent border-border hover:bg-muted/50 focus:ring-0 focus:ring-offset-0">
+                                <SelectValue placeholder="Format" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="seconds" className="text-xs">Seconds</SelectItem>
+                                <SelectItem value="millis" className="text-xs">Millis</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             </div>
@@ -198,6 +227,24 @@ export function EpochConverter() {
                                             </TableCell>
                                         </TableRow>
                                         <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Unix Microseconds</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{epochMillis * 1000}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(String(epochMillis * 1000), "us")}>
+                                                    {copied === "us" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Unix Nanoseconds</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{epochMillis * 1000000}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(String(epochMillis * 1000000), "ns")}>
+                                                    {copied === "ns" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
                                             <TableCell className="py-2 px-3 font-semibold text-xs">GMT / UTC</TableCell>
                                             <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{parsedDate.toUTCString()}</TableCell>
                                             <TableCell className="py-2 px-3 text-right">
@@ -246,7 +293,7 @@ export function EpochConverter() {
                                 </Table>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2 mt-4">
                                 <div className="border rounded-md bg-muted/20 p-3 flex flex-col items-center justify-center">
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Day of Year</span>
                                     <span className="text-lg font-bold">{getDayOfYear(parsedDate)}</span>
@@ -255,6 +302,108 @@ export function EpochConverter() {
                                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Week Number</span>
                                     <span className="text-lg font-bold">{getWeekNumber(parsedDate)}</span>
                                 </div>
+                            </div>
+
+                            {/* Timezone Comparison Section */}
+                            <div className="pt-6 border-t mt-6 space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Compare Timezones</h3>
+                                    <div className="flex items-center gap-2">
+                                        <Popover open={openTz} onOpenChange={setOpenTz}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={openTz}
+                                                    className="w-[220px] h-8 text-xs justify-between font-normal"
+                                                >
+                                                    {tzToAdd || "Select timezone..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[220px] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search timezone..." className="h-9 text-xs" />
+                                                    <CommandList>
+                                                        <CommandEmpty>No timezone found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {typeof Intl !== 'undefined' && (Intl as any).supportedValuesOf ? (
+                                                                (Intl as any).supportedValuesOf('timeZone').map((tz: string) => (
+                                                                    <CommandItem
+                                                                        key={tz}
+                                                                        value={tz}
+                                                                        onSelect={(currentValue) => {
+                                                                            setTzToAdd(tz);
+                                                                            setOpenTz(false);
+                                                                        }}
+                                                                        className="text-xs"
+                                                                    >
+                                                                        {tz}
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "ml-auto h-4 w-4",
+                                                                                tzToAdd === tz ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                    </CommandItem>
+                                                                ))
+                                                            ) : (
+                                                                <CommandItem value="America/New_York" onSelect={(val) => { setTzToAdd("America/New_York"); setOpenTz(false); }} className="text-xs">
+                                                                    America/New_York
+                                                                    <Check className={cn("ml-auto h-4 w-4", tzToAdd === "America/New_York" ? "opacity-100" : "opacity-0")} />
+                                                                </CommandItem>
+                                                            )}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                        <Button 
+                                            size="sm" 
+                                            className="h-8 text-xs px-4"
+                                            onClick={() => {
+                                                if (tzToAdd && !customTimezones.includes(tzToAdd)) {
+                                                    setCustomTimezones([...customTimezones, tzToAdd]);
+                                                    setTzToAdd("");
+                                                }
+                                            }}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {customTimezones.length > 0 && (
+                                    <div className="rounded-md border bg-card overflow-hidden">
+                                        <Table>
+                                            <TableBody>
+                                                {customTimezones.map(tz => (
+                                                    <TableRow key={tz} className="hover:bg-muted/30">
+                                                        <TableCell className="py-2 px-3 font-semibold text-xs w-1/3">
+                                                            <div className="flex items-center gap-2">
+                                                                <Globe className="size-3 text-muted-foreground" />
+                                                                {tz}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">
+                                                            {parsedDate.toLocaleString(undefined, { timeZone: tz, hour12: clockFormat === '12h' })}
+                                                        </TableCell>
+                                                        <TableCell className="py-2 px-3 text-right w-10">
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="size-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                onClick={() => setCustomTimezones(customTimezones.filter(t => t !== tz))}
+                                                            >
+                                                                <X className="size-3" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
