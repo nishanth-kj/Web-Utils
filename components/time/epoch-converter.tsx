@@ -3,96 +3,42 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { 
     Clock, 
-    Calendar, 
-    Timer, 
-    Globe, 
-    Copy, 
-    Check, 
-    RefreshCw, 
-    Zap, 
-    Table as TableIcon, 
-    ArrowRight 
+    Calendar,
+    Copy,
+    Check,
+    RefreshCw
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+    Table, 
+    TableBody, 
+    TableCell, 
+    TableRow 
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
 import { 
     formatRelativeTime, 
     getDayOfYear, 
-    getWeekNumber, 
-    toLocalDatetimeString 
+    getWeekNumber 
 } from "@/lib/time-utils";
-import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { cn } from "@/lib/utils";
 
 type CopiedField = string | null;
 
-interface CopyButtonProps {
-    value: string;
-    field: string;
-    className?: string;
-    copied: string | null;
-    onCopy: (text: string, field: string) => void;
-}
-
-const CopyButton = ({ value, field, className, copied, onCopy }: CopyButtonProps) => (
-    <button
-        onClick={() => onCopy(value, field)}
-        className={cn("flex items-center justify-center size-8 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-primary transition-all active:scale-90", className)}
-        title="Copy"
-    >
-        {copied === field ? (
-            <Check className="size-4 text-emerald-500" />
-        ) : (
-            <Copy className="size-4" />
-        )}
-    </button>
-);
-
-interface TableRowProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    icon: any;
-    label: string;
-    value: string;
-    field: string;
-    mono?: boolean;
-    isPreferred?: boolean;
-    copied: string | null;
-    onCopy: (text: string, field: string) => void;
-}
-
-const TableRow = ({ icon: Icon, label, value, field, mono = true, isPreferred = false, copied, onCopy }: TableRowProps) => (
-    <tr className={cn(
-        "border-b border-muted/30 group hover:bg-muted/5 transition-colors",
-        isPreferred && "bg-primary/[0.03] border-l-2 border-l-primary"
-    )}>
-        <td className="py-3 pl-4 pr-2">
-            <div className="flex items-center gap-3">
-                <Icon className={cn("size-3.5 transition-colors", isPreferred ? "text-primary" : "text-muted-foreground group-hover:text-primary")} />
-                <span className={cn("text-[10px] font-bold uppercase tracking-wider", isPreferred ? "text-primary" : "text-muted-foreground")}>{label}</span>
-            </div>
-        </td>
-        <td className={cn("py-3 px-4 text-sm font-medium tabular-nums truncate", mono ? "font-mono" : "text-foreground", isPreferred && "text-primary font-bold")}>
-            {value}
-        </td>
-        <td className="py-3 pl-2 pr-4 text-right">
-            <CopyButton value={value} field={field} copied={copied} onCopy={onCopy} />
-        </td>
-    </tr>
-);
-
 export function EpochConverter() {
-    // Settings
-    const [prefTimeZone] = useLocalStorage('timeZone', 'UTC');
-    const [prefTimeFormat] = useLocalStorage('timeFormat', 'seconds');
+    const [prefTimeZone, setPrefTimeZone] = useLocalStorage('timeZone', 'UTC');
+    const [prefTimeFormat, setPrefTimeFormat] = useLocalStorage('timeFormat', 'seconds');
     const [clockFormat, setClockFormat] = useLocalStorage('clockFormat', '12h');
 
-    // State
-    const [epochInput, setEpochInput] = useState("");
-    const [dateInput, setDateInput] = useState("");
+    const [input, setInput] = useState("");
+    
     const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
     const [copied, setCopied] = useState<CopiedField>(null);
 
-    // Live clock effect
     useEffect(() => {
         const interval = setInterval(() => {
             setLiveEpoch(Math.floor(Date.now() / 1000));
@@ -106,277 +52,213 @@ export function EpochConverter() {
         setTimeout(() => setCopied(null), 1500);
     }, []);
 
-    const copyAsTable = (date: Date, field: string) => {
-        const table = `| Format | Value |\n| --- | --- |\n| GMT / UTC | ${date.toUTCString()} |\n| Local Time | ${date.toLocaleString(undefined, { hour12: clockFormat === '12h' })} |\n| ISO 8601 | ${date.toISOString()} |\n| Relative | ${formatRelativeTime(date)} |`;
-        navigator.clipboard.writeText(table);
-        setCopied(field);
-        setTimeout(() => setCopied(null), 1500);
-    };
-
-    // Derived from epochInput
-    const { parsedDate, epochError, isMillis } = React.useMemo(() => {
-        if (!epochInput.trim()) {
-            return { parsedDate: null, epochError: "", isMillis: false };
+    const { parsedDate, epochSeconds, epochMillis, error, isInputMillis } = React.useMemo(() => {
+        if (!input.trim()) return { parsedDate: null, epochSeconds: null, epochMillis: null, error: "", isInputMillis: false };
+        
+        const str = input.trim();
+        
+        if (/^\d+$/.test(str)) {
+            const num = Number(str);
+            const isMs = str.length > 10;
+            const ms = isMs ? num : num * 1000;
+            const d = new Date(ms);
+            if (isNaN(d.getTime())) return { parsedDate: null, epochSeconds: null, epochMillis: null, error: "Invalid timestamp", isInputMillis: isMs };
+            return { parsedDate: d, epochSeconds: Math.floor(d.getTime() / 1000), epochMillis: d.getTime(), error: "", isInputMillis: isMs };
         }
-        const num = Number(epochInput.trim());
-        if (isNaN(num)) {
-            return { parsedDate: null, epochError: "Enter a valid number", isMillis: false };
-        }
-        const isMs = epochInput.trim().length > 10;
-        const ms = isMs ? num : num * 1000;
-        const d = new Date(ms);
-        if (isNaN(d.getTime())) {
-            return { parsedDate: null, epochError: "Invalid timestamp", isMillis: isMs };
-        }
-        return { parsedDate: d, epochError: "", isMillis: isMs };
-    }, [epochInput]);
-
-    // Derived from dateInput
-    const { dateEpochSeconds, dateEpochMillis } = React.useMemo(() => {
-        if (!dateInput) {
-            return { dateEpochSeconds: null, dateEpochMillis: null };
-        }
-        const d = new Date(dateInput);
-        if (isNaN(d.getTime())) {
-            return { dateEpochSeconds: null, dateEpochMillis: null };
-        }
-        return { 
-            dateEpochSeconds: Math.floor(d.getTime() / 1000), 
-            dateEpochMillis: d.getTime() 
-        };
-    }, [dateInput]);
+        
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return { parsedDate: null, epochSeconds: null, epochMillis: null, error: "Invalid date format", isInputMillis: false };
+        return { parsedDate: d, epochSeconds: Math.floor(d.getTime() / 1000), epochMillis: d.getTime(), error: "", isInputMillis: false };
+    }, [input]);
 
     const setNow = () => {
         const now = Date.now();
         const value = prefTimeFormat === 'millis' ? now : Math.floor(now / 1000);
-        setEpochInput(String(value));
+        setInput(String(value));
     };
-
-    const setDateNow = () => {
-        setDateInput(toLocalDatetimeString(new Date()));
-    };
-
 
     return (
-        <div className="flex flex-col w-full h-full bg-background text-foreground overflow-hidden">
-            {/* Header section with Live Epoch */}
-            <div className="relative border-b bg-muted/5 px-8 py-4">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                            <Clock className="size-4 text-primary" />
-                            <h1 className="text-xl font-bold tracking-tight">Time & Date</h1>
-                        </div>
-                        <p className="text-muted-foreground text-[11px]">Professional epoch converter and time utility</p>
+        <div className="flex flex-col w-full h-full bg-background text-foreground font-sans">
+            
+            {/* Streamlined Navbar */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b bg-card">
+                <div className="flex items-center gap-2">
+                    <Clock className="size-4 text-primary" />
+                    <span className="font-semibold text-sm tracking-tight">Epoch Converter</span>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                    <div 
+                        onClick={() => copyToClipboard(String(liveEpoch), "live")}
+                        className="flex items-center gap-2 cursor-pointer group hover:opacity-80 transition-opacity"
+                        title="Copy Live Epoch"
+                    >
+                        <div className="size-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="font-mono text-xs font-bold tabular-nums text-primary">{liveEpoch}</span>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center bg-muted/20 rounded-lg p-0.5 border border-transparent hover:border-muted/50 transition-colors">
-                            <button
-                                onClick={() => setClockFormat('12h')}
-                                className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", clockFormat === '12h' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/30")}
-                            >
-                                12H
-                            </button>
-                            <button
-                                onClick={() => setClockFormat('24h')}
-                                className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", clockFormat === '24h' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/30")}
-                            >
-                                24H
-                            </button>
-                        </div>
+                    <div className="h-4 w-px bg-border shrink-0" />
 
-                        <div 
-                            className="flex items-center gap-3 bg-muted/20 px-3 py-1.5 rounded-lg group cursor-pointer hover:bg-muted/30 transition-all border border-transparent hover:border-primary/20" 
-                            onClick={() => copyToClipboard(String(liveEpoch), "live")}
+                    <div className="flex items-center gap-3">
+                        <select 
+                            value={prefTimeZone}
+                            onChange={(e) => setPrefTimeZone(e.target.value)}
+                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
                         >
-                            <div className="size-1.5 rounded-full bg-primary animate-pulse" />
-                            <div className="flex flex-col">
-                                <span className="font-mono text-sm font-bold tabular-nums text-foreground">
-                                    {liveEpoch}
-                                </span>
-                                <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">
-                                    {new Date(liveEpoch * 1000).toUTCString().split(' ').slice(0, 5).join(' ')} UTC
-                                </span>
-                            </div>
-                            <div className="flex items-center justify-center ml-2">
-                                {copied === "live" ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
-                            </div>
-                        </div>
+                            <option value="UTC">UTC Zone</option>
+                            <option value="Local">Local Zone</option>
+                        </select>
+                        
+                        <select 
+                            value={clockFormat}
+                            onChange={(e) => setClockFormat(e.target.value)}
+                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
+                        >
+                            <option value="12h">12-Hour</option>
+                            <option value="24h">24-Hour</option>
+                        </select>
+                        
+                        <select 
+                            value={prefTimeFormat}
+                            onChange={(e) => setPrefTimeFormat(e.target.value)}
+                            className="bg-transparent text-xs text-muted-foreground font-medium outline-none cursor-pointer hover:text-foreground transition-colors"
+                        >
+                            <option value="seconds">Seconds</option>
+                            <option value="millis">Millis</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar">
-                <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
-                    {/* Epoch to Date */}
-                    <div className="space-y-4">
-                                    <div className="bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm">
-                                        <div className="p-5 border-b bg-muted/5 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                                    <Timer className="size-4 text-indigo-500" />
-                                                </div>
-                                                <h3 className="font-bold text-sm">Epoch to Date</h3>
-                                            </div>
-                                            
-                                            {parsedDate && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    className="h-7 text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary gap-1.5"
-                                                    onClick={() => copyAsTable(parsedDate, "table-epoch")}
-                                                >
-                                                    {copied === "table-epoch" ? <Check className="size-3" /> : <TableIcon className="size-3" />}
-                                                    Copy Table
-                                                </Button>
-                                            )}
-                                        </div>
-                                        <div className="p-5 space-y-4">
-                                            <div className="flex gap-2">
-                                                <div className="relative flex-1">
-                                                    <input
-                                                        type="text"
-                                                        value={epochInput}
-                                                        onChange={(e) => setEpochInput(e.target.value)}
-                                                        placeholder="Enter epoch (e.g. 1711206600)"
-                                                        className="w-full h-10 px-4 rounded-lg bg-muted/20 border border-transparent focus:border-primary/30 outline-none transition-all font-mono text-xs placeholder:text-muted-foreground/40 shadow-inner"
-                                                    />
-                                                    {isMillis && epochInput && !epochError && (
-                                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20">
-                                                            <Zap className="size-2.5 text-amber-500" />
-                                                            <span className="text-[8px] font-bold text-amber-600">MS</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <Button onClick={setNow} variant="secondary" size="sm" className="h-10 rounded-lg px-4 font-bold text-xs">
-                                                    Now
-                                                </Button>
-                                            </div>
-                                            {epochError && <p className="text-[10px] text-destructive font-semibold px-1">{epochError}</p>}
-
-                                            {parsedDate ? (
-                                                <div className="rounded-lg border border-muted/50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <table className="w-full text-left border-collapse">
-                                                        <tbody>
-                                                            <TableRow icon={Globe} label="GMT / UTC" value={parsedDate.toUTCString()} field="utc" isPreferred={prefTimeZone === 'UTC'} copied={copied} onCopy={copyToClipboard} />
-                                                            <TableRow icon={Calendar} label="Local Time" value={parsedDate.toLocaleString(undefined, { hour12: clockFormat === '12h' })} field="local" isPreferred={prefTimeZone === 'Local'} copied={copied} onCopy={copyToClipboard} />
-                                                            <TableRow icon={Clock} label="ISO 8601" value={parsedDate.toISOString()} field="iso" copied={copied} onCopy={copyToClipboard} />
-                                                            <TableRow icon={Timer} label="Relative" value={formatRelativeTime(parsedDate)} field="rel" mono={false} copied={copied} onCopy={copyToClipboard} />
-                                                        </tbody>
-                                                    </table>
-                                                    <div className="grid grid-cols-2 border-t border-muted/50 divide-x divide-muted/50 bg-muted/5">
-                                                        <div className="p-3 flex flex-col items-center justify-center">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Day of Year</span>
-                                                            <span className="text-sm font-bold text-primary">{getDayOfYear(parsedDate)}</span>
-                                                        </div>
-                                                        <div className="p-3 flex flex-col items-center justify-center">
-                                                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1">Week Number</span>
-                                                            <span className="text-sm font-bold text-primary">{getWeekNumber(parsedDate)}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center py-10 rounded-lg border border-dashed border-muted/50 bg-muted/5 text-muted-foreground/30">
-                                                    <Clock className="size-10 mb-2 stroke-[1]" />
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest">Waiting for input</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-auto custom-scrollbar p-4 md:p-6">
+                <div className="max-w-2xl mx-auto space-y-4">
+                    
+                    {/* Unified Input */}
+                    <div className="flex flex-col sm:flex-row gap-2 relative">
+                        <div className="relative flex-1">
+                            <Input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Enter Unix timestamp or date string..."
+                                className="h-9 font-mono text-sm px-3 focus-visible:ring-1"
+                            />
+                            {isInputMillis && !error && (
+                                <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] px-1.5 py-0">
+                                    MILLIS
+                                </Badge>
+                            )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Button variant="outline" size="sm" className="h-9 w-9 p-0 shrink-0">
+                                    <Calendar className="size-4 text-muted-foreground" />
+                                </Button>
+                                <Input
+                                    type="datetime-local"
+                                    onChange={(e) => setInput(e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full"
+                                    title="Select date and time"
+                                />
+                            </div>
+                            <Button onClick={setNow} size="sm" className="h-9 px-4 font-semibold text-xs">
+                                <RefreshCw className="size-3 mr-1.5" /> Now
+                            </Button>
+                        </div>
                     </div>
 
-                    {/* Date to Epoch */}
-                    <div className="space-y-4">
-                                    <div className="bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm">
-                                        <div className="p-5 border-b bg-muted/5 flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                                                    <Calendar className="size-4 text-purple-500" />
-                                                </div>
-                                                <h3 className="font-bold text-sm">Date to Epoch</h3>
-                                            </div>
+                    {error && (
+                        <p className="text-xs font-medium text-destructive px-1">{error}</p>
+                    )}
 
-                                            {dateEpochSeconds && (
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm" 
-                                                    className="h-7 text-[9px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary gap-1.5"
-                                                    onClick={() => copyAsTable(new Date(dateEpochSeconds * 1000), "table-date")}
-                                                >
-                                                    {copied === "table-date" ? <Check className="size-3" /> : <TableIcon className="size-3" />}
-                                                    Copy Table
+                    {/* Compact Results Table */}
+                    {parsedDate && epochSeconds && epochMillis && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                            <div className="rounded-md border bg-card overflow-hidden">
+                                <Table>
+                                    <TableBody>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs w-1/3">Unix Seconds</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{epochSeconds}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right w-10">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(String(epochSeconds), "sec")}>
+                                                    {copied === "sec" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
                                                 </Button>
-                                            )}
-                                        </div>
-                                        <div className="p-5 space-y-4">
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="datetime-local"
-                                                    value={dateInput}
-                                                    onChange={(e) => setDateInput(e.target.value)}
-                                                    className="flex-1 h-10 px-4 rounded-lg bg-muted/20 border border-transparent focus:border-primary/30 outline-none transition-all font-mono text-xs [color-scheme:light] dark:[color-scheme:dark] shadow-inner"
-                                                />
-                                                <Button onClick={setDateNow} variant="secondary" size="sm" className="h-10 rounded-lg px-4 font-bold text-xs">
-                                                    Now
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Unix Millis</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{epochMillis}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(String(epochMillis), "ms")}>
+                                                    {copied === "ms" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
                                                 </Button>
-                                            </div>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">GMT / UTC</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{parsedDate.toUTCString()}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(parsedDate.toUTCString(), "utc")}>
+                                                    {copied === "utc" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Local Time</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{parsedDate.toLocaleString(undefined, { hour12: clockFormat === '12h' })}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(parsedDate.toLocaleString(), "loc")}>
+                                                    {copied === "loc" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">ISO 8601</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{parsedDate.toISOString()}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(parsedDate.toISOString(), "iso")}>
+                                                    {copied === "iso" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Relative</TableCell>
+                                            <TableCell className="py-2 px-3 text-sm">{formatRelativeTime(parsedDate)}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(formatRelativeTime(parsedDate), "rel")}>
+                                                    {copied === "rel" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        <TableRow className="hover:bg-muted/30">
+                                            <TableCell className="py-2 px-3 font-semibold text-xs">Hex</TableCell>
+                                            <TableCell className="py-2 px-3 font-mono text-sm tabular-nums">{`0x${epochSeconds.toString(16).toUpperCase()}`}</TableCell>
+                                            <TableCell className="py-2 px-3 text-right">
+                                                <Button variant="ghost" size="icon" className="size-6" onClick={() => copyToClipboard(`0x${epochSeconds.toString(16).toUpperCase()}`, "hex")}>
+                                                    {copied === "hex" ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground" />}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
 
-                                            {dateEpochSeconds ? (
-                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <div className="rounded-lg border border-muted/50 overflow-hidden">
-                                                        <table className="w-full text-left border-collapse">
-                                                            <tbody>
-                                                                <TableRow icon={RefreshCw} label="Unix Seconds" value={String(dateEpochSeconds)} field="d-sec" isPreferred={prefTimeFormat === 'seconds'} copied={copied} onCopy={copyToClipboard} />
-                                                                <TableRow icon={Zap} label="Unix Millis" value={String(dateEpochMillis)} field="d-ms" isPreferred={prefTimeFormat === 'millis'} copied={copied} onCopy={copyToClipboard} />
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                    
-                                                    <div className="pt-4 border-t border-dashed border-muted">
-                                                        <div className="flex items-center gap-2 mb-3">
-                                                            <Globe className="size-3 text-muted-foreground" />
-                                                            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Verification</span>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 gap-1.5">
-                                                            <div className="flex items-center justify-between text-[10px] px-3 py-1.5 rounded-md bg-muted/10">
-                                                                <span className="text-muted-foreground">UTC Date</span>
-                                                                <span className="font-mono font-medium text-foreground">{new Date(dateEpochSeconds * 1000).toUTCString()}</span>
-                                                            </div>
-                                                            <div className="flex items-center justify-between text-[10px] px-3 py-1.5 rounded-md bg-muted/10">
-                                                                <span className="text-muted-foreground">ISO Format</span>
-                                                                <span className="font-mono font-medium text-foreground">{new Date(dateEpochSeconds * 1000).toISOString()}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center py-10 rounded-lg border border-dashed border-muted/50 bg-muted/5 text-muted-foreground/30">
-                                                    <Calendar className="size-10 mb-2 stroke-[1]" />
-                                                    <p className="text-[10px] font-bold uppercase tracking-widest">Select a date</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="border rounded-md bg-muted/20 p-3 flex flex-col items-center justify-center">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Day of Year</span>
+                                    <span className="text-lg font-bold">{getDayOfYear(parsedDate)}</span>
+                                </div>
+                                <div className="border rounded-md bg-muted/20 p-3 flex flex-col items-center justify-center">
+                                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Week Number</span>
+                                    <span className="text-lg font-bold">{getWeekNumber(parsedDate)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                                    {/* Extra Utilities Box */}
-                                    <div className="p-5 bg-muted/5 border border-muted/50 rounded-xl">
-                                        <h4 className="font-bold text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2 text-primary">
-                                            <ArrowRight className="size-3" />
-                                            Quick Tips
-                                        </h4>
-                                        <ul className="space-y-2 text-[10px] text-muted-foreground leading-relaxed">
-                                            <li className="flex gap-2">
-                                                <span className="text-primary font-bold">•</span>
-                                                Automatic millisecond detection for inputs &gt; 10 digits.
-                                            </li>
-                                            <li className="flex gap-2">
-                                                <span className="text-primary font-bold">•</span>
-                                                Epoch time starts from January 1st, 1970 (UTC).
-                                            </li>
-                                        </ul>
-                                    </div>
-                    </div>
                 </div>
             </div>
         </div>
