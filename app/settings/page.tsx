@@ -17,6 +17,7 @@ export default function SettingsPage() {
     const [tabSize, setTabSize] = useLocalStorage('editorTabSize', 4);
     const [timeZone, setTimeZone] = useLocalStorage('timeZone', 'UTC');
     const [timeFormat, setTimeFormat] = useLocalStorage('timeFormat', 'seconds');
+    const [clockFormat, setClockFormat] = useLocalStorage('clockFormat', '12h');
 
     return (
         <div className="h-full overflow-auto bg-background custom-scrollbar w-full flex flex-col">
@@ -109,7 +110,7 @@ export default function SettingsPage() {
                             <CardDescription>Default preferences for epoch conversion and time display.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-8">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold flex items-center gap-2">
                                         <Globe className="size-4 text-muted-foreground" /> Default Time Zone
@@ -158,6 +159,31 @@ export default function SettingsPage() {
                                         </Button>
                                     </div>
                                     <p className="text-[10px] text-muted-foreground">Default precision when using &quot;Now&quot; or generating timestamps.</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-sm font-semibold flex items-center gap-2">
+                                        <Clock className="size-4 text-muted-foreground" /> Clock Format
+                                    </label>
+                                    <div className="flex gap-2 p-1 bg-muted/30 rounded-lg w-fit">
+                                        <Button 
+                                            variant={clockFormat === '12h' ? 'secondary' : 'ghost'} 
+                                            size="sm" 
+                                            className="h-8 text-xs font-bold"
+                                            onClick={() => setClockFormat('12h')}
+                                        >
+                                            12-Hour
+                                        </Button>
+                                        <Button 
+                                            variant={clockFormat === '24h' ? 'secondary' : 'ghost'} 
+                                            size="sm" 
+                                            className="h-8 text-xs font-bold"
+                                            onClick={() => setClockFormat('24h')}
+                                        >
+                                            24-Hour
+                                        </Button>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">Display format for local time.</p>
                                 </div>
                             </div>
                         </CardContent>

@@ -88,6 +88,7 @@ export function EpochConverter() {
     // Settings
     const [prefTimeZone] = useLocalStorage('timeZone', 'UTC');
     const [prefTimeFormat] = useLocalStorage('timeFormat', 'seconds');
+    const [clockFormat, setClockFormat] = useLocalStorage('clockFormat', '12h');
 
     // State
     const [epochInput, setEpochInput] = useState("");
@@ -110,7 +111,7 @@ export function EpochConverter() {
     }, []);
 
     const copyAsTable = (date: Date, field: string) => {
-        const table = `| Format | Value |\n| --- | --- |\n| GMT / UTC | ${date.toUTCString()} |\n| Local Time | ${date.toLocaleString()} |\n| ISO 8601 | ${date.toISOString()} |\n| Relative | ${formatRelativeTime(date)} |`;
+        const table = `| Format | Value |\n| --- | --- |\n| GMT / UTC | ${date.toUTCString()} |\n| Local Time | ${date.toLocaleString(undefined, { hour12: clockFormat === '12h' })} |\n| ISO 8601 | ${date.toISOString()} |\n| Relative | ${formatRelativeTime(date)} |`;
         navigator.clipboard.writeText(table);
         setCopied(field);
         setTimeout(() => setCopied(null), 1500);
@@ -174,6 +175,21 @@ export function EpochConverter() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <div className="hidden md:flex items-center bg-muted/20 rounded-lg p-0.5 border border-transparent hover:border-muted/50 transition-colors">
+                            <button
+                                onClick={() => setClockFormat('12h')}
+                                className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", clockFormat === '12h' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/30")}
+                            >
+                                12H
+                            </button>
+                            <button
+                                onClick={() => setClockFormat('24h')}
+                                className={cn("px-2.5 py-1 text-[10px] font-bold rounded-md transition-all", clockFormat === '24h' ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/30")}
+                            >
+                                24H
+                            </button>
+                        </div>
+
                         <div 
                             className="flex items-center gap-3 bg-muted/20 px-3 py-1.5 rounded-lg group cursor-pointer hover:bg-muted/30 transition-all border border-transparent hover:border-primary/20" 
                             onClick={() => copyToClipboard(String(liveEpoch), "live")}
@@ -251,7 +267,7 @@ export function EpochConverter() {
                                                     <table className="w-full text-left border-collapse">
                                                         <tbody>
                                                             <TableRow icon={Globe} label="GMT / UTC" value={parsedDate.toUTCString()} field="utc" isPreferred={prefTimeZone === 'UTC'} copied={copied} onCopy={copyToClipboard} />
-                                                            <TableRow icon={Calendar} label="Local Time" value={parsedDate.toLocaleString()} field="local" isPreferred={prefTimeZone === 'Local'} copied={copied} onCopy={copyToClipboard} />
+                                                            <TableRow icon={Calendar} label="Local Time" value={parsedDate.toLocaleString(undefined, { hour12: clockFormat === '12h' })} field="local" isPreferred={prefTimeZone === 'Local'} copied={copied} onCopy={copyToClipboard} />
                                                             <TableRow icon={Clock} label="ISO 8601" value={parsedDate.toISOString()} field="iso" copied={copied} onCopy={copyToClipboard} />
                                                             <TableRow icon={Timer} label="Relative" value={formatRelativeTime(parsedDate)} field="rel" mono={false} copied={copied} onCopy={copyToClipboard} />
                                                         </tbody>
