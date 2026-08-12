@@ -13,11 +13,7 @@ import {
     Table as TableIcon, 
     ArrowRight 
 } from "lucide-react";
-import { 
-    ResizableHandle, 
-    ResizablePanel, 
-    ResizablePanelGroup 
-} from "@/components/ui/resizable";
+
 import { Button } from "@/components/ui/button";
 import { 
     formatRelativeTime, 
@@ -211,13 +207,10 @@ export function EpochConverter() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-hidden">
-                <div className="h-full max-w-7xl mx-auto px-6 py-6">
-                    <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
-                        {/* Epoch to Date */}
-                        <ResizablePanel defaultSize={50} minSize={30}>
-                            <div className="h-full overflow-auto custom-scrollbar pr-2">
-                                <div className="space-y-4">
+            <div className="flex-1 overflow-auto custom-scrollbar">
+                <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
+                    {/* Epoch to Date */}
+                    <div className="space-y-4">
                                     <div className="bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm">
                                         <div className="p-5 border-b bg-muted/5 flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
@@ -291,16 +284,10 @@ export function EpochConverter() {
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </ResizablePanel>
+                    </div>
 
-                        <ResizableHandle withHandle className="bg-border/50" />
-
-                        {/* Date to Epoch */}
-                        <ResizablePanel defaultSize={50} minSize={30}>
-                            <div className="h-full overflow-auto custom-scrollbar pl-2">
-                                <div className="space-y-4">
+                    {/* Date to Epoch */}
+                    <div className="space-y-4">
                                     <div className="bg-card rounded-xl overflow-hidden border border-border/50 shadow-sm">
                                         <div className="p-5 border-b bg-muted/5 flex items-center justify-between gap-3">
                                             <div className="flex items-center gap-3">
@@ -389,10 +376,7 @@ export function EpochConverter() {
                                             </li>
                                         </ul>
                                     </div>
-                                </div>
-                            </div>
-                        </ResizablePanel>
-                    </ResizablePanelGroup>
+                    </div>
                 </div>
             </div>
         </div>
