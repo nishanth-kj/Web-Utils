@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import { GoogleTagManager } from '@next/third-parties/google';
+import Script from "next/script";
 import "./globals.css";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import {ClientLayout} from "@/components/layout/client-layout";
@@ -35,9 +36,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  alternates: {
-    canonical: '/',
-  },
+  alternates: {},
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -106,7 +105,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="h-full">
       <head>
         <meta name="google-site-verification" content="b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw" />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434" crossOrigin="anonymous"></script>
+        <Script 
+          id="adsense-script"
+          strategy="afterInteractive" 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434" 
+          crossOrigin="anonymous" 
+        />
       </head>
     <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
