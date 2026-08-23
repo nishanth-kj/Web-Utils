@@ -1,40 +1,108 @@
 name: Bug Report
-description: File a report to help us improve
-labels: ["bug"]
+description: Report a bug or unexpected behavior in Web Utils
+labels: ["bug", "triage"]
+assignees: []
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        ## Thanks for reporting a bug!
+        Please fill out this form as completely as possible so we can investigate quickly.
+
+  - type: input
+    id: tool-affected
+    attributes:
+      label: Which tool is affected?
+      description: e.g. Epoch Converter, JSON Viewer, Code Editor, Drawing Board, etc.
+      placeholder: "Epoch Converter"
+    validations:
+      required: true
+
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: Also tell us what you expected to happen
-      placeholder: Tell us what you did!
+      description: Describe the bug clearly. What did you expect vs what actually happened?
+      placeholder: |
+        Expected: The epoch timestamp should convert to the correct date.
+        Actual: It shows "Invalid Date" for valid timestamps.
     validations:
       required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to reproduce the issue.
+      placeholder: |
+        1. Go to /time
+        2. Enter epoch value `1700000000`
+        3. Click "Convert"
+        4. See "Invalid Date" error
+    validations:
+      required: true
+
   - type: dropdown
     id: browsers
     attributes:
       label: Browser
-      description: What browser were you using?
+      description: Which browser(s) did you experience this on?
+      multiple: true
       options:
         - Chrome
         - Firefox
         - Safari
         - Edge
+        - Arc
+        - Brave
         - Other
     validations:
       required: true
-  - type: textarea
-    id: reproduction-steps
+
+  - type: dropdown
+    id: os
     attributes:
-      label: Reproduction Steps
-      description: Steps to reproduce the behavior
-      placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. See error
+      label: Operating System
+      description: Which OS are you using?
+      multiple: true
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - iOS
+        - Android
     validations:
       required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Screen recordings
+      description: If applicable, add screenshots or recordings to help explain the issue.
+      placeholder: Drag and drop images here or paste URLs.
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console errors
+      description: Open DevTools (F12) > Console tab and paste any error messages.
+      render: shell
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - "Critical - app is broken / data loss"
+        - "Major - feature doesn't work but workaround exists"
+        - "Minor - cosmetic issue or edge case"
+        - "Trivial - typo or minor visual glitch"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Any other information that might help us debug this issue.

@@ -1,0 +1,115 @@
+# Labels for Web Utils
+# Sync with: https://github.com/marketplace/actions/label-sync
+
+# --- Type ---
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: enhancement
+  color: "a2eeef"
+  description: New feature or request
+
+- name: new-tool
+  color: "0075ca"
+  description: Request for a new developer tool
+
+- name: refactor
+  color: "d4c5f9"
+  description: Code improvement with no behavior change
+
+- name: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation
+
+- name: performance
+  color: "f9d0c4"
+  description: Performance related improvement
+
+- name: accessibility
+  color: "c5def5"
+  description: Accessibility improvement
+
+- name: ui/ux
+  color: "bfdadc"
+  description: Visual or user experience improvement
+
+# --- Priority ---
+- name: "priority: critical"
+  color: "b60205"
+  description: Must be fixed immediately
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: Should be addressed soon
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: Normal priority
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: Nice to have, no rush
+
+# --- Status ---
+- name: triage
+  color: "ededed"
+  description: Needs initial review and classification
+
+- name: confirmed
+  color: "c2e0c6"
+  description: Bug has been reproduced or feature approved
+
+- name: in-progress
+  color: "1d76db"
+  description: Actively being worked on
+
+- name: blocked
+  color: "b60205"
+  description: Cannot proceed due to dependency or decision
+
+- name: "needs-info"
+  color: "d876e3"
+  description: Waiting for more information from the reporter
+
+- name: wontfix
+  color: "ffffff"
+  description: Will not be worked on
+
+- name: duplicate
+  color: "cfd3d7"
+  description: Already exists
+
+# --- Tool-specific ---
+- name: "tool: editor"
+  color: "c5def5"
+  description: Related to the Code Editor
+
+- name: "tool: viewer"
+  color: "c5def5"
+  description: Related to the Data/File Viewer
+
+- name: "tool: time"
+  color: "c5def5"
+  description: Related to Epoch/Time utilities
+
+- name: "tool: crypto"
+  color: "c5def5"
+  description: Related to UUID/Crypto tools
+
+- name: "tool: draw"
+  color: "c5def5"
+  description: Related to the Drawing Board
+
+- name: "tool: ide"
+  color: "c5def5"
+  description: Related to the IDE workspace
+
+# --- Contribution ---
+- name: "good first issue"
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: "help wanted"
+  color: "008672"
+  description: Extra attention is needed

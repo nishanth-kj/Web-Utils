@@ -54,7 +54,7 @@ import {
     getDayOfYear, 
     getWeekNumber 
 } from "@/lib/time-utils";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useLocalStorage } from "@/lib/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 
 import {

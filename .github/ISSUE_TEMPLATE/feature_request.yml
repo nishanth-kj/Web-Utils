@@ -1,21 +1,90 @@
 name: Feature Request
-description: Suggest an idea for this project
+description: Suggest a new tool, feature, or improvement for Web Utils
 labels: ["enhancement"]
+assignees: []
 body:
-  - type: textarea
-    id: feature-description
+  - type: markdown
     attributes:
-      label: Describe the feature
-      description: A clear and concise description of what you want to happen.
+      value: |
+        ## Got an idea? We'd love to hear it!
+        Please describe your feature request clearly so we can evaluate and prioritize it.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Type of request
+      description: What kind of feature are you suggesting?
+      options:
+        - "New tool (e.g. Base64 Encoder, Regex Tester)"
+        - "Enhancement to an existing tool"
+        - "UI / UX improvement"
+        - "Performance improvement"
+        - "Mobile / responsive improvement"
+        - "Accessibility improvement"
+        - "Documentation"
+        - "Integration (e.g. VS Code extension, API)"
     validations:
       required: true
-  - type: textarea
-    id: problem-solved
+
+  - type: input
+    id: tool-affected
     attributes:
-      label: Is your feature request related to a problem? Please describe.
-      description: A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+      label: Which tool does this relate to?
+      description: If enhancing an existing tool, which one? Leave blank for new tool requests.
+      placeholder: "e.g. JSON Viewer, Code Editor, or N/A for new tools"
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this feature solve? Why is it needed?
+      placeholder: |
+        I'm always frustrated when I need to convert between Base64 and text because I have to leave this site and use another tool.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe how you'd like the feature to work.
+      placeholder: |
+        Add a Base64 Encoder/Decoder tool under /crypto that supports:
+        - Text to Base64 encoding
+        - Base64 to Text decoding
+        - File upload support
+        - URL-safe Base64 variant
+    validations:
+      required: true
+
   - type: textarea
     id: alternatives
     attributes:
-      label: Describe alternatives you've considered
-      description: A clear and concise description of any alternative solutions or features you've considered.
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've considered?
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups / References
+      description: If you have any mockups, wireframes, or links to similar implementations, share them here.
+      placeholder: Drag and drop images here or paste URLs.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - "Critical - I can't use the app effectively without this"
+        - "Important - would significantly improve my workflow"
+        - "Nice to have - would be a welcome addition"
+        - "Just an idea - no urgency"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Willingness to contribute
+      options:
+        - label: I'm willing to submit a PR for this feature
