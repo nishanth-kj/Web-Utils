@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { 
     Clock, 
     Calendar,
@@ -14,7 +14,12 @@ import {
     Timer,
     Code2,
     GripVertical,
-    Plus
+    Plus,
+    Pause,
+    Play,
+    ArrowRight,
+    Minus,
+    Maximize2
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -93,6 +98,55 @@ const BASE_OPTIONS = [
 
 const DEFAULT_ACTIVE = ['sec', 'ms', 'utc', 'loc', 'iso', 'rel'];
 
+const STEP_UNITS: { id: string; label: string; seconds: number }[] = [
+    { id: 'sec', label: 'sec', seconds: 1 },
+    { id: 'min', label: 'min', seconds: 60 },
+    { id: 'hour', label: 'hr', seconds: 3600 },
+    { id: 'day', label: 'day', seconds: 86400 },
+];
+
+
+// ----------------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------------
+
+
+/**
+ * Returns pointer handlers that call `onStep` once immediately, then keep
+ * calling it on a repeating timer while held, ramping up from slow to fast.
+ */
+function useHoldRepeat(onStep: () => void) {
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const stepRef = useRef(onStep);
+    stepRef.current = onStep;
+
+    const clear = useCallback(() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = null;
+    }, []);
+
+    const start = useCallback(() => {
+        stepRef.current();
+        let delay = 450; // starts slow, ramps up the longer it's held
+        const schedule = () => {
+            timerRef.current = setTimeout(() => {
+                stepRef.current();
+                delay = Math.max(50, delay * 0.8);
+                schedule();
+            }, delay);
+        };
+        schedule();
+    }, []);
+
+    useEffect(() => clear, [clear]);
+
+    return {
+        onPointerDown: start,
+        onPointerUp: clear,
+        onPointerLeave: clear,
+    };
+}
+
 // ----------------------------------------------------------------------
 // Sortable Row Component
 // ----------------------------------------------------------------------
@@ -169,8 +223,9 @@ export function EpochConverter() {
 
     const [input, setInput] = useState("");
     const [openTz, setOpenTz] = useState(false);
-    
+
     const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
+    const [isPaused, setIsPaused] = useState(false);
     const [copied, setCopied] = useState<CopiedField>(null);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -196,12 +251,22 @@ export function EpochConverter() {
         }
     }, [isInputEmpty]);
 
+    // Live clock / input ticker — respects pause state.
     useEffect(() => {
+        if (isPaused) return;
+
         const interval = setInterval(() => {
-            setLiveEpoch(Math.floor(Date.now() / 1000));
+            const now = Math.floor(Date.now() / 1000);
+            setLiveEpoch(now);
+
+            setInput((current) => {
+                if (!current.trim()) return current;
+                return String(now);
+            });
         }, 1000);
+
         return () => clearInterval(interval);
-    }, []);
+    }, [isPaused]);
 
     const copyToClipboard = useCallback((text: string, field: string) => {
         navigator.clipboard.writeText(text);
@@ -229,8 +294,35 @@ export function EpochConverter() {
     }, [input]);
 
     const setNow = () => {
-        setInput(String(Math.floor(Date.now() / 1000)));
+        const now = Math.floor(Date.now() / 1000);
+        setInput(String(now));
+        setLiveEpoch(now);
     };
+
+    // ------------------------------------------------------------
+    // Input step controls
+    // ------------------------------------------------------------
+
+    const stepInput = useCallback(
+        (direction: 1 | -1) => {
+            const current = parsedDate ?? new Date();
+
+            const next = new Date(
+                current.getTime() + direction * 1000
+            );
+
+            setInput(String(Math.floor(next.getTime() / 1000)));
+        },
+        [parsedDate]
+    );
+
+    const holdForward = useHoldRepeat(() => {
+        stepInput(1);
+    });
+
+    const holdBackward = useHoldRepeat(() => {
+        stepInput(-1);
+    });
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -316,15 +408,23 @@ export function EpochConverter() {
                             <SelectItem value="24h" className="text-xs">24-Hour</SelectItem>
                         </SelectContent>
                     </Select>
-
                     <div className="h-4 w-px bg-border" />
                     
                     <div 
                         onClick={() => copyToClipboard(String(liveEpoch), "live")}
                         className="flex items-center gap-2 cursor-pointer group"
                     >
-                        <div className="size-2 rounded-full bg-primary animate-pulse" />
-                        <span className="font-mono text-sm font-semibold tabular-nums text-primary">{liveEpoch}</span>
+                        <div className={cn(
+                            "size-2 rounded-full bg-primary",
+                            !isPaused && "animate-pulse"
+                        )} />
+                        <span className={cn(
+                            "font-mono text-sm font-semibold tabular-nums",
+                            isPaused ? "text-muted-foreground" : "text-primary"
+                        )}>
+                            {liveEpoch}
+                        </span>
+                        {copied === "live" && <Check className="size-3.5 text-emerald-500" />}
                     </div>
                 </div>
             </div>
@@ -344,58 +444,119 @@ export function EpochConverter() {
                         <p className="text-sm text-muted-foreground">Type a unix timestamp or date string to begin converting.</p>
                     </div>
                     
-                    {/* Unified Input Block */}
-                    <div className="w-full relative shadow-sm rounded-md overflow-hidden border bg-card flex flex-col sm:flex-row focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
-                        <div className="relative flex-1 flex items-center">
-                            <Input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="Enter timestamp or date..."
-                                className="h-9 font-mono text-sm px-3 border-0 rounded-none shadow-none focus-visible:ring-0 bg-transparent"
-                            />
-                            
-                            <div className="absolute right-2 flex items-center gap-1.5">
-                                {isInputMillis && !error && (
-                                    <Badge variant="secondary" className="text-[9px] tracking-wider uppercase font-semibold py-0 h-4">
-                                        MILLIS
-                                    </Badge>
-                                )}
-                                {input && (
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="size-5 h-5 w-5 rounded-sm text-muted-foreground hover:bg-muted/50"
-                                        onClick={() => setInput("")}
-                                    >
-                                        <X className="size-3" />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center border-l bg-muted/10">
-                            <div className="relative h-full flex items-center justify-center border-r">
-                                <Button variant="ghost" size="sm" className="h-9 px-3 rounded-none text-muted-foreground hover:bg-muted/30">
-                                    <Calendar className="size-3.5 mr-1.5" />
-                                    <span className="text-xs">Date</span>
-                                </Button>
+                    {/* Unified Input + Controls */}
+                    <div className="w-full relative shadow-sm rounded-md overflow-hidden border bg-card focus-within:ring-1 focus-within:ring-primary focus-within:border-primary">
+                        <div className="flex items-center w-full">
+
+                            {/* Main Input */}
+                            <div className="relative flex-1 min-w-0 flex items-center">
                                 <Input
-                                    type="datetime-local"
+                                    type="text"
+                                    value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-                                    title="Pick a date"
+                                    placeholder="Enter timestamp or date..."
+                                    className="h-10 font-mono text-sm px-3 border-0 rounded-none shadow-none focus-visible:ring-0 bg-transparent"
                                 />
+
+                                <div className="absolute right-2 flex items-center gap-1.5 pointer-events-none">
+                                    {isInputMillis && !error && (
+                                        <Badge
+                                            variant="secondary"
+                                            className="text-[9px] tracking-wider uppercase font-semibold py-0 h-4"
+                                        >
+                                            MILLIS
+                                        </Badge>
+                                    )}
+
+                                    {input && (
+                                        <button
+                                            type="button"
+                                            className="size-5 rounded-sm flex items-center justify-center text-muted-foreground hover:bg-muted/50 pointer-events-auto"
+                                            onClick={() => setInput("")}
+                                            aria-label="Clear input"
+                                        >
+                                            <X className="size-3" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                            <Button 
-                                variant="ghost"
-                                onClick={setNow} 
-                                className="h-9 px-4 rounded-none font-medium text-xs hover:bg-muted/30 text-foreground"
-                            >
-                                <RefreshCw className="size-3.5 mr-1.5" /> Now
-                            </Button>
+
+                            {/* Right-side controls */}
+                            <div className="flex items-center shrink-0 border-l bg-muted/10">
+
+                                {/* Date picker */}
+                                <div className="relative h-10 flex items-center justify-center border-r">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-10 px-3 rounded-none text-muted-foreground hover:bg-muted/30"
+                                    >
+                                        <Calendar className="size-3.5 mr-1.5" />
+                                        <span className="text-xs">Date</span>
+                                    </Button>
+
+                                    <Input
+                                        type="datetime-local"
+                                        onChange={(e) => setInput(e.target.value)}
+                                        className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+                                        title="Pick a date"
+                                    />
+                                </div>
+
+                                {/* Now */}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={setNow}
+                                    className="h-10 px-3 rounded-none font-medium text-xs hover:bg-muted/30 text-foreground"
+                                >
+                                    <RefreshCw className="size-3.5 mr-1.5" />
+                                    Now
+                                </Button>
+
+                                <div className="h-5 w-px bg-border" />
+
+                                {/* Decrease */}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted/40 touch-none"
+                                    title="Decrease by one second"
+                                    {...holdBackward}
+                                >
+                                    <Minus className="size-3.5" />
+                                </Button>
+
+                                {/* Pause / Play */}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                                    onClick={() => setIsPaused((p) => !p)}
+                                    title={isPaused ? "Resume live clock" : "Pause live clock"}
+                                    aria-label={isPaused ? "Resume live clock" : "Pause live clock"}
+                                >
+                                    {isPaused ? (
+                                        <Play className="size-3.5" />
+                                    ) : (
+                                        <Pause className="size-3.5" />
+                                    )}
+                                </Button>
+
+                                {/* Increase */}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-10 rounded-none text-muted-foreground hover:text-foreground hover:bg-muted/40 touch-none"
+                                    title="Increase by one second"
+                                    {...holdForward}
+                                >
+                                    <Plus className="size-3.5" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
+
                     {error && <p className="text-xs font-medium text-destructive mt-1.5 w-full px-1">{error}</p>}
 
                     {/* Draggable Dynamic Workspace */}
@@ -407,7 +568,7 @@ export function EpochConverter() {
                                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Converted Values</h3>
                                 
                                 <div className="flex items-center gap-2">
-                                    <DropdownMenu>
+<DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="outline" size="sm" className="h-7 text-xs px-2 bg-transparent border-dashed">
                                                 <Plus className="size-3 mr-1" /> Add Field
@@ -470,8 +631,7 @@ export function EpochConverter() {
                                     </Popover>
                                 </div>
                             </div>
-
-                            <DndContext
+<DndContext
                                 sensors={sensors}
                                 collisionDetection={closestCenter}
                                 onDragEnd={handleDragEnd}
@@ -480,7 +640,7 @@ export function EpochConverter() {
                                     items={activeOptions}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col mt-4">
                                         {activeOptions.map((id) => {
                                             const details = getOptionDetails(id, parsedDate, epochMillis, epochSeconds);
                                             if (!details) return null;
