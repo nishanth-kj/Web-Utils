@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { TableViewer } from '@/components/shared/table-viewer';
+import { TableViewer } from '@/components/view/table-viewer';
 import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
 import {
@@ -35,7 +35,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useEditor } from '@/lib/hooks/use-editor';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -44,8 +44,8 @@ import {
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { HTMLViewer } from '@/components/shared/html-viewer';
-import { CodeViewer } from '@/components/shared/code-viewer';
+import { HTMLViewer } from '@/components/view/html-viewer';
+import { CodeViewer } from '@/components/view/code-viewer';
 
 export function EditorContainer({ initialContent, initialFormat }: ContainerProps) {
     const { resolvedTheme } = useTheme();

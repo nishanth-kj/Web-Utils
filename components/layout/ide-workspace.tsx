@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PreviewPane } from "@/components/shared/preview-pane";
+import { PreviewPane } from "@/components/view/preview-pane";
 import { useTheme } from "next-themes";
 
 export function IdeWorkspace() {

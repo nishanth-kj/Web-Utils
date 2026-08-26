@@ -3,7 +3,7 @@
 import React, { forwardRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 
 interface CodeViewerProps {
     content: string;

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import Footer from "@/components/common/Footer";
 
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();

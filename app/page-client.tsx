@@ -1,7 +1,7 @@
 "use client";
 
 import React, {useState, useEffect, useRef} from 'react';
-import {Search, Copy, Check, ChevronRight} from 'lucide-react';
+import {Search, Copy, Check, ChevronRight, Github} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {AdsCard} from '@/components/shared/ads-card';
@@ -51,33 +51,62 @@ export default function ToolsListingPage() {
     return (
         <main className="h-full overflow-auto bg-background custom-scrollbar flex flex-col">
             <div className="max-w-6xl mx-auto space-y-8 flex-1 w-full p-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                            Developer Tools
-                        </h1>
-                        <p className="text-muted-foreground">
-                            A clean, minimalist suite of developer utilities and converters.
-                        </p>
-                    </div>
+                {/* Hero Section */}
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 p-8 md:p-12 mb-12 border border-border/50">
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div className="max-w-2xl space-y-4">
+                            <div className="inline-flex items-center rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-sm font-medium text-indigo-500">
+                                <span className="flex h-2 w-2 rounded-full bg-indigo-500 mr-2"></span>
+                                Universal Code Previewer & Editor
+                            </div>
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground">
+                                Supercharge your <br className="hidden md:block"/>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+                                    development workflow.
+                                </span>
+                            </h1>
+                            <p className="text-lg md:text-xl text-muted-foreground">
+                                A professional suite of fast, precise, and free online developer tools. Format, convert, and preview your code instantly without leaving your browser.
+                            </p>
+                            <div className="flex flex-wrap gap-4 pt-4">
+                                <Button size="lg" className="rounded-full shadow-lg hover:shadow-indigo-500/25 transition-all" onClick={() => {
+                                    searchInputRef.current?.focus();
+                                }}>
+                                    <Search className="mr-2 size-4" />
+                                    Explore Tools
+                                </Button>
+                                {/* <Button size="lg" variant="outline" className="rounded-full bg-background/50 backdrop-blur" onClick={() => window.open('https://github.com/nishanth-kj/Web-Utils', '_blank')}>
+                                    <Github className="mr-2 size-4" />
+                                    View on GitHub
+                                </Button> */}
+                            </div>
+                        </div>
 
-                    <div 
-                        className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-muted/30 rounded-lg transition-all group animate-in fade-in slide-in-from-right-4 duration-700"
-                        onClick={handleCopyEpoch}
-                        title="Click to copy epoch"
-                    >
-                        <div className="size-1.5 rounded-full bg-primary animate-pulse" />
-                        <div className="flex flex-col items-end">
-                            <span className="font-mono text-sm font-bold text-foreground tabular-nums">
+                        {/* Epoch Widget in Hero */}
+                        <div 
+                            className="flex flex-col items-center justify-center p-6 bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl cursor-pointer hover:border-indigo-500/30 transition-all group shrink-0 min-w-[200px]"
+                            onClick={handleCopyEpoch}
+                            title="Click to copy epoch"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="size-2 rounded-full bg-indigo-500 animate-ping absolute" />
+                                <div className="size-2 rounded-full bg-indigo-500 relative" />
+                                <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Live Epoch Time</span>
+                            </div>
+                            <span className="font-mono text-3xl font-bold text-foreground tabular-nums tracking-tighter">
                                 {liveEpoch}
                             </span>
-                            <span className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter mt-1">
                                 {new Date(liveEpoch * 1000).toUTCString().split(' ').slice(0, 5).join(' ')} UTC
                             </span>
-                        </div>
-                        <div className="flex items-center justify-center">
-                            {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            <div className="h-8 mt-2 flex items-center justify-center">
+                                {copied ? (
+                                    <span className="flex items-center text-xs text-emerald-500 font-medium bg-emerald-500/10 px-2 py-1 rounded-full"><Check className="size-3 mr-1" /> Copied</span>
+                                ) : (
+                                    <span className="flex items-center text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"><Copy className="size-3 mr-1" /> Click to copy</span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

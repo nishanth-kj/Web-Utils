@@ -23,11 +23,11 @@ import {
     Download,
     Trash
 } from "lucide-react";
-import { TableViewer } from '@/components/shared/table-viewer';
-import { HTMLViewer } from '@/components/shared/html-viewer';
-import { CodeViewer } from '@/components/shared/code-viewer';
+import { TableViewer } from '@/components/view/table-viewer';
+import { HTMLViewer } from '@/components/view/html-viewer';
+import { CodeViewer } from '@/components/view/code-viewer';
 import { JsonTreeViewer } from '@/components/json/tree-viewer';
-import { PreviewPane } from '@/components/shared/preview-pane';
+import { PreviewPane } from '@/components/view/preview-pane';
 import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
 import {
@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/resizable";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import {  ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { format as formatSql } from 'sql-formatter';

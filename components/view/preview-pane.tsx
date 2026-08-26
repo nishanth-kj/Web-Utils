@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import { HTMLViewer } from '@/components/shared/html-viewer';
-import { CodeViewer } from '@/components/shared/code-viewer';
-import { TableViewer } from '@/components/shared/table-viewer';
+import { HTMLViewer } from '@/components/view/html-viewer';
+import { CodeViewer } from '@/components/view/code-viewer';
+import { TableViewer } from '@/components/view/table-viewer';
 import { JsonTreeViewer } from '@/components/json/tree-viewer';
-import { AndroidXmlViewer } from '@/components/shared/android-viewer';
+import { AndroidXmlViewer } from '@/components/view/android-viewer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LayoutIcon } from "lucide-react";

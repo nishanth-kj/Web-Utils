@@ -26,12 +26,14 @@ export function Navbar() {
 
                 <div className="flex items-center gap-1">
                     {isMobile && <SidebarTrigger className="size-9" />}
+                    {/* 
                     <a href="https://github.com/nishanth-kj/Web-Utils" target="_blank" rel="noreferrer" className="hidden sm:inline-block">
                         <Button variant="ghost" size="icon" className="size-9">
                             <Github className="size-5" />
                             <span className="sr-only">GitHub</span>
                         </Button>
                     </a>
+                    */}
                     <Button
                         variant="ghost"
                         size="icon"

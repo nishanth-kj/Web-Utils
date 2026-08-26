@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { PreviewPane } from '@/components/shared/preview-pane';
+import { PreviewPane } from '@/components/view/preview-pane';
 import { ContainerProps } from '@/types';
 import yaml from 'js-yaml';
 import * as prettier from 'prettier/standalone';
@@ -12,7 +12,7 @@ import * as prettierPluginBabel from 'prettier/plugins/babel';
 import * as prettierPluginEstree from 'prettier/plugins/estree';
 import * as prettierPluginMarkdown from 'prettier/plugins/markdown';
 import { format as formatSql } from 'sql-formatter';
-import { formatMultipleJson } from '@/lib/utils/json-parser';
+import { formatMultipleJson } from '@/lib/json-parser';
 import { Button } from "@/components/ui/button";
 import Editor from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/resizable";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 
