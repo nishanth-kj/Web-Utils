@@ -16,9 +16,6 @@ export default function Footer() {
           <Link href="/contact" className="hover:text-indigo-500 transition-colors">Contact</Link>
           <Link href="/privacy" className="hover:text-indigo-500 transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-indigo-500 transition-colors">Terms</Link>
-          <a href="https://github.com/nishanth-kj/Web-Utils" target="_blank" rel="noreferrer" className="hover:text-foreground transition-colors ml-2">
-            <Github className="size-4" />
-          </a>
         </div>
       </div>
     </footer>
