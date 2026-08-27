@@ -73,8 +73,9 @@ export function AppSidebar() {
     return (
         <Sidebar
             side="left"
+            variant="floating"
             collapsible="offcanvas"
-            className="fixed top-0 left-0 h-screen border-r border-sidebar-border transition-all duration-500 ease-in-out group/sidebar [&_[data-sidebar=sidebar]]:overflow-visible [&_[data-sidebar=sidebar]]:bg-sidebar/80 [&_[data-sidebar=sidebar]]:backdrop-blur-xl"
+            className="fixed top-16 h-[calc(100svh-4rem)] transition-all duration-500 ease-in-out group/sidebar [&_[data-sidebar=sidebar]]:overflow-visible [&_[data-sidebar=sidebar]]:bg-sidebar/80 [&_[data-sidebar=sidebar]]:backdrop-blur-xl"
         >
 
             {/* Toggle Button "On the Line" - Placed Between Header and Content */}
@@ -82,19 +83,19 @@ export function AppSidebar() {
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
-                            variant="ghost"
+                            variant="default"
                             size="icon"
                             onClick={toggleSidebar}
-                            className="size-8 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-xl text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer shadow-indigo-500/10"
+                            className="size-8 rounded-full shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-600 text-white border-2 border-background transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer"
                         >
                             {isMobile ? (
-                                openMobile ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />
+                                openMobile ? <ChevronLeft className="size-6" /> : <ChevronRight className="size-6" />
                             ) : (
-                                isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />
+                                isCollapsed ? <ChevronRight className="size-6" /> : <ChevronLeft className="size-6" />
                             )}
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent side={isCollapsed ? "right" : "left"} className="flex items-center gap-2">
+                    <TooltipContent side="right" className="flex items-center gap-2">
                         <span>Toggle Sidebar</span>
                         <kbd className="inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                             <span className="text-xs">⌘</span>B
@@ -164,7 +165,7 @@ export function AppSidebar() {
                                     {categoryTools.map((tool: Tool) => {
                                         const hasSubOptions = tool.subOptions && tool.subOptions.length > 0;
                                         const isActive = pathname === tool.href || (hasSubOptions && tool.subOptions!.some(sub => pathname.startsWith(sub.href)));
-                                        
+
                                         if (hasSubOptions) {
                                             return (
                                                 <Collapsible key={tool.name} asChild defaultOpen={isActive} className="group/collapsible">
@@ -186,7 +187,7 @@ export function AppSidebar() {
                                                                 <span className="sr-only">Toggle</span>
                                                             </SidebarMenuAction>
                                                         </CollapsibleTrigger>
-                                                        
+
                                                         <CollapsibleContent>
                                                             <SidebarMenuSub>
                                                                 {tool.subOptions!.map(sub => {
