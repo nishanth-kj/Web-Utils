@@ -25,8 +25,8 @@ export function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                    {isMobile && <SidebarTrigger className="size-9" />}
-                 
+                    {true && <SidebarTrigger className="size-9" />}
+
                     <Button
                         variant="ghost"
                         size="icon"

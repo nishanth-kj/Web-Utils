@@ -89,9 +89,9 @@ export function AppSidebar() {
                             className="size-8 rounded-full shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-600 text-white border-2 border-background transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer"
                         >
                             {isMobile ? (
-                                openMobile ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />
+                                openMobile ? <ChevronLeft className="size-6" /> : <ChevronRight className="size-6" />
                             ) : (
-                                isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />
+                                isCollapsed ? <ChevronRight className="size-6" /> : <ChevronLeft className="size-6" />
                             )}
                         </Button>
                     </TooltipTrigger>
