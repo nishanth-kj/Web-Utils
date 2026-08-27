@@ -16,14 +16,7 @@ export function Footer() {
                 <div className="flex items-center gap-8 text-sm font-medium text-zinc-500 order-1 md:order-2">
                     <Link href="/documentation" className="hover:text-indigo-600 transition-colors">Documentation</Link>
                     <Link href="/view" className="hover:text-indigo-600 transition-colors">Viewer</Link>
-                    <a
-                        href="https://github.com/nishanth-kj/Web-Utils"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:text-zinc-900 dark:hover:text-white transition-colors"
-                    >
-                        <Github className="size-5" />
-                    </a>
+                    
                 </div>
             </div>
         </footer>

@@ -76,10 +76,7 @@ export default function ToolsListingPage() {
                                     <Search className="mr-2 size-4" />
                                     Explore Tools
                                 </Button>
-                                {/* <Button size="lg" variant="outline" className="rounded-full bg-background/50 backdrop-blur" onClick={() => window.open('https://github.com/nishanth-kj/Web-Utils', '_blank')}>
-                                    <Github className="mr-2 size-4" />
-                                    View on GitHub
-                                </Button> */}
+                               
                             </div>
                         </div>
 
