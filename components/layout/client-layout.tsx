@@ -2,32 +2,40 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import {SidebarProvider, SidebarTrigger, useSidebar} from "@/components/ui/sidebar";
-import {SplashScreen} from "@/components/layout/splash-screen";
-import {Navbar} from "@/components/layout/navbar";
-import {AppSidebar} from "@/components/layout/app-sidebar";
-import {FloatingAd} from "@/components/ads/FloatingAd";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SplashScreen } from "@/components/layout/splash-screen";
+import { Navbar } from "@/components/layout/navbar";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { FloatingAd } from "@/components/ads/FloatingAd";
 
-function LayoutContent({ children, isHomePage, showSplash }: { children: React.ReactNode, isHomePage: boolean, showSplash: boolean }) {
-    const { isMobile } = useSidebar();
-    
+// The draw canvas wants the full viewport with no chrome, so it keeps its own
+// floating sidebar trigger instead of the standard top navbar.
+function LayoutContent({
+    children,
+    isImmersivePage,
+    showSplash,
+}: {
+    children: React.ReactNode;
+    isImmersivePage: boolean;
+    showSplash: boolean;
+}) {
     return (
         <div
-            className={`transition-opacity duration-1000 flex flex-col flex-1 min-w-0 h-screen overflow-hidden bg-background ${
+            className={`flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background transition-opacity duration-300 ${
                 showSplash ? "opacity-0" : "opacity-100"
             }`}
         >
-            {isHomePage && <Navbar />}
-            
-            {isMobile && !isHomePage && (
-                <div className="fixed top-4 right-4 z-[200]">
-                    <SidebarTrigger className="size-10 bg-background/80 backdrop-blur border shadow-md rounded-xl" />
+            {isImmersivePage ? (
+                <div className="fixed top-4 left-4 z-[200]">
+                    <SidebarTrigger className="size-10 rounded-xl border bg-background/80 shadow-md backdrop-blur" />
                 </div>
+            ) : (
+                <Navbar />
             )}
 
-            <div className={`flex flex-1 ${isHomePage ? 'pt-16' : 'pt-0'} overflow-hidden w-full`}>
-                <div className="flex-1 h-full overflow-hidden relative flex flex-col">
-                    <div className="flex-1 relative overflow-hidden">
+            <div className={`flex flex-1 overflow-hidden w-full ${isImmersivePage ? "pt-0" : "pt-16"}`}>
+                <div className="relative flex h-full flex-1 flex-col overflow-hidden">
+                    <div className="relative flex-1 overflow-hidden">
                         {children}
                         <FloatingAd />
                     </div>
@@ -38,35 +46,28 @@ function LayoutContent({ children, isHomePage, showSplash }: { children: React.R
 }
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isHomePage = pathname === "/";
-  const [showSplash, setShowSplash] = useState(false);
-  const [mounted, setMounted] = useState(false);
+    const pathname = usePathname();
+    const isImmersivePage = pathname.startsWith("/draw");
+    const [showSplash, setShowSplash] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const hasSeenSplash = localStorage.getItem("hasSeenSplash_v1");
-    if (!hasSeenSplash) {
-      setShowSplash(true);
-    }
-  }, []);
+    useEffect(() => {
+        if (localStorage.getItem("hasSeenSplash_v1")) return;
+        const frame = window.requestAnimationFrame(() => setShowSplash(true));
+        return () => window.cancelAnimationFrame(frame);
+    }, []);
 
-  const handleSplashComplete = () => {
-    setShowSplash(false);
-    localStorage.setItem("hasSeenSplash_v1", "true");
-  };
+    const handleSplashComplete = () => {
+        setShowSplash(false);
+        localStorage.setItem("hasSeenSplash_v1", "true");
+    };
 
-  if (!mounted) return null;
-
-  const isDrawPage = pathname.startsWith("/draw");
-
-  return (
-    <SidebarProvider defaultOpen={false}>
-      {showSplash && <SplashScreen onCompleteAction={handleSplashComplete} />}
-      <AppSidebar />
-      <LayoutContent isHomePage={isHomePage} showSplash={showSplash}>
-          {children}
-      </LayoutContent>
-    </SidebarProvider>
-  );
+    return (
+        <SidebarProvider defaultOpen={false}>
+            {showSplash && <SplashScreen onCompleteAction={handleSplashComplete} />}
+            <AppSidebar />
+            <LayoutContent isImmersivePage={isImmersivePage} showSplash={showSplash}>
+                {children}
+            </LayoutContent>
+        </SidebarProvider>
+    );
 }

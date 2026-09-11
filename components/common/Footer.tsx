@@ -1,23 +1,36 @@
-import React from 'react';
-import { Github } from 'lucide-react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
+
+const FOOTER_LINKS = [
+    { href: "/docs", label: "Docs" },
+    { href: "/faq", label: "FAQ" },
+    { href: "/about", label: "About" },
+    { href: "/contact", label: "Contact" },
+    { href: "/privacy", label: "Privacy" },
+    { href: "/terms", label: "Terms" },
+];
 
 export default function Footer() {
-  return (
-    <footer className="w-full border-t bg-background/80 backdrop-blur-md py-3 z-50">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 px-4 md:px-6 text-sm text-muted-foreground font-medium">
-        <div className="flex items-center gap-1.5">
-          <span>&copy; {new Date().getFullYear() > 2026 ? `2026 - ${new Date().getFullYear()}` : '2026'} Web Utils</span>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-          <Link href="/docs" className="hover:text-indigo-500 transition-colors">Docs</Link>
-          <Link href="/faq" className="hover:text-indigo-500 transition-colors">FAQ</Link>
-          <Link href="/about" className="hover:text-indigo-500 transition-colors">About</Link>
-          <Link href="/contact" className="hover:text-indigo-500 transition-colors">Contact</Link>
-          <Link href="/privacy" className="hover:text-indigo-500 transition-colors">Privacy</Link>
-          <Link href="/terms" className="hover:text-indigo-500 transition-colors">Terms</Link>
-        </div>
-      </div>
-    </footer>
-  );
+    const year = new Date().getFullYear();
+
+    return (
+        <footer className="w-full border-t bg-background">
+            <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row sm:px-6">
+                <p className="text-sm text-muted-foreground">
+                    &copy; {year > 2026 ? `2026 – ${year}` : "2026"} Web Utils
+                </p>
+                <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                    {FOOTER_LINKS.map((link) => (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            className="transition-colors hover:text-foreground"
+                        >
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
+            </div>
+        </footer>
+    );
 }

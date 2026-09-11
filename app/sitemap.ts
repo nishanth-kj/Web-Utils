@@ -8,7 +8,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     '',
     '/crypto',
-    '/crypto/blockchain',
     '/docs',
     '/documentation',
     '/draw',

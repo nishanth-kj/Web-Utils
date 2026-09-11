@@ -13,7 +13,6 @@ import {
     Table,
     PenTool,
     FilePlus,
-    Bitcoin,
     Eye,
     Key
 } from 'lucide-react';
@@ -33,6 +32,7 @@ export interface Tool {
     status: 'Available' | 'Coming Soon' | 'Beta';
     icon: LucideIcon;
     subOptions?: ToolSubOption[];
+    isNew?: boolean;
 }
 
 export interface Category {
@@ -77,7 +77,8 @@ export const TOOLS: Tool[] = [
         href: "/draw",
         category: "core",
         status: "Available",
-        icon: PenTool
+        icon: PenTool,
+        isNew: true
     },
     {
         id: "editor",
@@ -135,7 +136,8 @@ export const TOOLS: Tool[] = [
         href: "/crypto",
         category: "crypto",
         status: "Available",
-        icon: Shield
+        icon: Shield,
+        isNew: true
     },
     {
         id: "dummy-file",
@@ -144,15 +146,7 @@ export const TOOLS: Tool[] = [
         href: "/dummy",
         category: "core",
         status: "Available",
-        icon: FilePlus
-    },
-    {
-        id: "blockchain-tool",
-        name: "Blockchain Inspector",
-        description: "Analyze wallet addresses, transactions, and block data across major chains",
-        href: "/crypto/blockchain",
-        category: "crypto",
-        status: "Available",
-        icon: Bitcoin
+        icon: FilePlus,
+        isNew: true
     }
 ];

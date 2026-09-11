@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     Settings,
     HelpCircle,
-    ChevronLeft,
     ChevronRight,
-    Command,
     Search,
-    Sun,
-    Moon
+    X,
 } from "lucide-react";
 
 import {
@@ -32,241 +31,238 @@ import {
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { TOOLS, TOOL_CATEGORIES, type Tool, type Category } from "@/lib/constants/tools";
-import { PREVIEWABLE_FORMATS } from "@/lib/formats";
-import { useTheme } from "next-themes";
 
 export function AppSidebar() {
     const pathname = usePathname();
-    const { toggleSidebar, state, setOpenMobile, isMobile, openMobile } = useSidebar();
+    const { setOpen, setOpenMobile, isMobile, open } = useSidebar();
     const [searchQuery, setSearchQuery] = React.useState("");
     const searchInputRef = React.useRef<HTMLInputElement>(null);
-    const { theme, setTheme } = useTheme();
 
-    const closeMobile = () => {
-        if (isMobile) setOpenMobile(false);
-    };
+    const closeSidebar = React.useCallback(() => {
+        setOpen(false);
+        setOpenMobile(false);
+    }, [setOpen, setOpenMobile]);
+
+    const previousPathname = React.useRef(pathname);
+    React.useEffect(() => {
+        if (previousPathname.current === pathname) return;
+        previousPathname.current = pathname;
+        setOpen(false);
+        setOpenMobile(false);
+    }, [pathname, setOpen, setOpenMobile]);
 
     React.useEffect(() => {
-        const down = (e: KeyboardEvent) => {
-            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                searchInputRef.current?.focus();
+        if (!open || isMobile) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setOpen(false);
             }
         };
-        document.addEventListener("keydown", down);
-        return () => document.removeEventListener("keydown", down);
-    }, []);
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [open, isMobile, setOpen]);
 
-    const [mounted, setMounted] = React.useState(false);
     React.useEffect(() => {
-        setMounted(true);
-    }, []);
+        if (open && !isMobile) {
+            const frame = window.requestAnimationFrame(() => {
+                searchInputRef.current?.focus();
+            });
+            return () => window.cancelAnimationFrame(frame);
+        }
+    }, [open, isMobile]);
 
-    if (!mounted) return null;
-
-    const isCollapsed = state === "collapsed";
+    const visibleCategories = TOOL_CATEGORIES.map((cat: Category) => ({
+        ...cat,
+        tools: TOOLS.filter(
+            (tool: Tool) =>
+                tool.category === cat.id &&
+                (tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        ),
+    })).filter((cat) => cat.tools.length > 0);
 
     return (
-        <Sidebar
-            side="left"
-            variant="floating"
-            collapsible="offcanvas"
-            className="fixed top-16 h-[calc(100svh-4rem)] transition-all duration-500 ease-in-out group/sidebar [&_[data-sidebar=sidebar]]:overflow-visible [&_[data-sidebar=sidebar]]:bg-sidebar/80 [&_[data-sidebar=sidebar]]:backdrop-blur-xl"
-        >
+        <>
+            {!isMobile && open ? (
+                <button
+                    type="button"
+                    aria-label="Close sidebar"
+                    className="fixed inset-x-0 bottom-0 top-16 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 dark:bg-black/40"
+                    onClick={() => setOpen(false)}
+                />
+            ) : null}
 
-            {/* Toggle Button "On the Line" - Placed Between Header and Content */}
-            <div className={`absolute right-0 top-[100px] z-[100] transition-all duration-500 ${isCollapsed ? 'translate-x-full' : 'translate-x-1/2'}`}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="default"
-                            size="icon"
-                            onClick={toggleSidebar}
-                            className="size-8 rounded-full shadow-lg shadow-indigo-500/20 bg-indigo-500 hover:bg-indigo-600 text-white border-2 border-background transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center cursor-pointer"
-                        >
-                            {isMobile ? (
-                                openMobile ? <ChevronLeft className="size-6" /> : <ChevronRight className="size-6" />
-                            ) : (
-                                isCollapsed ? <ChevronRight className="size-6" /> : <ChevronLeft className="size-6" />
-                            )}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="flex items-center gap-2">
-                        <span>Toggle Sidebar</span>
-                        <kbd className="inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                            <span className="text-xs">⌘</span>B
-                        </kbd>
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-
-            <SidebarHeader className="border-b border-sidebar-border px-4 py-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-3">
-                    <Link href="/" className="flex items-center space-x-2.5" onClick={closeMobile}>
-                        <div className="size-7 rounded bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                            <Command className="size-4" />
-                        </div>
-                        <span className="font-black text-lg uppercase tracking-widest text-foreground">Web Utils</span>
-                    </Link>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        className="relative size-8 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all duration-500 ease-in-out hover:rotate-12 overflow-hidden shadow-inner shrink-0"
-                    >
-                        <div className="absolute inset-0 m-auto h-4 w-4 rotate-0 scale-100 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:-rotate-90 dark:scale-0 dark:opacity-0 text-amber-500">
-                            <Sun className="h-full w-full animate-spin-slow" />
-                        </div>
-                        <div className="absolute inset-0 m-auto h-4 w-4 rotate-90 scale-0 opacity-0 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] dark:rotate-0 dark:scale-100 dark:opacity-100 text-indigo-400">
-                            <Moon className="h-full w-full animate-float-rise" />
-                        </div>
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
-                </div>
-                <div className="relative group">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Search tools..."
-                        className="pl-8 pr-8 h-8 text-xs bg-muted/50 border-transparent focus-visible:ring-1 focus-visible:ring-indigo-500"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center">
-                        <kbd className="pointer-events-none inline-flex h-4 select-none items-center gap-1 rounded border bg-background px-1 font-mono text-[9px] font-medium text-muted-foreground opacity-100 transition-opacity group-focus-within:opacity-0">
-                            <span className="text-[10px]">⌘</span>K
-                        </kbd>
+            <Sidebar
+                side="left"
+                variant="sidebar"
+                collapsible="offcanvas"
+                className="z-50 border-r bg-background/95 backdrop-blur-xl duration-300 ease-out"
+                style={{ top: "4rem", height: "calc(100svh - 4rem)" }}
+            >
+                <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                        <p className="px-1 text-sm font-semibold tracking-tight">Tools</p>
+                        {!isMobile ? (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-foreground"
+                                onClick={closeSidebar}
+                            >
+                                <X className="size-4" />
+                                <span className="sr-only">Close sidebar</span>
+                            </Button>
+                        ) : null}
                     </div>
-                </div>
-            </SidebarHeader>
+                    <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            ref={searchInputRef}
+                            placeholder="Filter tools..."
+                            className="h-8 bg-muted/50 pl-8 text-xs shadow-none"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </SidebarHeader>
 
-            <SidebarContent className="flex-1 overflow-y-auto overflow-x-visible pt-2 custom-scrollbar">
-                {TOOL_CATEGORIES.map((cat: Category) => {
-                    const categoryTools = TOOLS.filter(
-                        (tool: Tool) =>
-                            tool.category === cat.id &&
-                            (tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                tool.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                    );
+                <SidebarContent className="flex-1 overflow-y-auto pt-1 custom-scrollbar">
+                    {visibleCategories.length === 0 ? (
+                        <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                            No tools match “{searchQuery}”.
+                        </p>
+                    ) : (
+                        visibleCategories.map((cat) => (
+                            <SidebarGroup key={cat.id}>
+                                <SidebarGroupLabel className="px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                    {cat.label}
+                                </SidebarGroupLabel>
+                                <SidebarGroupContent>
+                                    <SidebarMenu>
+                                        {cat.tools.map((tool: Tool) => {
+                                            const hasSubOptions = tool.subOptions && tool.subOptions.length > 0;
+                                            const isActive =
+                                                pathname === tool.href ||
+                                                (hasSubOptions &&
+                                                    tool.subOptions!.some((sub) => pathname.startsWith(sub.href)));
 
-                    if (categoryTools.length === 0) return null;
-
-                    return (
-                        <SidebarGroup key={cat.id}>
-                            <SidebarGroupLabel className="px-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-2">
-                                {cat.label}
-                            </SidebarGroupLabel>
-                            <SidebarGroupContent>
-                                <SidebarMenu className="px-2 transition-all">
-                                    {categoryTools.map((tool: Tool) => {
-                                        const hasSubOptions = tool.subOptions && tool.subOptions.length > 0;
-                                        const isActive = pathname === tool.href || (hasSubOptions && tool.subOptions!.some(sub => pathname.startsWith(sub.href)));
-
-                                        if (hasSubOptions) {
-                                            return (
-                                                <Collapsible key={tool.name} asChild defaultOpen={isActive} className="group/collapsible">
-                                                    <SidebarMenuItem>
-                                                        <SidebarMenuButton
-                                                            tooltip={tool.name}
-                                                            isActive={isActive}
-                                                            asChild
-                                                            className={`rounded-lg h-10 transition-all w-full pr-8 ${isActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-                                                        >
-                                                            <Link href={tool.href} onClick={closeMobile}>
-                                                                <tool.icon className={`size-4 ${isActive ? 'text-indigo-500' : 'text-muted-foreground'}`} />
-                                                                <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'} flex-1`}>{tool.name}</span>
-                                                            </Link>
-                                                        </SidebarMenuButton>
-                                                        <CollapsibleTrigger asChild>
-                                                            <SidebarMenuAction showOnHover={false} className="mt-0.5 hover:bg-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
-                                                                <ChevronRight className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                                                <span className="sr-only">Toggle</span>
-                                                            </SidebarMenuAction>
-                                                        </CollapsibleTrigger>
-
-                                                        <CollapsibleContent>
-                                                            <SidebarMenuSub>
-                                                                {tool.subOptions!.map(sub => {
-                                                                    const isSubActive = pathname === sub.href;
-                                                                    return (
-                                                                        <SidebarMenuSubItem key={sub.name}>
-                                                                            <Link href={sub.href} className="w-full" onClick={closeMobile}>
+                                            if (hasSubOptions) {
+                                                return (
+                                                    <Collapsible
+                                                        key={tool.id}
+                                                        asChild
+                                                        defaultOpen={isActive}
+                                                        className="group/collapsible"
+                                                    >
+                                                        <SidebarMenuItem>
+                                                            <SidebarMenuButton
+                                                                tooltip={tool.name}
+                                                                isActive={isActive}
+                                                                asChild
+                                                                className="h-9 rounded-md"
+                                                            >
+                                                                <Link href={tool.href} onClick={closeSidebar}>
+                                                                    <tool.icon className="size-4" />
+                                                                    <span className="flex-1">{tool.name}</span>
+                                                                </Link>
+                                                            </SidebarMenuButton>
+                                                            <CollapsibleTrigger asChild>
+                                                                <SidebarMenuAction
+                                                                    showOnHover={false}
+                                                                    className="mt-0.5"
+                                                                >
+                                                                    <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                                                    <span className="sr-only">Toggle</span>
+                                                                </SidebarMenuAction>
+                                                            </CollapsibleTrigger>
+                                                            <CollapsibleContent>
+                                                                <SidebarMenuSub>
+                                                                    {tool.subOptions!.map((sub) => {
+                                                                        const isSubActive = pathname === sub.href;
+                                                                        return (
+                                                                            <SidebarMenuSubItem key={sub.name}>
                                                                                 <SidebarMenuSubButton
+                                                                                    asChild
                                                                                     isActive={isSubActive}
-                                                                                    className={`rounded-md h-8 transition-all w-full ${isSubActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                                                                                 >
-                                                                                    <span className="uppercase text-[10px] tracking-wider">{sub.name}</span>
+                                                                                    <Link href={sub.href} onClick={closeSidebar}>
+                                                                                        <span className="text-xs">
+                                                                                            {sub.name}
+                                                                                        </span>
+                                                                                    </Link>
                                                                                 </SidebarMenuSubButton>
-                                                                            </Link>
-                                                                        </SidebarMenuSubItem>
-                                                                    );
-                                                                })}
-                                                            </SidebarMenuSub>
-                                                        </CollapsibleContent>
-                                                    </SidebarMenuItem>
-                                                </Collapsible>
-                                            );
-                                        }
+                                                                            </SidebarMenuSubItem>
+                                                                        );
+                                                                    })}
+                                                                </SidebarMenuSub>
+                                                            </CollapsibleContent>
+                                                        </SidebarMenuItem>
+                                                    </Collapsible>
+                                                );
+                                            }
 
-                                        return (
-                                            <SidebarMenuItem key={tool.name}>
-                                                <Link href={tool.href} className="w-full" onClick={closeMobile}>
+                                            return (
+                                                <SidebarMenuItem key={tool.id}>
                                                     <SidebarMenuButton
                                                         tooltip={tool.name}
                                                         isActive={isActive}
-                                                        className={`rounded-lg h-10 transition-all w-full ${isActive ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                                        asChild
+                                                        className="h-9 rounded-md"
                                                     >
-                                                        <tool.icon className={`size-4 ${isActive ? 'text-indigo-500' : 'text-muted-foreground'}`} />
-                                                        <div className="flex items-center justify-between flex-1">
-                                                            <span className={`text-sm ${isActive ? 'font-bold' : 'font-medium'}`}>{tool.name}</span>
-                                                            {['draw-tool', 'dummy-file', 'blockchain-tool', 'uuid-generator'].includes(tool.id) && (
-                                                                <span className="text-[7px] font-black bg-indigo-500 text-white px-1 rounded-sm leading-none py-0.5 ml-auto">NEW</span>
-                                                            )}
-                                                        </div>
+                                                        <Link href={tool.href} onClick={closeSidebar}>
+                                                            <tool.icon className="size-4" />
+                                                            <span className="flex-1">{tool.name}</span>
+                                                            {tool.isNew ? (
+                                                                <span className="rounded bg-foreground px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-background">
+                                                                    New
+                                                                </span>
+                                                            ) : null}
+                                                        </Link>
                                                     </SidebarMenuButton>
-                                                </Link>
-                                            </SidebarMenuItem>
-                                        );
-                                    })}
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                    );
-                })}
-            </SidebarContent>
+                                                </SidebarMenuItem>
+                                            );
+                                        })}
+                                    </SidebarMenu>
+                                </SidebarGroupContent>
+                            </SidebarGroup>
+                        ))
+                    )}
+                </SidebarContent>
 
-            <SidebarFooter className="p-4 border-t border-sidebar-border">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <Link href="/documentation" className="w-full" onClick={closeMobile}>
+                <SidebarFooter className="border-t border-sidebar-border p-2">
+                    <SidebarMenu>
+                        <SidebarMenuItem>
                             <SidebarMenuButton
                                 tooltip="Docs"
-                                isActive={pathname === '/documentation'}
-                                className={`rounded-lg h-10 transition-all ${pathname === '/documentation' ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                isActive={pathname === "/documentation" || pathname === "/docs"}
+                                asChild
+                                className="h-9 rounded-md"
                             >
-                                <HelpCircle className={`size-4 ${pathname === '/documentation' ? 'text-indigo-500' : ''}`} />
-                                <span className="font-medium">Documentation</span>
+                                <Link href="/documentation" onClick={closeSidebar}>
+                                    <HelpCircle className="size-4" />
+                                    <span>Documentation</span>
+                                </Link>
                             </SidebarMenuButton>
-                        </Link>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <Link href="/settings" className="w-full" onClick={closeMobile}>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
                             <SidebarMenuButton
                                 tooltip="Settings"
-                                isActive={pathname === '/settings'}
-                                className={`rounded-lg h-10 transition-all ${pathname === '/settings' ? 'bg-indigo-500/10 text-indigo-500 font-bold hover:bg-indigo-500/20' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                                isActive={pathname === "/settings"}
+                                asChild
+                                className="h-9 rounded-md"
                             >
-                                <Settings className={`size-4 ${pathname === '/settings' ? 'text-indigo-500' : ''}`} />
-                                <span className="font-medium">Settings</span>
+                                <Link href="/settings" onClick={closeSidebar}>
+                                    <Settings className="size-4" />
+                                    <span>Settings</span>
+                                </Link>
                             </SidebarMenuButton>
-                        </Link>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
-        </Sidebar>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarFooter>
+            </Sidebar>
+        </>
     );
 }

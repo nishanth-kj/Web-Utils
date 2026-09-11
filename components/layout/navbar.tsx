@@ -1,44 +1,76 @@
 "use client";
 
-import React from 'react';
-import { Github, Moon, Sun, Command } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Moon, Sun, Command } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { CommandMenu } from "@/components/layout/command-menu";
+import { cn } from "@/lib/utils";
 
-import { useSidebar, SidebarTrigger } from "@/components/ui/sidebar";
+const NAV_LINKS = [
+    { href: "/documentation", label: "Docs" },
+    { href: "/about", label: "About" },
+];
 
 export function Navbar() {
-    const { theme, setTheme } = useTheme();
-    const { state, isMobile } = useSidebar();
+    const pathname = usePathname();
+    const { resolvedTheme, setTheme } = useTheme();
 
     return (
-        <nav className={`fixed top-0 right-0 left-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out`}>
-            <div className="flex h-16 items-center justify-between px-4 md:px-6 w-full max-w-6xl mx-auto">
-                <div className="flex items-center">
-                    <Link href="/" className="flex items-center space-x-2">
-                        <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                            <Command className="size-5" />
-                        </div>
-                        <span className="font-black text-lg md:text-xl tracking-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px] md:max-w-none">Web Utils</span>
-                    </Link>
-                </div>
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-xl">
+            <div className="flex h-16 items-center gap-3 px-3 sm:px-4">
+                <SidebarTrigger className="size-9 text-muted-foreground hover:text-foreground" />
 
-                <div className="flex items-center gap-1">
-                    {true && <SidebarTrigger className="size-9" />}
+                <Link
+                    href="/"
+                    className="flex min-w-0 items-center gap-2.5 rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-foreground">
+                        <Command className="size-4" />
+                    </div>
+                    <span className="truncate text-[15px] font-semibold tracking-tight">
+                        Web Utils
+                    </span>
+                </Link>
 
+                <nav className="ml-2 hidden items-center gap-1 md:flex">
+                    {NAV_LINKS.map((link) => {
+                        const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                                    isActive
+                                        ? "bg-accent text-foreground"
+                                        : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
+                                )}
+                            >
+                                {link.label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                <div className="ml-auto flex items-center gap-1.5">
+                    <CommandMenu />
                     <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-9"
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="relative size-9"
+                        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                     >
-                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                        <Sun className="size-[18px] rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute size-[18px] rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
                         <span className="sr-only">Toggle theme</span>
                     </Button>
                 </div>
             </div>
-        </nav>
+        </header>
     );
 }
