@@ -6,6 +6,7 @@ import "./globals.css";
 import {ThemeProvider} from "@/components/layout/theme-provider";
 import {ClientLayout} from "@/components/layout/client-layout";
 import { CookieConsent } from "@/components/common/CookieConsent";
+import { DeferOnPrerender } from "@/components/common/DeferOnPrerender";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -98,11 +99,41 @@ export default function RootLayout({
         {/* The critical rendering path only reaches these two third-party origins (GTM, AdSense) */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
-        <Script
-          id="adsense-script"
-          strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434"
-          crossOrigin="anonymous"
+        {/* Same-origin navigations may be prerendered speculatively (see the
+            <script type="speculationrules"> below); the AdSense loader is
+            deferred via DeferOnPrerender so an impression isn't counted for a
+            page that was only hovered, never visited. */}
+        <script
+          type="speculationrules"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              prerender: [
+                {
+                  where: {
+                    and: [
+                      { href_matches: "/*" },
+                      {
+                        not: {
+                          href_matches: [
+                            "/editor",
+                            "/ide",
+                            "/draw",
+                            "/view",
+                            "/view/*",
+                            "/time",
+                            "/crypto",
+                            "/password",
+                            "/dummy"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  eagerness: "moderate"
+                }
+              ]
+            })
+          }}
         />
       </head>
     <body
@@ -114,7 +145,15 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <GoogleTagManager gtmId="GTM-WN2W26ZP" />
+        <DeferOnPrerender>
+          <GoogleTagManager gtmId="GTM-WN2W26ZP" />
+          <Script
+            id="adsense-script"
+            strategy="afterInteractive"
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434"
+            crossOrigin="anonymous"
+          />
+        </DeferOnPrerender>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -1,20 +1,5 @@
 import type { Metadata } from "next";
-
-const FORMAT_LABELS: Record<string, string> = {
-  html: "HTML",
-  json: "JSON",
-  yaml: "YAML",
-  react: "React (JSX)",
-  markdown: "Markdown",
-  xml: "XML",
-  svg: "SVG",
-  csv: "CSV",
-  "android-xml": "Android XML",
-};
-
-function labelFor(type: string): string {
-  return FORMAT_LABELS[type] ?? type;
-}
+import { labelForFormat } from "@/lib/format-labels";
 
 export async function generateMetadata({
   params,
@@ -22,7 +7,7 @@ export async function generateMetadata({
   params: Promise<{ type: string }>;
 }): Promise<Metadata> {
   const { type } = await params;
-  const label = labelFor(type);
+  const label = labelForFormat(type);
   const description = `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`;
 
   return {
@@ -48,7 +33,7 @@ export default async function Layout({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  const label = labelFor(type);
+  const label = labelForFormat(type);
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -1,6 +1,7 @@
 import {ViewerContainer} from "@/components/view/viewer-container";
 import {Format} from "@/types";
 import {DEFAULT_CONTENT} from "@/data/default-content";
+import {labelForFormat} from "@/lib/format-labels";
 
 export function generateStaticParams() {
     return [
@@ -23,6 +24,7 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
 
     return (
         <div className="flex w-full h-full overflow-hidden">
+            <h1 className="sr-only">{labelForFormat(format)} Viewer</h1>
             <main className="flex-1 overflow-auto bg-zinc-50/50 dark:bg-zinc-950/50 relative">
                 <ViewerContainer
                     initialContent={content}
