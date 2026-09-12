@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "User Settings | Web Utils",
+  title: "User Settings",
   description: "Customize your Web Utils experience. Adjust themes, preferences, and editor configurations.",
   keywords: ["preferences", "configuration", "web utils settings", "user preferences", "theme settings", "editor config", "customization"],
   openGraph: {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { forwardRef } from 'react';
-import Editor from '@monaco-editor/react';
+import { MonacoEditor as Editor } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 

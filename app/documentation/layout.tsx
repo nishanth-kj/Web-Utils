@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Documentation | Web Utils",
+  title: "Documentation",
   description: "Comprehensive documentation and guides for Web Utils tools.",
   keywords: ["documentation","manuals","guides","developer docs","API reference","help center","user manual","instructions"],
   openGraph: {

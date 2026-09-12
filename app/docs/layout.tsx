@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "API & System Docs | Web Utils",
+  title: "API & System Docs",
   description: "Technical API documentation and system architecture references for the Web Utils ecosystem.",
   keywords: ["api docs", "system documentation", "library references", "technical specs", "architecture docs", "developer api"],
   openGraph: {

@@ -224,7 +224,9 @@ export function EpochConverter() {
     const [input, setInput] = useState("");
     const [openTz, setOpenTz] = useState(false);
 
-    const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
+    // Seeded as null (not Date.now()) so the server and the client's first
+    // render agree; the real, ticking value only exists after mount.
+    const [liveEpoch, setLiveEpoch] = useState<number | null>(null);
     const [isPaused, setIsPaused] = useState(false);
     const [copied, setCopied] = useState<CopiedField>(null);
 
@@ -250,6 +252,13 @@ export function EpochConverter() {
             });
         }
     }, [isInputEmpty]);
+
+    // Fills in the real value right after mount, once, so the placeholder
+    // shown during SSR doesn't linger for a full second before the first tick.
+    useEffect(() => {
+        const seed = () => setLiveEpoch(Math.floor(Date.now() / 1000));
+        seed();
+    }, []);
 
     // Live clock / input ticker — respects pause state.
     useEffect(() => {
@@ -410,8 +419,8 @@ export function EpochConverter() {
                     </Select>
                     <div className="h-4 w-px bg-border" />
                     
-                    <div 
-                        onClick={() => copyToClipboard(String(liveEpoch), "live")}
+                    <div
+                        onClick={() => liveEpoch !== null && copyToClipboard(String(liveEpoch), "live")}
                         className="flex items-center gap-2 cursor-pointer group"
                     >
                         <div className={cn(
@@ -422,7 +431,7 @@ export function EpochConverter() {
                             "font-mono text-sm font-semibold tabular-nums",
                             isPaused ? "text-muted-foreground" : "text-primary"
                         )}>
-                            {liveEpoch}
+                            {liveEpoch ?? "—"}
                         </span>
                         {copied === "live" && <Check className="size-3.5 text-emerald-500" />}
                     </div>

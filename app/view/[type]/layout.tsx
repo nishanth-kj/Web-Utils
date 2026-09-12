@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dynamic Format Viewer | Web Utils",
+  title: "Dynamic Format Viewer",
   description: "Specialized viewer for specific file formats and data structures with syntax highlighting and tree views.",
   keywords: ["dynamic viewer", "specialized file viewer", "format parser", "data inspector", "syntax tree", "structured data viewer"],
   openGraph: {

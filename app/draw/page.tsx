@@ -2,12 +2,17 @@ import { DrawPage } from "@/components/draw/draw-page";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Excalidraw Diagram Editor | Web Utils",
+  title: "Excalidraw Diagram Editor",
   description: "Create beautiful hand-drawn diagrams, wireframes, and flowcharts directly in your browser with our Excalidraw integration.",
   keywords: ["excalidraw", "online drawing", "diagram tool", "flowchart maker", "wireframe tool", "whiteboard"],
   alternates: { canonical: '/draw' },
 };
 
 export default function Page() {
-    return <DrawPage />;
+    return (
+        <>
+            <h1 className="sr-only">Online Diagram and Whiteboard Editor</h1>
+            <DrawPage />
+        </>
+    );
 }

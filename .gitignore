@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# OG font cache
+/scripts/.og-fonts/
+
 # rust
 /wasm/**/target/
 **/target/

@@ -3,21 +3,17 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Moon, Sun, Command } from "lucide-react";
+import { ChevronRight, Moon, Sun, Command } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CommandMenu } from "@/components/layout/command-menu";
-import { cn } from "@/lib/utils";
-
-const NAV_LINKS = [
-    { href: "/documentation", label: "Docs" },
-    { href: "/about", label: "About" },
-];
+import { getBreadcrumbs } from "@/lib/breadcrumbs";
 
 export function Navbar() {
     const pathname = usePathname();
     const { resolvedTheme, setTheme } = useTheme();
+    const breadcrumbs = getBreadcrumbs(pathname);
 
     return (
         <header className="fixed inset-x-0 top-0 z-40 border-b border-border/80 bg-background/80 backdrop-blur-xl">
@@ -36,25 +32,33 @@ export function Navbar() {
                     </span>
                 </Link>
 
-                <nav className="ml-2 hidden items-center gap-1 md:flex">
-                    {NAV_LINKS.map((link) => {
-                        const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
-                        return (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={cn(
-                                    "rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                                    isActive
-                                        ? "bg-accent text-foreground"
-                                        : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
-                                )}
-                            >
-                                {link.label}
-                            </Link>
-                        );
-                    })}
-                </nav>
+                {breadcrumbs.length > 0 && (
+                    <nav
+                        aria-label="Breadcrumb"
+                        className="ml-1 hidden min-w-0 items-center gap-1 text-sm md:flex"
+                    >
+                        {breadcrumbs.map((crumb, index) => {
+                            const isLast = index === breadcrumbs.length - 1;
+                            return (
+                                <React.Fragment key={crumb.href}>
+                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />
+                                    {isLast ? (
+                                        <span className="truncate font-medium text-foreground">
+                                            {crumb.label}
+                                        </span>
+                                    ) : (
+                                        <Link
+                                            href={crumb.href}
+                                            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                                        >
+                                            {crumb.label}
+                                        </Link>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </nav>
+                )}
 
                 <div className="ml-auto flex items-center gap-1.5">
                     <CommandMenu />

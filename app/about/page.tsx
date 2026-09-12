@@ -4,7 +4,7 @@ import Footer from "@/components/common/Footer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About Web Utils",
+  title: "About",
   description: "Learn about the mission, features, and privacy-first architecture behind Web Utils.",
   keywords: ["about us", "mission", "web utils team", "developer tools history", "privacy first", "client side architecture"],
   openGraph: {

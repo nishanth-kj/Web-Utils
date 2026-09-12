@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Diagram & Drawing Tool | Web Utils",
+  title: "Diagram & Drawing Tool",
   description: "Create flowcharts, architecture diagrams, and whiteboards instantly in your browser.",
   keywords: ["drawing tool", "whiteboarding", "diagramming", "developer diagrams", "flowcharts", "architecture diagrams", "system design", "sketch"],
   openGraph: {

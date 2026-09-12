@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import Editor, { OnMount } from '@monaco-editor/react';
+import { MonacoEditor as Editor, type OnMount } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
 import {
     Save,

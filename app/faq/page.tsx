@@ -10,7 +10,7 @@ import {
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Frequently Asked Questions | Web Utils",
+  title: "Frequently Asked Questions",
   description: "Answers to common questions about using Web Utils tools, privacy, and data storage.",
   keywords: ["faq", "frequently asked questions", "help", "support", "web utils help", "knowledge base", "questions"],
   openGraph: {

@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { SplashScreen } from "@/components/layout/splash-screen";
 import { Navbar } from "@/components/layout/navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { FloatingAd } from "@/components/ads/FloatingAd";
+
+// The splash only runs on a visitor's first load, so its GSAP dependency
+// stays out of the bundle every other visit.
+const SplashScreen = dynamic(
+    () => import("@/components/layout/splash-screen").then((m) => m.SplashScreen),
+    { ssr: false }
+);
 
 // The draw canvas wants the full viewport with no chrome, so it keeps its own
 // floating sidebar trigger instead of the standard top navbar.

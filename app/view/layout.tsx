@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Data & File Viewer | Web Utils",
+  title: "Data & File Viewer",
   description: "View, analyze, and format complex data structures and specific file formats beautifully in the browser.",
   keywords: ["viewer", "file viewer", "code viewer", "data visualizer", "json viewer", "yaml viewer", "hex viewer", "data inspector"],
   openGraph: {

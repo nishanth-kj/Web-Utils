@@ -2,7 +2,7 @@ import React from 'react';
 import Footer from "@/components/common/Footer";
 
 export const metadata = {
-  title: "Contact Us | Web Utils",
+  title: "Contact Us",
   description: "Get in touch with the Web Utils team for support, feedback, or business inquiries.",
   keywords: ["contact", "support", "help", "email", "feedback", "web utils contact"],
   openGraph: {
@@ -31,7 +31,7 @@ export default function ContactPage() {
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Contact Us</h1>
                 
                 <div className="space-y-6 text-foreground/80 leading-relaxed mt-8">
-                    <p>We value your feedback and are always here to help. Whether you have a question about one of our developer tools, want to report a bug, or have a business inquiry, please don't hesitate to reach out.</p>
+                    <p>We value your feedback and are always here to help. Whether you have a question about one of our developer tools, want to report a bug, or have a business inquiry, please don&apos;t hesitate to reach out.</p>
 
                     <section className="bg-muted/30 p-6 rounded-lg border">
                         <h2 className="text-xl font-semibold text-foreground mb-4">Email Us</h2>

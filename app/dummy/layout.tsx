@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mock Data Generator | Web Utils",
+  title: "Mock Data Generator",
   description: "Generate realistic mock data, JSON payloads, and dummy information for testing and API development.",
   keywords: ["mock data", "dummy data generator", "JSON generator", "fake API data", "test data", "database seeding", "lorem ipsum", "random data"],
   openGraph: {

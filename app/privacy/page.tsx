@@ -4,7 +4,7 @@ import Footer from "@/components/common/Footer";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Web Utils",
+  title: "Privacy Policy",
   description: "Read the Web Utils Privacy Policy. We prioritize client-side processing to keep your data secure.",
   keywords: ["privacy policy", "data protection", "GDPR", "cookie policy", "user privacy", "secure tools", "client side processing"],
   openGraph: {

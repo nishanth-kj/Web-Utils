@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev --turbo",
     "build": "next build && node scripts/submit-indexnow.js",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "npx serve out",
+    "lint": "eslint",
+    "og": "node scripts/generate-og.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

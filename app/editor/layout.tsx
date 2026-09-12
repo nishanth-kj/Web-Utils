@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Code Editor & Formatter | Web Utils",
+  title: "Code Editor & Formatter",
   description: "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer. Edit code quickly with syntax highlighting.",
   keywords: ["code editor", "JSON formatter", "YAML parser", "HTML preview", "browser IDE", "syntax highlighter", "online coding", "developer sandbox", "code formatter"],
   openGraph: {

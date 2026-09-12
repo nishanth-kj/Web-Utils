@@ -13,14 +13,16 @@ import { cn } from "@/lib/utils";
 export default function ToolsListingPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("all");
-    const [liveEpoch, setLiveEpoch] = useState(() => Math.floor(Date.now() / 1000));
+    // Seeded as null (not Date.now()) so the server and the client's first
+    // render agree; the real, ticking value only exists after mount.
+    const [liveEpoch, setLiveEpoch] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setLiveEpoch(Math.floor(Date.now() / 1000));
-        }, 1000);
+        const tick = () => setLiveEpoch(Math.floor(Date.now() / 1000));
+        tick();
+        const interval = setInterval(tick, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -44,6 +46,7 @@ export default function ToolsListingPage() {
     }, [filteredTools]);
 
     const handleCopyEpoch = () => {
+        if (liveEpoch === null) return;
         navigator.clipboard.writeText(String(liveEpoch));
         setCopied(true);
         window.setTimeout(() => setCopied(false), 2000);
@@ -99,7 +102,7 @@ export default function ToolsListingPage() {
                             className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-accent"
                         >
                             <span className="size-1.5 rounded-full bg-emerald-500" />
-                            <span className="tabular-nums">{liveEpoch}</span>
+                            <span className="tabular-nums">{liveEpoch ?? "—"}</span>
                             {copied ? (
                                 <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
                             ) : (

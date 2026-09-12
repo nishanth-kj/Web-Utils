@@ -1,4 +1,4 @@
-import type {Metadata} from "next";
+import type {Metadata, Viewport} from "next";
 import {Geist, Geist_Mono} from "next/font/google";
 import { GoogleTagManager } from '@next/third-parties/google';
 import Script from "next/script";
@@ -41,25 +41,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://webutils.site",
-    title: "Web Utils | Professional Developer Tools",
-    description: "The ultimate suite of fast, precise, and free online developer tools. Format, convert, and preview your code instantly.",
+    title: "Web Utils | Developer tools that stay in your browser",
+    description: "Format, convert, preview, and generate. Free, local-first developer tools — no signup, nothing uploaded.",
     siteName: "Web Utils",
-    images: [
-      {
-        url: 'https://webutils.site/opengraph-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Web Utils Open Graph Image',
-      }
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Web Utils | Universal Code Previewer & Editor",
-    description: "A professional suite of developer tools for editing, previewing, and formatting code. Built for high performance.",
+    title: "Web Utils | Developer tools that stay in your browser",
+    description: "Format, convert, preview, and generate. Free, local-first developer tools — no signup, nothing uploaded.",
     site: "@webutils",
     creator: "@webutils",
-    images: ['https://webutils.site/opengraph-image.png'],
   },
   robots: {
     index: true,
@@ -76,8 +67,6 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw",
-    yandex: "yandex-verification-placeholder",
-    yahoo: "yahoo-verification-placeholder",
   },
   appleWebApp: {
     title: "Web Utils",
@@ -86,12 +75,14 @@ export const metadata: Metadata = {
   category: "technology",
   other: {
     "google-adsense-account": "ca-pub-2215957287486434",
-    "msvalidate.01": "bing-verification-placeholder"
   },
 };
 
-export const viewport = {
-  themeColor: "#ffffff",
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -104,8 +95,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <head>
-        <meta name="google-site-verification" content="b8Me6fVb2f6bXx3XPQH8XGKf8zikGX0y5WlNjBRgOmw" />
-        <Script 
+        <Script
           id="adsense-script"
           strategy="afterInteractive" 
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434" 

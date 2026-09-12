@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import Editor, { OnMount } from '@monaco-editor/react';
+import { MonacoEditor as Editor, type OnMount } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
 import {
     FileEdit,
@@ -46,13 +46,7 @@ import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import {  ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
-import { format as formatSql } from 'sql-formatter';
-import * as prettier from 'prettier/standalone';
-import * as prettierPluginHtml from 'prettier/plugins/html';
-import * as prettierPluginPostcss from 'prettier/plugins/postcss';
-import * as prettierPluginBabel from 'prettier/plugins/babel';
-import * as prettierPluginEstree from 'prettier/plugins/estree';
-import * as prettierPluginMarkdown from 'prettier/plugins/markdown';
+import { formatSql, formatWithPrettier } from '@/lib/format-code';
 
 export function WorkspaceContainer({ initialContent, initialFormat }: ContainerProps) {
     const { resolvedTheme } = useTheme();
@@ -142,7 +136,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                 const parsed = yaml.load(content);
                 setContent(yaml.dump(parsed));
             } else if (format === 'sql') {
-                setContent(formatSql(content));
+                setContent(await formatSql(content));
             } else {
                 const parserMap: Record<string, string> = {
                     'html': 'html',
@@ -155,20 +149,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                 };
                 const parser = parserMap[format];
                 if (parser) {
-                    const formatted = await prettier.format(content, {
-                        parser,
-                        plugins: [
-                            prettierPluginHtml,
-                            prettierPluginPostcss,
-                            prettierPluginBabel,
-                            prettierPluginEstree,
-                            prettierPluginMarkdown
-                        ],
-                        semi: true,
-                        singleQuote: true,
-                        tabWidth: 2,
-                    });
-                    setContent(formatted);
+                    setContent(await formatWithPrettier(content, parser));
                 }
             }
             setIsSaved(true);
