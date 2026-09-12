@@ -95,16 +95,25 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <head>
+        {/* The critical rendering path only reaches these two third-party origins (GTM, AdSense) */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
         <Script
           id="adsense-script"
-          strategy="afterInteractive" 
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434" 
-          crossOrigin="anonymous" 
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434"
+          crossOrigin="anonymous"
         />
       </head>
     <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
     >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[300] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
         <GoogleTagManager gtmId="GTM-WN2W26ZP" />
         <script
           type="application/ld+json"
@@ -122,6 +131,17 @@ export default function RootLayout({
                 "priceCurrency": "USD"
               },
               "description": "A professional tool for editing and previewing HTML, JSON, YAML, and React code with ease."
+            }).replace(/</g, '\\u003c')
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Web Utils",
+              "url": "https://webutils.site"
             }).replace(/</g, '\\u003c')
           }}
         />

@@ -11,6 +11,19 @@ export function SplashScreen({ onCompleteAction }: { onCompleteAction: () => voi
     const textRef = React.useRef<HTMLDivElement>(null);
 
     useGSAP(() => {
+        // Skip the scale/rotate motion for users who prefer reduced motion —
+        // just hold briefly for the brand moment, then fade out.
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            gsap.to(container.current, {
+                opacity: 0,
+                duration: 0.2,
+                delay: 0.3,
+                ease: "power2.inOut",
+                onComplete: onCompleteAction
+            });
+            return;
+        }
+
         const tl = gsap.timeline({
             onComplete: () => {
                 gsap.to(container.current, {

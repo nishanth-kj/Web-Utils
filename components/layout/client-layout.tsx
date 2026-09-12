@@ -42,7 +42,7 @@ function LayoutContent({
 
             <div className={`flex flex-1 overflow-hidden w-full ${isImmersivePage ? "pt-0" : "pt-16"}`}>
                 <div className="relative flex h-full flex-1 flex-col overflow-hidden">
-                    <div className="relative flex-1 overflow-hidden">
+                    <div id="main-content" tabIndex={-1} className="relative flex-1 overflow-hidden outline-none">
                         {children}
                         <FloatingAd />
                     </div>

@@ -6,9 +6,11 @@ export const dynamic = 'force-static';
 const baseUrl = 'https://webutils.site';
 
 // Tool pages carry the search intent, so they rank above the informational pages.
+// /ide is intentionally excluded: it has no internal link anywhere in the
+// nav/sidebar/homepage (its tools.ts entry is commented out), so it isn't
+// part of the site's real navigation and shouldn't be promoted for indexing.
 const TOOL_ROUTES = [
   '/editor',
-  '/ide',
   '/view',
   '/draw',
   '/time',

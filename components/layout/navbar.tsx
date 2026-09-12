@@ -8,6 +8,7 @@ import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CommandMenu } from "@/components/layout/command-menu";
+import { JsonLdSchema } from "@/components/seo/Schema";
 import { getBreadcrumbs } from "@/lib/breadcrumbs";
 
 export function Navbar() {
@@ -31,6 +32,22 @@ export function Navbar() {
                         Web Utils
                     </span>
                 </Link>
+
+                {breadcrumbs.length > 0 && (
+                    <JsonLdSchema
+                        type="BreadcrumbList"
+                        data={{
+                            itemListElement: [{ label: "Home", href: "/" }, ...breadcrumbs].map(
+                                (crumb, index) => ({
+                                    "@type": "ListItem",
+                                    position: index + 1,
+                                    name: crumb.label,
+                                    item: `https://webutils.site${crumb.href}`,
+                                })
+                            ),
+                        }}
+                    />
+                )}
 
                 {breadcrumbs.length > 0 && (
                     <nav

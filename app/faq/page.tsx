@@ -54,7 +54,15 @@ export default function FAQPage() {
                         "@context": "https://schema.org",
                         "@type": "FAQPage",
                         "name": "Frequently Asked Questions",
-                        "url": "https://webutils.site/faq"
+                        "url": "https://webutils.site/faq",
+                        "mainEntity": FAQS.map((faq) => ({
+                            "@type": "Question",
+                            "name": faq.question,
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": faq.answer
+                            }
+                        }))
                     })
                 }}
             />

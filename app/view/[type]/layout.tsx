@@ -1,22 +1,61 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Dynamic Format Viewer",
-  description: "Specialized viewer for specific file formats and data structures with syntax highlighting and tree views.",
-  keywords: ["dynamic viewer", "specialized file viewer", "format parser", "data inspector", "syntax tree", "structured data viewer"],
-  openGraph: {
-    title: "Dynamic Format Viewer | Web Utils",
-    description: "Specialized viewer for specific file formats and data structures.",
-  },
+const FORMAT_LABELS: Record<string, string> = {
+  html: "HTML",
+  json: "JSON",
+  yaml: "YAML",
+  react: "React (JSX)",
+  markdown: "Markdown",
+  xml: "XML",
+  svg: "SVG",
+  csv: "CSV",
+  "android-xml": "Android XML",
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+function labelFor(type: string): string {
+  return FORMAT_LABELS[type] ?? type;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ type: string }>;
+}): Promise<Metadata> {
+  const { type } = await params;
+  const label = labelFor(type);
+  const description = `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`;
+
+  return {
+    title: `${label} Viewer`,
+    description,
+    keywords: [`${label} viewer`, `${label} formatter`, `${label} preview`, "online viewer", "syntax highlighting"],
+    openGraph: {
+      title: `${label} Viewer | Web Utils`,
+      description,
+      url: `https://webutils.site/view/${type}`,
+    },
+    alternates: {
+      canonical: `/view/${type}`,
+    },
+  };
+}
+
+export default async function Layout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ type: string }>;
+}) {
+  const { type } = await params;
+  const label = labelFor(type);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Dynamic Format Viewer | Web Utils",
-    "description": "Specialized viewer for specific file formats and data structures with syntax highlighting and tree views.",
-    "url": "https://webutils.site/view/type",
+    "name": `${label} Viewer | Web Utils`,
+    "description": `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`,
+    "url": `https://webutils.site/view/${type}`,
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Any"
   };
@@ -29,4 +68,5 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       />
       {children}
     </>
-  ); }
+  );
+}
