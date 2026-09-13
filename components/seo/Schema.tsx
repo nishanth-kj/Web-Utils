@@ -1,7 +1,7 @@
 import React from 'react';
 
 type SchemaProps = {
-  type: "WebPage" | "SoftwareApplication" | "BreadcrumbList" | "HowTo";
+  type: "WebPage" | "SoftwareApplication" | "BreadcrumbList" | "HowTo" | "FAQPage";
   data: Record<string, any>;
 };
 

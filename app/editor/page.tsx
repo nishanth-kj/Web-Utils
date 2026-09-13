@@ -1,17 +1,12 @@
-"use client";
-
-import { WorkspaceContainer } from "@/components/workspace/workspace-container";
+import { EditorTool } from "@/components/workspace/editor-tool";
+import { ToolPageShell } from "@/components/shared/tool-page-shell";
+import { ToolSeoSection } from "@/components/shared/tool-seo-section";
+import { TOOL_SEO_CONTENT } from "@/data/tool-seo-content";
 
 export default function EditorPage() {
     return (
-        <div className="flex w-full h-full overflow-hidden bg-background">
-            <h1 className="sr-only">Online Code Editor and Formatter</h1>
-            <main className="flex-1 overflow-hidden relative">
-                <WorkspaceContainer 
-                    initialContent='{\n  "name": "Web Utils Workspace",\n  "status": "Ready"\n}' 
-                    initialFormat="json" 
-                />
-            </main>
-        </div>
+        <ToolPageShell toolSlot={<EditorTool />}>
+            <ToolSeoSection {...TOOL_SEO_CONTENT["/editor"]} />
+        </ToolPageShell>
     );
 }

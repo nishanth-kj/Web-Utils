@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "SQL Visualizer | Web Utils",
     "description": "Turn CREATE TABLE statements into ER diagrams and SELECT queries into readable execution pipelines, plus SQL formatting.",
     "url": "https://webutils.site/sql-visualization",

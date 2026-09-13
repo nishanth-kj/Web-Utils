@@ -1,5 +1,8 @@
 import { TimePage } from "@/components/time";
 import type { Metadata } from "next";
+import { ToolPageShell } from "@/components/shared/tool-page-shell";
+import { ToolSeoSection } from "@/components/shared/tool-seo-section";
+import { TOOL_SEO_CONTENT } from "@/data/tool-seo-content";
 
 export const metadata: Metadata = {
   title: "Unix Epoch Time Converter",
@@ -9,5 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-    return <TimePage />;
+    return (
+        <ToolPageShell toolSlot={<TimePage />}>
+            <ToolSeoSection {...TOOL_SEO_CONTENT["/time"]} />
+        </ToolPageShell>
+    );
 }

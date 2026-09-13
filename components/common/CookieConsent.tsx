@@ -1,22 +1,34 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Info, X } from "lucide-react";
+import { CONSENT_CHANGE_EVENT, getStoredConsent, setStoredConsent } from "@/lib/consent";
+
+function subscribe(callback: () => void) {
+  window.addEventListener(CONSENT_CHANGE_EVENT, callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    window.removeEventListener(CONSENT_CHANGE_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+// No decision can be read during SSR/hydration, so assume one has already
+// been made (banner hidden) until the client snapshot says otherwise — this
+// avoids flashing the banner on every load for returning visitors.
+function getSnapshot() {
+  return getStoredConsent() === null;
+}
+function getServerSnapshot() {
+  return false;
+}
 
 export function CookieConsent() {
-  const [isVisible, setIsVisible] = useState(false);
+  const isVisible = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const consent = localStorage.getItem("cookie-consent");
-    if (!consent) {
-      setIsVisible(true);
-    }
-  }, []);
-
-  const handleAccept = () => {
-    localStorage.setItem("cookie-consent", "accepted");
-    setIsVisible(false);
+  const handleChoice = (accepted: boolean) => {
+    setStoredConsent(accepted ? "accepted" : "declined");
   };
 
   if (!isVisible) return null;
@@ -30,25 +42,34 @@ export function CookieConsent() {
             Cookie Consent
           </div>
           <button
-            onClick={() => setIsVisible(false)}
+            onClick={() => handleChoice(false)}
             className="text-muted-foreground hover:bg-muted rounded-md p-1 transition-colors"
-            aria-label="Close"
+            aria-label="Dismiss and decline"
           >
             <X className="size-4" />
           </button>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          We use cookies to personalize content and ads, to provide social media features and to analyze our traffic.{" "}
+          Web Utils tools run entirely in your browser — nothing you paste or upload is sent to us. We&apos;d like to use
+          analytics and ad cookies to support the site.{" "}
           <Link href="/privacy" className="text-primary hover:underline font-medium">
             Learn more
           </Link>.
         </p>
-        <button
-          onClick={handleAccept}
-          className="w-full mt-1 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          Got it!
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleChoice(false)}
+            className="flex-1 py-2 bg-muted text-foreground text-sm font-semibold rounded-lg hover:bg-muted/70 transition-colors"
+          >
+            Decline
+          </button>
+          <button
+            onClick={() => handleChoice(true)}
+            className="flex-1 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Accept
+          </button>
+        </div>
       </div>
     </div>
   );

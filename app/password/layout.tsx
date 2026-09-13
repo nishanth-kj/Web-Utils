@@ -25,7 +25,7 @@ export default function PasswordLayout({
 }) {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "Advanced Password Generator & Checker",
     "description": "Generate highly secure passwords and check their strength against leaked databases using high-performance Rust WebAssembly.",
     "url": "https://webutils.site/password",
@@ -39,9 +39,7 @@ export default function PasswordLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="min-h-screen bg-background">
-        {children}
-      </div>
+      {children}
     </>
   )
 }

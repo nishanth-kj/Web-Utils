@@ -25,7 +25,7 @@ export default function Layout({
 }) {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "Code Editor & Formatter | Web Utils",
     "description": "Advanced browser-based code editor, JSON formatter, YAML parser, and HTML previewer. Edit code quickly with syntax highlighting.",
     "url": "https://webutils.site/editor",
