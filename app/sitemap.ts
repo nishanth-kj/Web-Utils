@@ -17,6 +17,7 @@ const TOOL_ROUTES = [
   '/crypto',
   '/password',
   '/dummy',
+  '/sql-visualization',
   ...PREVIEWABLE_FORMATS.map((format) => `/view/${format}`),
 ];
 
