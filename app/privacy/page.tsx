@@ -60,8 +60,13 @@ export default function PrivacyPolicyPage() {
 
                     <section>
                         <h2 className="text-xl font-semibold text-foreground mb-3">4. Google AdSense & Cookies</h2>
-                        <p>We use Google AdSense Advertising on our website.</p>
-                        <p className="mt-2">Google, as a third-party vendor, uses cookies to serve ads on our site. Google's use of the DART cookie enables it to serve ads to our users based on previous visits to our site and other sites on the Internet. Users may opt-out of the use of the DART cookie by visiting the Google Ad and Content Network privacy policy.</p>
+                        <p>We use Google AdSense Advertising and Google Tag Manager on our website. These load only after you click &quot;Accept&quot; on the cookie banner shown on your first visit — if you decline, no analytics or advertising cookies are set, though the site remains fully usable either way.</p>
+                        <p className="mt-2">Google, as a third-party vendor, uses cookies to serve ads on our site. Google&apos;s use of the DART cookie enables it to serve ads to our users based on previous visits to our site and other sites on the Internet. Users may opt-out of the use of the DART cookie by visiting the Google Ad and Content Network privacy policy.</p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-semibold text-foreground mb-3">5. Your Tool Data</h2>
+                        <p>The code, files, and text you paste into our formatters, converters, and generators are processed entirely in your browser using JavaScript and WebAssembly. That content is never uploaded to our servers or seen by us.</p>
                     </section>
                 </div>
             </div>

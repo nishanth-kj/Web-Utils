@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) { 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "Mock Data Generator | Web Utils",
     "description": "Generate realistic mock data, JSON payloads, and dummy information for testing and API development.",
     "url": "https://webutils.site/dummy",

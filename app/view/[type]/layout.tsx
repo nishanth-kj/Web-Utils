@@ -37,7 +37,7 @@ export default async function Layout({
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": `${label} Viewer | Web Utils`,
     "description": `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`,
     "url": `https://webutils.site/view/${type}`,

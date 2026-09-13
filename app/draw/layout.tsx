@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "Diagram & Drawing Tool | Web Utils",
     "description": "Create flowcharts, architecture diagrams, and whiteboards instantly in your browser.",
     "url": "https://webutils.site/draw",

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ClientLayout } from "@/components/layout/client-layout";
 import { CookieConsent } from "@/components/common/CookieConsent";
 import { DeferOnPrerender } from "@/components/common/DeferOnPrerender";
+import { ConsentGate } from "@/components/common/ConsentGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -146,13 +147,15 @@ export default function RootLayout({
           Skip to main content
         </a>
         <DeferOnPrerender>
-          <GoogleTagManager gtmId="GTM-WN2W26ZP" />
-          <Script
-            id="adsense-script"
-            strategy="afterInteractive"
-            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434"
-            crossOrigin="anonymous"
-          />
+          <ConsentGate>
+            <GoogleTagManager gtmId="GTM-WN2W26ZP" />
+            <Script
+              id="adsense-script"
+              strategy="afterInteractive"
+              src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2215957287486434"
+              crossOrigin="anonymous"
+            />
+          </ConsentGate>
         </DeferOnPrerender>
         <script
           type="application/ld+json"

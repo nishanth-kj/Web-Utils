@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: React.ReactNode }) {
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "WebApplication",
+    "@type": "SoftwareApplication",
     "name": "Data & File Viewer | Web Utils",
     "description": "View, analyze, and format complex data structures and specific file formats beautifully in the browser.",
     "url": "https://webutils.site/view",
