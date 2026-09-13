@@ -123,10 +123,10 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
     }, [resolvedTheme]);
 
     return (
-        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1">
-            <ResizablePanel defaultSize={isMobile ? 45 : 38} minSize={20}>
-                <div className={`flex flex-col h-full bg-muted/5 ${isMobile ? "border-b" : "border-r"}`}>
-                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1 min-h-0 min-w-0">
+            <ResizablePanel defaultSize={isMobile ? 45 : 38} minSize={20} className="min-h-0 min-w-0">
+                <div className={`flex flex-col h-full bg-muted/5 min-h-0 min-w-0 ${isMobile ? "border-b" : "border-r"}`}>
+                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10 shrink-0">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Query
                         </span>
@@ -139,7 +139,7 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
                             <Wand2 className="size-3" /> Load Sample
                         </Button>
                     </div>
-                    <div className="flex-1 relative overflow-hidden">
+                    <div className="flex-1 relative overflow-hidden min-h-0 min-w-0">
                         <Editor
                             height="100%"
                             language="sql"
@@ -167,9 +167,9 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
 
             <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize={isMobile ? 55 : 62} minSize={30}>
-                <div className="sql-visu-flow h-full flex flex-col bg-background">
-                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5">
+            <ResizablePanel defaultSize={isMobile ? 55 : 62} minSize={30} className="min-h-0 min-w-0">
+                <div className="sql-visu-flow h-full flex flex-col bg-background min-h-0 min-w-0">
+                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5 shrink-0">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Query Flow
                         </span>
@@ -183,7 +183,7 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
                             <Download className="size-3" /> PNG
                         </Button>
                     </div>
-                    <div className="flex-1 relative" ref={flowContainerRef}>
+                    <div className="flex-1 relative h-full w-full min-h-0 overflow-hidden" ref={flowContainerRef}>
                         <ReactFlow
                             key={generation}
                             nodes={nodes}

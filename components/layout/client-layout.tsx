@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import { FloatingAd } from "@/components/ads/FloatingAd";
+// import { FloatingAd } from "@/components/ads/FloatingAd";
 
 // The splash only runs on a visitor's first load, so its GSAP dependency
 // stays out of the bundle every other visit.
@@ -28,12 +28,11 @@ function LayoutContent({
 }) {
     return (
         <div
-            className={`flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background transition-opacity duration-300 ${
-                showSplash ? "opacity-0" : "opacity-100"
-            }`}
+            className={`flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background transition-opacity duration-300 ${showSplash ? "opacity-0" : "opacity-100"
+                }`}
         >
             {isImmersivePage ? (
-                <div className="fixed top-4 left-4 z-[200]">
+                <div className="fixed top-4 left-4 z-40">
                     <SidebarTrigger className="size-10 rounded-xl border bg-background/80 shadow-md backdrop-blur" />
                 </div>
             ) : (
@@ -41,10 +40,10 @@ function LayoutContent({
             )}
 
             <div className={`flex flex-1 overflow-hidden w-full ${isImmersivePage ? "pt-0" : "pt-16"}`}>
-                <div className="relative flex h-full flex-1 flex-col overflow-hidden">
-                    <div id="main-content" tabIndex={-1} className="relative flex-1 overflow-hidden outline-none">
+                <div className="relative flex h-full flex-1 flex-col min-h-0 overflow-hidden">
+                    <div id="main-content" tabIndex={-1} className="relative flex-1 min-h-0 h-full flex flex-col overflow-hidden outline-none">
                         {children}
-                        <FloatingAd />
+                        {/* <FloatingAd /> */}
                     </div>
                 </div>
             </div>
