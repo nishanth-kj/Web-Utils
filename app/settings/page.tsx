@@ -10,9 +10,11 @@ import { Separator } from '@/components/ui/separator';
 import Footer from "@/components/common/Footer";
 
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useHasMounted } from '@/lib/hooks/use-has-mounted';
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
+    const hasMounted = useHasMounted();
     const [fontSize, setFontSize] = useLocalStorage('editorFontSize', 14);
     const [tabSize, setTabSize] = useLocalStorage('editorTabSize', 4);
     const [timeZone, setTimeZone] = useLocalStorage('timeZone', 'UTC');
@@ -25,7 +27,7 @@ export default function SettingsPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <Settings className="size-8 text-indigo-500" />
+                        <Settings className="size-8 text-primary" />
                         Settings
                     </h1>
                     <p className="text-muted-foreground">
@@ -42,23 +44,23 @@ export default function SettingsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-2">
-                                <Button 
-                                    variant={theme === 'light' ? 'default' : 'outline'} 
-                                    className={`flex-1 gap-2 transition-all ${theme === 'light' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`} 
+                                <Button
+                                    variant={hasMounted && theme === 'light' ? 'default' : 'outline'}
+                                    className="flex-1 gap-2 transition-all"
                                     onClick={() => setTheme('light')}
                                 >
                                     <Sun className="size-4" /> Light
                                 </Button>
-                                <Button 
-                                    variant={theme === 'dark' ? 'default' : 'outline'} 
-                                    className={`flex-1 gap-2 transition-all ${theme === 'dark' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                                <Button
+                                    variant={hasMounted && theme === 'dark' ? 'default' : 'outline'}
+                                    className="flex-1 gap-2 transition-all"
                                     onClick={() => setTheme('dark')}
                                 >
                                     <Moon className="size-4" /> Dark
                                 </Button>
-                                <Button 
-                                    variant={theme === 'system' ? 'default' : 'outline'} 
-                                    className={`flex-1 gap-2 transition-all ${theme === 'system' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                                <Button
+                                    variant={hasMounted && theme === 'system' ? 'default' : 'outline'}
+                                    className="flex-1 gap-2 transition-all"
                                     onClick={() => setTheme('system')}
                                 >
                                     <Monitor className="size-4" /> System
@@ -82,7 +84,7 @@ export default function SettingsPage() {
                                     type="number" 
                                     value={fontSize} 
                                     onChange={(e) => setFontSize(Number(e.target.value))}
-                                    className="w-full bg-muted/50 border-transparent focus-visible:ring-indigo-500" 
+                                    className="w-full bg-muted/50 border-transparent focus-visible:ring-ring" 
                                 />
                             </div>
                             <Separator className="bg-border/50" />
@@ -94,7 +96,7 @@ export default function SettingsPage() {
                                     type="number" 
                                     value={tabSize} 
                                     onChange={(e) => setTabSize(Number(e.target.value))}
-                                    className="w-full bg-muted/50 border-transparent focus-visible:ring-indigo-500" 
+                                    className="w-full bg-muted/50 border-transparent focus-visible:ring-ring" 
                                 />
                             </div>
                         </CardContent>
@@ -104,7 +106,7 @@ export default function SettingsPage() {
                     <Card className="border-border/50 shadow-sm md:col-span-2">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Clock className="size-5 text-emerald-500" />
+                                <Clock className="size-5 text-primary" />
                                 Time & Date Configuration
                             </CardTitle>
                             <CardDescription>Default preferences for epoch conversion and time display.</CardDescription>

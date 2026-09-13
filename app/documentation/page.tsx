@@ -12,7 +12,7 @@ export default function DocumentationPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <HelpCircle className="size-8 text-indigo-500" />
+                        <HelpCircle className="size-8 text-primary" />
                         Documentation
                     </h1>
                     <p className="text-muted-foreground">
@@ -24,7 +24,7 @@ export default function DocumentationPage() {
                     <Card className="border-border/50 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Book className="size-5 text-indigo-500" /> Getting Started
+                                <Book className="size-5 text-primary" /> Getting Started
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
@@ -40,7 +40,7 @@ export default function DocumentationPage() {
                     <Card className="border-border/50 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Code className="size-5 text-indigo-500" /> Code Editors
+                                <Code className="size-5 text-primary" /> Code Editors
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
@@ -59,7 +59,7 @@ export default function DocumentationPage() {
                     <Card className="border-border/50 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Sparkles className="size-5 text-indigo-500" /> Formatting
+                                <Sparkles className="size-5 text-primary" /> Formatting
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
@@ -72,7 +72,7 @@ export default function DocumentationPage() {
                     <Card className="border-border/50 shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <Terminal className="size-5 text-indigo-500" /> Keyboard Shortcuts
+                                <Terminal className="size-5 text-primary" /> Keyboard Shortcuts
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4 text-sm text-muted-foreground">
