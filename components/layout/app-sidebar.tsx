@@ -9,6 +9,7 @@ import {
     ChevronRight,
     Search,
     X,
+    Command,
 } from "lucide-react";
 
 import {
@@ -83,13 +84,16 @@ export function AppSidebar() {
         ),
     })).filter((cat) => cat.tools.length > 0);
 
+    const isImmersivePage = pathname.startsWith("/draw");
+
     return (
         <>
             {!isMobile && open ? (
                 <button
                     type="button"
                     aria-label="Close sidebar"
-                    className="fixed inset-x-0 bottom-0 top-16 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 dark:bg-black/40"
+                    className={`fixed inset-x-0 bottom-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 dark:bg-black/40 ${isImmersivePage ? "top-0" : "top-16"
+                        }`}
                     onClick={() => setOpen(false)}
                 />
             ) : null}
@@ -99,12 +103,41 @@ export function AppSidebar() {
                 variant="sidebar"
                 collapsible="offcanvas"
                 className="z-50 border-r bg-background/95 backdrop-blur-xl duration-300 ease-out"
-                style={{ top: "4rem", height: "calc(100svh - 4rem)" }}
+                style={{
+                    top: isImmersivePage ? "0" : "4rem",
+                    height: isImmersivePage ? "100svh" : "calc(100svh - 4rem)",
+                }}
             >
                 <SidebarHeader className="gap-3 border-b border-sidebar-border px-3 py-3">
+                    {isImmersivePage && (
+                        <div className="flex items-center justify-between gap-2 border-b border-sidebar-border pb-3">
+                            <Link
+                                href="/"
+                                onClick={closeSidebar}
+                                className="flex min-w-0 items-center gap-2.5 rounded-md outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                                <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-foreground shadow-xs">
+                                    <Command className="size-4" />
+                                </div>
+                                <span className="truncate text-[15px] font-semibold tracking-tight text-foreground">
+                                    Web Utils
+                                </span>
+                            </Link>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-muted-foreground hover:text-foreground"
+                                onClick={closeSidebar}
+                            >
+                                <X className="size-4" />
+                                <span className="sr-only">Close sidebar</span>
+                            </Button>
+                        </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                         <p className="px-1 text-sm font-semibold tracking-tight">Tools</p>
-                        {!isMobile ? (
+                        {!isImmersivePage && !isMobile ? (
                             <Button
                                 type="button"
                                 variant="ghost"

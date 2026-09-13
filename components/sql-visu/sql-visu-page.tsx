@@ -19,8 +19,8 @@ export function SqlVisuPage() {
     const [formatInput, setFormatInput] = useState(SAMPLE_FORMAT_QUERY);
 
     return (
-        <div className="flex flex-col h-full w-full bg-background">
-            <div className="flex items-center justify-between gap-3 px-4 h-14 border-b bg-muted/10 flex-wrap">
+        <div className="flex flex-col h-full w-full bg-background overflow-y-auto md:overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 min-h-14 shrink-0 border-b bg-muted/10 flex-wrap py-2 sm:py-0">
                 <div className="flex items-center gap-2 shrink-0">
                     <div className="p-1.5 bg-primary/10 rounded-md">
                         <Database className="size-4 text-primary" />
@@ -62,7 +62,7 @@ export function SqlVisuPage() {
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
                 {mode === "format" && <FormatView input={formatInput} onInputChange={setFormatInput} />}
                 {mode === "er" && <ErDiagramView dialect={dialect} ddl={ddl} onDdlChange={setDdl} />}
                 {mode === "query" && <QueryFlowView dialect={dialect} query={query} onQueryChange={setQuery} />}

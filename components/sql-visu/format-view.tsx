@@ -41,10 +41,10 @@ export function FormatView({ input, onInputChange }: FormatViewProps) {
     }, [output]);
 
     return (
-        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1">
-            <ResizablePanel defaultSize={50} minSize={20}>
-                <div className={`flex flex-col h-full bg-muted/5 ${isMobile ? "border-b" : "border-r"}`}>
-                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
+        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1 min-h-0 min-w-0">
+            <ResizablePanel defaultSize={50} minSize={20} className="min-h-0 min-w-0">
+                <div className={`flex flex-col h-full bg-muted/5 min-h-0 min-w-0 ${isMobile ? "border-b" : "border-r"}`}>
+                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10 shrink-0">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Source SQL
                         </span>
@@ -71,7 +71,7 @@ export function FormatView({ input, onInputChange }: FormatViewProps) {
                             </Button>
                         </div>
                     </div>
-                    <div className="flex-1 relative overflow-hidden">
+                    <div className="flex-1 relative overflow-hidden min-h-0 min-w-0">
                         <Editor
                             height="100%"
                             language="sql"
@@ -99,9 +99,9 @@ export function FormatView({ input, onInputChange }: FormatViewProps) {
 
             <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize={50} minSize={25}>
-                <div className="flex flex-col h-full bg-background">
-                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5">
+            <ResizablePanel defaultSize={50} minSize={25} className="min-h-0 min-w-0">
+                <div className="flex flex-col h-full bg-background min-h-0 min-w-0">
+                    <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5 shrink-0">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Formatted Output
                         </span>
@@ -116,7 +116,7 @@ export function FormatView({ input, onInputChange }: FormatViewProps) {
                             <Copy className="size-3.5" />
                         </Button>
                     </div>
-                    <div className="flex-1 relative overflow-hidden">
+                    <div className="flex-1 relative overflow-hidden min-h-0 min-w-0">
                         <Editor
                             height="100%"
                             language="sql"

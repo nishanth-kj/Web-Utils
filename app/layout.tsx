@@ -1,10 +1,10 @@
-import type {Metadata, Viewport} from "next";
-import {Geist, Geist_Mono} from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import { GoogleTagManager } from '@next/third-parties/google';
 import Script from "next/script";
 import "./globals.css";
-import {ThemeProvider} from "@/components/layout/theme-provider";
-import {ClientLayout} from "@/components/layout/client-layout";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import { ClientLayout } from "@/components/layout/client-layout";
 import { CookieConsent } from "@/components/common/CookieConsent";
 import { DeferOnPrerender } from "@/components/common/DeferOnPrerender";
 
@@ -90,7 +90,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-                                   }: {
+}: {
   children: React.ReactNode;
 }) {
   return (
@@ -99,11 +99,15 @@ export default function RootLayout({
         {/* The critical rendering path only reaches these two third-party origins (GTM, AdSense) */}
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
-        {/* Same-origin navigations may be prerendered speculatively (see the
-            <script type="speculationrules"> below); the AdSense loader is
+        {/* Same-origin navigations may be prerendered speculatively; the AdSense loader is
             deferred via DeferOnPrerender so an impression isn't counted for a
             page that was only hovered, never visited. */}
-        <script
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
+      >
+        <Script
+          id="speculation-rules"
           type="speculationrules"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
@@ -135,10 +139,6 @@ export default function RootLayout({
             })
           }}
         />
-      </head>
-    <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
-    >
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[300] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -190,8 +190,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-            {/* CLIENT PART MOVED HERE */}
-            <ClientLayout>{children}</ClientLayout>
+          {/* CLIENT PART MOVED HERE */}
+          <ClientLayout>{children}</ClientLayout>
         </ThemeProvider>
         <CookieConsent />
       </body>
