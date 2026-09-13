@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MonacoEditor as Editor } from "@/components/shared/lazy-monaco";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { StageNode } from "./nodes/stage-node";
 import { parseSelectToFlow } from "@/lib/sql-visu/query-parser";
 import { layoutQueryFlow } from "@/lib/sql-visu/query-flow-layout";
@@ -45,6 +46,7 @@ interface QueryFlowViewProps {
 
 export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewProps) {
     const { resolvedTheme } = useTheme();
+    const isMobile = useIsMobile();
     const [nodes, setNodes, onNodesChange] = useNodesState<{ stage: QueryStage }>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [error, setError] = useState<string | null>(null);
@@ -121,9 +123,9 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
     }, [resolvedTheme]);
 
     return (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-            <ResizablePanel defaultSize={38} minSize={22}>
-                <div className="flex flex-col h-full border-r bg-muted/5">
+        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1">
+            <ResizablePanel defaultSize={isMobile ? 45 : 38} minSize={20}>
+                <div className={`flex flex-col h-full bg-muted/5 ${isMobile ? "border-b" : "border-r"}`}>
                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Query
@@ -165,7 +167,7 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
 
             <ResizableHandle withHandle />
 
-            <ResizablePanel defaultSize={62} minSize={30}>
+            <ResizablePanel defaultSize={isMobile ? 55 : 62} minSize={30}>
                 <div className="sql-visu-flow h-full flex flex-col bg-background">
                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/5">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">

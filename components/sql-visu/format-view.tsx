@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MonacoEditor as Editor } from "@/components/shared/lazy-monaco";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { formatSql } from "@/lib/format-code";
 
 export const SAMPLE_FORMAT_QUERY = `select u.id, u.name, count(p.id) as post_count from users u left join posts p on p.user_id = u.id where u.active = 1 group by u.id, u.name order by post_count desc limit 20;`;
@@ -18,6 +19,7 @@ interface FormatViewProps {
 
 export function FormatView({ input, onInputChange }: FormatViewProps) {
     const { resolvedTheme } = useTheme();
+    const isMobile = useIsMobile();
     const [output, setOutput] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [isFormatting, setIsFormatting] = useState(false);
@@ -39,9 +41,9 @@ export function FormatView({ input, onInputChange }: FormatViewProps) {
     }, [output]);
 
     return (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-            <ResizablePanel defaultSize={50} minSize={25}>
-                <div className="flex flex-col h-full border-r bg-muted/5">
+        <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1">
+            <ResizablePanel defaultSize={50} minSize={20}>
+                <div className={`flex flex-col h-full bg-muted/5 ${isMobile ? "border-b" : "border-r"}`}>
                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                             Source SQL
