@@ -2,6 +2,7 @@ import {
     Box,
     Braces,
     Clock,
+    Database,
     FileCode,
     FileEdit,
     Globe,
@@ -147,6 +148,16 @@ export const TOOLS: Tool[] = [
         category: "core",
         status: "Available",
         icon: FilePlus,
+        isNew: true
+    },
+    {
+        id: "sql-visualizer",
+        name: "SQL Visualizer",
+        description: "Turn CREATE TABLE statements into ER diagrams and SELECT queries into readable execution pipelines",
+        href: "/sql-visualization",
+        category: "core",
+        status: "Available",
+        icon: Database,
         isNew: true
     }
 ];
