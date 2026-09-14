@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactFlow, {
     Background,
     Controls,
@@ -16,12 +16,9 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
-import { AlertTriangle, Database, Download, Loader2, Play, Plus, Wand2 } from "lucide-react";
+import { AlertTriangle, Download, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonacoEditor as Editor } from "@/components/shared/lazy-monaco";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
@@ -33,8 +30,6 @@ import { computeFitViewport } from "@/lib/sql-visu/fit-view";
 import { toFriendlyParseError } from "@/lib/sql-visu/friendly-error";
 import { serializeTablesToDdl } from "@/lib/sql-visu/ddl-serializer";
 import { withNewTable, withoutTable, withNewColumn, withoutColumn, withNewForeignKey, withoutForeignKey } from "@/lib/sql-visu/schema-edit";
-import { generateSampleInserts } from "@/lib/sql-visu/sample-data";
-import { runSchemaPreview, type PreviewTable } from "@/lib/sql-visu/sqlite-preview";
 import type { ParsedTable, SqlDialect } from "@/lib/sql-visu/types";
 
 export const SAMPLE_DDL = `CREATE TABLE authors (
@@ -81,11 +76,6 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
     const generationRef = useRef(0);
     const flowContainerRef = useRef<HTMLDivElement>(null);
     const prevDialectRef = useRef(dialect);
-    const [showDataDialog, setShowDataDialog] = useState(false);
-    const [rowsPerTable, setRowsPerTable] = useState(5);
-    const [previewState, setPreviewState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-    const [previewError, setPreviewError] = useState<string | null>(null);
-    const [previewTables, setPreviewTables] = useState<PreviewTable[]>([]);
 
     // Table-node callbacks need the *current* schema and a way to apply an edit, but are
     // handed to ReactFlow nodes built inside buildDiagram — which applySchemaEdit itself
@@ -269,21 +259,6 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
         }
     }, [resolvedTheme]);
 
-    const insertSql = useMemo(() => generateSampleInserts(tables, dialect, rowsPerTable), [tables, dialect, rowsPerTable]);
-
-    const runPreview = useCallback(async () => {
-        setPreviewState("loading");
-        setPreviewError(null);
-        try {
-            const result = await runSchemaPreview(tables, rowsPerTable);
-            setPreviewTables(result);
-            setPreviewState("ready");
-        } catch (err) {
-            setPreviewError(err instanceof Error ? err.message : "Failed to run this schema against SQLite.");
-            setPreviewState("error");
-        }
-    }, [tables, rowsPerTable]);
-
     return (
         <ResizablePanelGroup key={isMobile ? "mobile" : "desktop"} direction={isMobile ? "vertical" : "horizontal"} className="flex-1 min-h-0 min-w-0">
             <ResizablePanel defaultSize={isMobile ? 45 : 38} minSize={20} className="min-h-0 min-w-0">
@@ -363,15 +338,6 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 text-[10px] font-bold uppercase gap-1.5"
-                                onClick={() => setShowDataDialog(true)}
-                                disabled={tables.length === 0}
-                            >
-                                <Database className="size-3" /> Sample Data
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-[10px] font-bold uppercase gap-1.5"
                                 onClick={handleDownload}
                                 disabled={nodes.length === 0}
                             >
@@ -410,114 +376,6 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                     </div>
                 </div>
             </ResizablePanel>
-
-            <Dialog
-                open={showDataDialog}
-                onOpenChange={(open) => {
-                    setShowDataDialog(open);
-                    if (!open) {
-                        setPreviewState("idle");
-                        setPreviewError(null);
-                    }
-                }}
-            >
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Sample data</DialogTitle>
-                        <DialogDescription>
-                            Fake data generated from the current schema — for trying it out, nothing here is real or sent anywhere.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                            Rows per table
-                        </label>
-                        <Input
-                            type="number"
-                            min={1}
-                            max={50}
-                            value={rowsPerTable}
-                            onChange={(e) => setRowsPerTable(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                            className="h-8 w-20"
-                        />
-                    </div>
-                    <Tabs defaultValue="sql">
-                        <TabsList>
-                            <TabsTrigger value="sql">SQL</TabsTrigger>
-                            <TabsTrigger value="preview">Preview (SQLite / WASM)</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="sql">
-                            <textarea
-                                readOnly
-                                value={insertSql}
-                                className="h-64 w-full resize-none rounded-md border bg-muted/20 p-3 font-mono text-xs"
-                                spellCheck={false}
-                            />
-                        </TabsContent>
-                        <TabsContent value="preview" className="space-y-3">
-                            {previewState !== "ready" && (
-                                <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-md border bg-muted/10">
-                                    {previewState === "error" ? (
-                                        <Alert variant="destructive" className="mx-6">
-                                            <AlertTriangle className="size-4" />
-                                            <AlertDescription>{previewError}</AlertDescription>
-                                        </Alert>
-                                    ) : (
-                                        <p className="max-w-xs text-center text-xs text-muted-foreground">
-                                            Actually runs this schema and the sample INSERTs against a real, throwaway SQLite database compiled to WebAssembly — the first run loads that engine (~650KB).
-                                        </p>
-                                    )}
-                                    <Button size="sm" className="h-8 gap-1.5 text-xs font-bold" onClick={runPreview} disabled={previewState === "loading"}>
-                                        {previewState === "loading" ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-                                        {previewState === "loading" ? "Running…" : previewState === "error" ? "Try again" : "Run preview"}
-                                    </Button>
-                                </div>
-                            )}
-                            {previewState === "ready" && (
-                                <div className="h-64 space-y-4 overflow-y-auto custom-scrollbar rounded-md border bg-muted/10 p-3">
-                                    {previewTables.map((t) => (
-                                        <div key={t.name}>
-                                            <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.name}</p>
-                                            <div className="overflow-x-auto rounded border bg-background">
-                                                <table className="w-full text-left text-xs">
-                                                    <thead>
-                                                        <tr className="border-b bg-muted/40">
-                                                            {t.columns.map((c) => (
-                                                                <th key={c} className="whitespace-nowrap px-2 py-1 font-bold">
-                                                                    {c}
-                                                                </th>
-                                                            ))}
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {t.rows.map((row, i) => (
-                                                            <tr key={i} className="border-b last:border-b-0">
-                                                                {row.map((cell, j) => (
-                                                                    <td key={j} className="whitespace-nowrap px-2 py-1 font-mono text-muted-foreground">
-                                                                        {cell === null ? "NULL" : String(cell)}
-                                                                    </td>
-                                                                ))}
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase" onClick={runPreview}>
-                                        Re-run
-                                    </Button>
-                                </div>
-                            )}
-                        </TabsContent>
-                    </Tabs>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => navigator.clipboard.writeText(insertSql)}>
-                            Copy SQL
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </ResizablePanelGroup>
     );
 }
