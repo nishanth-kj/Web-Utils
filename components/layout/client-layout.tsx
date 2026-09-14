@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 // import { FloatingAd } from "@/components/ads/FloatingAd";
@@ -26,15 +26,23 @@ function LayoutContent({
     isImmersivePage: boolean;
     showSplash: boolean;
 }) {
+    // On immersive pages the open sidebar renders its own logo/close button in
+    // this same top-left corner, on top of this floating trigger (higher
+    // z-index) — leaving it visible underneath intercepts the very next click,
+    // which looks like the button "doesn't move back" when trying to close it.
+    const { open } = useSidebar();
+
     return (
         <div
             className={`flex h-screen min-w-0 flex-1 flex-col overflow-hidden bg-background transition-opacity duration-300 ${showSplash ? "opacity-0" : "opacity-100"
                 }`}
         >
             {isImmersivePage ? (
-                <div className="fixed top-4 left-4 z-40">
-                    <SidebarTrigger className="size-10 rounded-xl border bg-background/80 shadow-md backdrop-blur" />
-                </div>
+                !open && (
+                    <div className="fixed top-4 left-4 z-40">
+                        <SidebarTrigger className="size-10 rounded-xl border bg-background/80 shadow-md backdrop-blur" />
+                    </div>
+                )
             ) : (
                 <Navbar />
             )}

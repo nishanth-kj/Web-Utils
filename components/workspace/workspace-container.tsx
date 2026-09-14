@@ -44,7 +44,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
-import {  ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { formatSql, formatWithPrettier } from '@/lib/format-code';
 
@@ -272,11 +272,11 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                     <TypeIcon className="size-3" /> Font Size
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <input 
-                                        type="range" 
-                                        min="10" 
-                                        max="24" 
-                                        value={prefFontSize} 
+                                    <input
+                                        type="range"
+                                        min="10"
+                                        max="24"
+                                        value={prefFontSize}
                                         onChange={(e) => setPrefFontSize(Number(e.target.value))}
                                         className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                                     />
@@ -289,7 +289,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                 </label>
                                 <div className="flex gap-2">
                                     {[2, 4, 8].map(size => (
-                                        <Button 
+                                        <Button
                                             key={size}
                                             variant={prefTabSize === size ? "secondary" : "ghost"}
                                             size="sm"
@@ -307,12 +307,12 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
             </div>
 
             {/* Main Split Canvas */}
-            <div className="flex-1 flex overflow-hidden">
-                <ResizablePanelGroup direction="horizontal">
+            <div className="flex-1 flex min-w-0 overflow-hidden">
+                <ResizablePanelGroup direction="horizontal" className="min-w-0">
                     {showEditor && (
                         <>
-                            <ResizablePanel defaultSize={50} minSize={20}>
-                                <div className="flex flex-col h-full border-r bg-muted/5">
+                            <ResizablePanel defaultSize={50} minSize={20} className="min-w-0">
+                                <div className="flex flex-col h-full min-w-0 border-r bg-muted/5">
                                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                         <div className="flex items-center gap-2">
                                             <Code2 className="size-4 text-primary" />
@@ -338,29 +338,29 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                         </div>
                                     </div>
                                     <div className="flex-1 relative overflow-hidden">
-                                    <Editor
-                                        height="100%"
-                                        language={getLanguage(format)}
-                                        value={content}
-                                        onChange={(value) => setContent(value || "")}
-                                        onMount={handleEditorDidMount}
-                                        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                                        options={{
-                                            minimap: { enabled: false },
-                                            fontSize: prefFontSize,
-                                            tabSize: prefTabSize,
-                                            wordWrap: wordWrap,
-                                            automaticLayout: true,
-                                            padding: { top: 16 },
-                                            lineNumbersMinChars: 3,
-                                            scrollBeyondLastLine: false,
-                                        }}
-                                    />
-                                    {/* Subtle Editor Footer */}
-                                    <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
-                                        <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
-                                        <span>{content.length} characters</span>
-                                    </div>
+                                        <Editor
+                                            height="100%"
+                                            language={getLanguage(format)}
+                                            value={content}
+                                            onChange={(value) => setContent(value || "")}
+                                            onMount={handleEditorDidMount}
+                                            theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                                            options={{
+                                                minimap: { enabled: false },
+                                                fontSize: prefFontSize,
+                                                tabSize: prefTabSize,
+                                                wordWrap: wordWrap,
+                                                automaticLayout: true,
+                                                padding: { top: 16 },
+                                                lineNumbersMinChars: 3,
+                                                scrollBeyondLastLine: false,
+                                            }}
+                                        />
+                                        {/* Subtle Editor Footer */}
+                                        <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
+                                            <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
+                                            <span>{content.length} characters</span>
+                                        </div>
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -368,8 +368,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                         </>
                     )}
 
-                    <ResizablePanel defaultSize={showEditor ? 50 : 100}>
-                        <div className="flex flex-col h-full bg-background border-l">
+                    <ResizablePanel defaultSize={showEditor ? 50 : 100} className="min-w-0">
+                        <div className="flex flex-col h-full min-w-0 bg-background border-l">
                             <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                 <div className="flex items-center h-8">
                                     <div className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase ring-offset-background transition-all bg-background text-foreground shadow-sm h-7">
@@ -379,7 +379,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                             </div>
 
                             <div className="flex-1 relative overflow-hidden">
-                                <PreviewPane 
+                                <PreviewPane
                                     format={format as any}
                                     content={content}
                                     setContent={setContent}
