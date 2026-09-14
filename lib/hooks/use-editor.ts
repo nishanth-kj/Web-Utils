@@ -41,7 +41,6 @@ export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: U
         if (typeof window === 'undefined') return;
         const savedContent = sessionStorage.getItem(`web-viewer-content-${format}`);
         if (savedContent !== null && savedContent !== content) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setContent(savedContent);
         }
         // Deliberately empty: this must run exactly once on mount, reading
