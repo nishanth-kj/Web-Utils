@@ -5,18 +5,18 @@ import { Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DIALECTS, type SqlDialect } from "@/lib/sql-visu/types";
-import { FormatView, SAMPLE_FORMAT_QUERY } from "./format-view";
-import { ErDiagramView, SAMPLE_DDL } from "./er-diagram-view";
-import { QueryFlowView, SAMPLE_QUERY } from "./query-flow-view";
+import { FormatView } from "./format-view";
+import { ErDiagramView } from "./er-diagram-view";
+import { QueryFlowView } from "./query-flow-view";
 
 type Mode = "format" | "er" | "query";
 
 export function SqlVisuPage() {
     const [mode, setMode] = useState<Mode>("er");
     const [dialect, setDialect] = useState<SqlDialect>("postgresql");
-    const [ddl, setDdl] = useState(SAMPLE_DDL);
-    const [query, setQuery] = useState(SAMPLE_QUERY);
-    const [formatInput, setFormatInput] = useState(SAMPLE_FORMAT_QUERY);
+    const [ddl, setDdl] = useState("");
+    const [query, setQuery] = useState("");
+    const [formatInput, setFormatInput] = useState("");
 
     return (
         <div className="flex flex-col h-full w-full bg-background overflow-y-auto md:overflow-hidden">

@@ -173,6 +173,17 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                             theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
                             value={ddl}
                             onChange={(val) => onDdlChange(val ?? "")}
+                            onMount={(editor, monaco) => {
+                                editor.addCommand(monaco.KeyCode.Space, () => {
+                                    const selections = editor.getSelections();
+                                    if (!selections?.length) return;
+                                    editor.executeEdits("insert-space", selections.map((range) => ({
+                                        range,
+                                        text: " ",
+                                        forceMoveMarkers: true,
+                                    })));
+                                });
+                            }}
                             options={{
                                 fontSize: 13,
                                 minimap: { enabled: false },
@@ -180,6 +191,10 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                                 automaticLayout: true,
                                 wordWrap: "on",
                                 padding: { top: 10, bottom: 10 },
+                                quickSuggestions: false,
+                                suggestOnTriggerCharacters: false,
+                                wordBasedSuggestions: "off",
+                                acceptSuggestionOnCommitCharacter: false,
                             }}
                         />
                     </div>
