@@ -5,6 +5,17 @@ import { Handle, Position, type NodeProps } from "reactflow";
 import { KeyRound, Link2, Table as TableIcon, Plus, X } from "lucide-react";
 import type { ParsedTable } from "@/lib/sql-visu/types";
 import { TABLE_NODE_WIDTH } from "@/lib/sql-visu/er-layout";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export type TableNodeData = {
     table: ParsedTable;
@@ -26,18 +37,29 @@ function TableNodeImpl({ data }: NodeProps<TableNodeData>) {
                 <span className="text-xs font-black uppercase tracking-wide text-foreground truncate flex-1">
                     {table.name}
                 </span>
-                <button
-                    type="button"
-                    className="nodrag shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                    title="Drop table"
-                    onClick={() => {
-                        if (confirm(`Drop table "${table.name}"? This removes it — and any foreign keys pointing to it — from the DDL.`)) {
-                            onDropTable(table.name);
-                        }
-                    }}
-                >
-                    <X className="size-3.5" />
-                </button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <button
+                            type="button"
+                            className="nodrag shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                            title="Drop table"
+                        >
+                            <X className="size-3.5" />
+                        </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Drop table &quot;{table.name}&quot;?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This removes it — and any foreign keys pointing to it — from the DDL.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDropTable(table.name)}>Drop table</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
 
             <div>
