@@ -205,3 +205,12 @@
   }
 }
 
+/* Code Visualizer: highlights the line the step debugger is currently paused on. */
+.cv-current-line {
+  background-color: rgba(56, 189, 248, 0.18);
+}
+.cv-current-line-margin {
+  background-color: rgba(56, 189, 248, 0.6);
+  width: 3px !important;
+}
+
