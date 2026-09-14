@@ -237,7 +237,7 @@ function FlowContent() {
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onPaneMouseMove, onPaneMouseUp, deleteSelected]);
+    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp, deleteSelected]);
 
     const handleDownload = useCallback(() => {
         const container = document.querySelector('.react-flow') as HTMLElement;

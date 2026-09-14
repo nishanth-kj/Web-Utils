@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { NodeProps, NodeResizer } from 'reactflow';
 import { BaseNode } from './base-node';
 import { ImageIcon, Upload } from 'lucide-react';
@@ -33,10 +34,11 @@ export function ImageNode(props: NodeProps) {
             />
             <div className="relative w-full h-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 rounded-xl overflow-hidden group">
                 {image ? (
-                    <img 
-                        src={image} 
-                        alt="Uploaded" 
-                        className="w-full h-full object-cover"
+                    <Image
+                        src={image}
+                        alt="Uploaded"
+                        fill
+                        className="object-cover"
                         style={{ opacity: (data.opacity ?? 100) / 100 }}
                     />
                 ) : (
