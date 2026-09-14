@@ -333,7 +333,7 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             { question: "Is my code saved anywhere besides my browser?", answer: "No, auto-save uses local storage on your device — nothing is uploaded." },
             { question: "Can I use this for large files?", answer: "Monaco handles reasonably large files well, but very large files (tens of thousands of lines) may feel slower in the browser." },
         ],
-        relatedHrefs: ["/view/json", "/draw", "/sql-visualization"],
+        relatedHrefs: ["/view/json", "/draw", "/sql-visualization", "/code-video"],
     },
 
     "/draw": {
@@ -355,7 +355,7 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             { question: "Can I export my diagram?", answer: "Yes, as a PNG image." },
             { question: "Is my diagram saved anywhere?", answer: "Diagrams live in the canvas for your current session; export to PNG to keep a copy." },
         ],
-        relatedHrefs: ["/editor", "/sql-visualization"],
+        relatedHrefs: ["/editor", "/sql-visualization", "/code-video"],
     },
 
     "/sql-visualization": {
@@ -377,6 +377,32 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             { question: "Does it run my SQL against a real database?", answer: "No, it only parses the SQL text to build a diagram — nothing is executed against any database." },
             { question: "Can I visualize a query without also defining its tables?", answer: "Yes, the Query tab visualizes SELECT statements independently of the ER diagram." },
         ],
-        relatedHrefs: ["/editor", "/draw", "/view/json"],
+        relatedHrefs: ["/editor", "/draw", "/code-video"],
+    },
+
+    "/code-video": {
+        toolName: "Code Typing Video Generator",
+        pagePath: "/code-video",
+        what: "The Code Typing Video Generator turns a pasted code snippet into a typing-animation clip — a syntax-highlighted, macOS-style code window that types itself out with a realistic human rhythm. Pick a syntax theme, background, typing speed, resolution, and frame rate, scrub through the animation with playback controls, then export it as an MP4 (up to 4K at 120fps) or grab a PNG of the finished code block. Rendering happens with WebCodecs and canvas directly in your browser, so the code never leaves your machine.",
+        steps: [
+            "Paste your code into the source editor on the left and pick its language.",
+            "Choose a syntax theme, background, window style, and typing speed from the settings panel.",
+            "Pick an export resolution (up to 4K, landscape or vertical) and frame rate (up to 120fps).",
+            "Use the play/pause button and scrubber under the preview to check the animation before exporting.",
+            "Click Export Video to render and download an MP4 (or WebM, on browsers without WebCodecs), or Download PNG to save the fully-typed code block as an image.",
+        ],
+        errors: [
+            { title: "Export video is grayed out", description: "It's disabled until the video font finishes loading — this only takes a moment on first load." },
+            { title: "Export failed at 4K/120fps", description: "Some browsers can't hardware-encode that exact resolution/frame-rate combination. Try a lower frame rate (60fps) or resolution (1080p), or use an up-to-date Chrome/Edge build." },
+            { title: "Video exported as WebM instead of MP4", description: "Your browser doesn't support the WebCodecs video encoder used for fast MP4 export, so it fell back to a real-time WebM recording — the output is still a valid, playable video." },
+        ],
+        faqs: [
+            { question: "Does my code get uploaded anywhere to render the video?", answer: "No. Tokenizing, animating, and encoding all happen locally in your browser using Canvas and the WebCodecs API — nothing is sent to a server." },
+            { question: "What's the maximum resolution and frame rate?", answer: "Up to 4K (3840×2160, or 2160×3840 vertical) at up to 120fps, limited by what your browser's video encoder supports at that combination." },
+            { question: "Can I export a still image instead of a video?", answer: "Yes — Download PNG renders the fully-typed code block, auto-sized to fit every line, as a shareable image." },
+            { question: "Which languages are supported for syntax highlighting?", answer: "JavaScript, TypeScript (including JSX/TSX), Python, Java, C, C++, C#, Go, Rust, Ruby, PHP, Swift, Kotlin, SQL, JSON, YAML, Bash, HTML, CSS, and Markdown." },
+            { question: "Why does the typing look human instead of a robotic constant speed?", answer: "Each character's delay is randomized within a range around your chosen typing speed, with pauses after newlines and faster spacing on whitespace, so the animation reads like a real person typing." },
+        ],
+        relatedHrefs: ["/editor", "/draw", "/sql-visualization"],
     },
 };

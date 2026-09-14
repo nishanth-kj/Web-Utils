@@ -7,7 +7,8 @@ import {
     PenTool,
     FilePlus,
     Eye,
-    Key
+    Key,
+    Clapperboard
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -150,6 +151,16 @@ export const TOOLS: Tool[] = [
         category: "core",
         status: "Available",
         icon: Database,
+        isNew: true
+    },
+    {
+        id: "code-video",
+        name: "Code Typing Video",
+        description: "Turn a code snippet into a typing-animation video with playback controls, then export as 4K/120fps MP4 or a PNG snapshot",
+        href: "/code-video",
+        category: "media",
+        status: "Available",
+        icon: Clapperboard,
         isNew: true
     }
 ];

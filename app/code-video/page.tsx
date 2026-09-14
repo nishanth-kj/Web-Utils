@@ -1,4 +1,4 @@
-import { DrawPage } from "@/components/draw/draw-page";
+import { CodeVideoPage } from "@/components/code-video/code-video-page";
 import { ToolPageShell } from "@/components/shared/tool-page-shell";
 
 export default function Page() {
@@ -6,8 +6,8 @@ export default function Page() {
         <ToolPageShell
             toolSlot={
                 <>
-                    <h1 className="sr-only">Online Diagram and Whiteboard Editor</h1>
-                    <DrawPage />
+                    <h1 className="sr-only">Code Typing Video Generator</h1>
+                    <CodeVideoPage />
                 </>
             }
         />
