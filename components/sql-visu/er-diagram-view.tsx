@@ -8,6 +8,7 @@ import ReactFlow, {
     MarkerType,
     useNodesState,
     useEdgesState,
+    type Connection,
     type Node,
     type Edge,
     type Viewport,
@@ -29,7 +30,7 @@ import { layoutErDiagram } from "@/lib/sql-visu/er-layout";
 import { computeFitViewport } from "@/lib/sql-visu/fit-view";
 import { toFriendlyParseError } from "@/lib/sql-visu/friendly-error";
 import { serializeTablesToDdl } from "@/lib/sql-visu/ddl-serializer";
-import { withNewTable, withoutTable, withNewColumn, withoutColumn } from "@/lib/sql-visu/schema-edit";
+import { withNewTable, withoutTable, withNewColumn, withoutColumn, withNewForeignKey } from "@/lib/sql-visu/schema-edit";
 import { generateSampleInserts } from "@/lib/sql-visu/sample-data";
 import { runSchemaPreview, type PreviewTable } from "@/lib/sql-visu/sqlite-preview";
 import type { ParsedTable, SqlDialect } from "@/lib/sql-visu/types";
@@ -200,6 +201,17 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
 
     const handleAddTable = useCallback(() => applySchemaEdit(withNewTable(tables)), [tables, applySchemaEdit]);
 
+    // Dragging from a column's right (source) handle to another column's left (target)
+    // handle creates a foreign key — source is the referencing side, matching how the
+    // parsed diagram's own edges are already drawn.
+    const handleConnect = useCallback(
+        (connection: Connection) => {
+            if (!connection.source || !connection.target || !connection.sourceHandle || !connection.targetHandle) return;
+            applySchemaEdit(withNewForeignKey(tables, connection.source, connection.sourceHandle, connection.target, connection.targetHandle));
+        },
+        [tables, applySchemaEdit],
+    );
+
     const handleDownload = useCallback(async () => {
         const { toPng } = await import("html-to-image");
         const container = document.querySelector(".sql-visu-er .react-flow") as HTMLElement | null;
@@ -331,6 +343,7 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                             edges={edges}
                             onNodesChange={onNodesChange}
                             onEdgesChange={onEdgesChange}
+                            onConnect={handleConnect}
                             nodeTypes={nodeTypes}
                             defaultViewport={viewport}
                             proOptions={{ hideAttribution: true }}

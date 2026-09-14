@@ -35,6 +35,31 @@ export function withNewColumn(tables: ParsedTable[], tableName: string): ParsedT
     });
 }
 
+/**
+ * Adds a foreign key from one column to another — used when the user drags a connection
+ * between two column handles on the diagram. `fromTable`/`fromColumn` is the referencing
+ * side (gets the FOREIGN KEY constraint); `toTable`/`toColumn` is what it references,
+ * matching the existing source-table-references-target-table convention the parsed
+ * diagram already draws its arrows with.
+ */
+export function withNewForeignKey(tables: ParsedTable[], fromTable: string, fromColumn: string, toTable: string, toColumn: string): ParsedTable[] {
+    if (fromTable === toTable && fromColumn === toColumn) return tables;
+
+    return tables.map((t) => {
+        if (t.name !== fromTable) return t;
+        const alreadyExists = t.foreignKeys.some(
+            (fk) => fk.refTable === toTable && fk.columns.includes(fromColumn) && fk.refColumns.includes(toColumn),
+        );
+        if (alreadyExists) return t;
+
+        return {
+            ...t,
+            columns: t.columns.map((c) => (c.name === fromColumn ? { ...c, isForeignKey: true } : c)),
+            foreignKeys: [...t.foreignKeys, { columns: [fromColumn], refTable: toTable, refColumns: [toColumn] }],
+        };
+    });
+}
+
 /** Removes a column from a table and repairs any foreign key that referenced it. */
 export function withoutColumn(tables: ParsedTable[], tableName: string, columnName: string): ParsedTable[] {
     return tables.map((t) => {
