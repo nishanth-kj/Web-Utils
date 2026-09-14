@@ -8,7 +8,8 @@ import {
     FilePlus,
     Eye,
     Key,
-    Clapperboard
+    Clapperboard,
+    Bug
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -161,6 +162,16 @@ export const TOOLS: Tool[] = [
         category: "media",
         status: "Available",
         icon: Clapperboard,
+        isNew: true
+    },
+    {
+        id: "code-visualizer",
+        name: "Code Visualizer",
+        description: "Step through JavaScript or Python line by line and watch variables, the call stack, and heap objects update live",
+        href: "/code-visualizer",
+        category: "core",
+        status: "Available",
+        icon: Bug,
         isNew: true
     }
 ];

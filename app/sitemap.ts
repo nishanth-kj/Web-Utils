@@ -19,6 +19,7 @@ const TOOL_ROUTES = [
   '/dummy',
   '/sql-visualization',
   '/code-video',
+  '/code-visualizer',
   ...PREVIEWABLE_FORMATS.map((format) => `/view/${format}`),
 ];
 

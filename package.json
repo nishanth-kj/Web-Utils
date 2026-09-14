@@ -10,6 +10,7 @@
     "og": "node scripts/generate-og.mjs"
   },
   "dependencies": {
+    "@babel/standalone": "^7.29.8",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -53,6 +54,7 @@
     "gsap": "^3.15.0",
     "html-to-image": "^1.11.13",
     "input-otp": "^1.4.2",
+    "js-interpreter": "^6.0.2",
     "js-yaml": "^4.1.1",
     "jsonrepair": "^3.14.0",
     "lucide-react": "^0.563.0",
@@ -82,6 +84,7 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@tailwindcss/postcss": "^4",
+    "@types/babel__standalone": "^7.1.9",
     "@types/hast": "^3.0.4",
     "@types/mdast": "^4.0.4",
     "@types/node": "^20",
