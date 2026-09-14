@@ -25,12 +25,13 @@ import { MonacoEditor as Editor } from "@/components/shared/lazy-monaco";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { TableNode, type TableNodeData } from "./nodes/table-node";
+import { FkEdge, type FkEdgeData } from "./edges/fk-edge";
 import { parseDdlToTables } from "@/lib/sql-visu/ddl-parser";
 import { layoutErDiagram } from "@/lib/sql-visu/er-layout";
 import { computeFitViewport } from "@/lib/sql-visu/fit-view";
 import { toFriendlyParseError } from "@/lib/sql-visu/friendly-error";
 import { serializeTablesToDdl } from "@/lib/sql-visu/ddl-serializer";
-import { withNewTable, withoutTable, withNewColumn, withoutColumn, withNewForeignKey } from "@/lib/sql-visu/schema-edit";
+import { withNewTable, withoutTable, withNewColumn, withoutColumn, withNewForeignKey, withoutForeignKey } from "@/lib/sql-visu/schema-edit";
 import { generateSampleInserts } from "@/lib/sql-visu/sample-data";
 import { runSchemaPreview, type PreviewTable } from "@/lib/sql-visu/sqlite-preview";
 import type { ParsedTable, SqlDialect } from "@/lib/sql-visu/types";
@@ -58,6 +59,7 @@ CREATE TABLE reviews (
 );`;
 
 const nodeTypes = { table: TableNode };
+const edgeTypes = { fk: FkEdge };
 const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 
 interface ErDiagramViewProps {
@@ -100,6 +102,9 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
     const handleDropTable = useCallback((tableName: string) => {
         applySchemaEditRef.current(withoutTable(tablesRef.current, tableName));
     }, []);
+    const handleRemoveFk = useCallback((fromTable: string, fromColumn: string, toTable: string, toColumn: string) => {
+        applySchemaEditRef.current(withoutForeignKey(tablesRef.current, fromTable, fromColumn, toTable, toColumn));
+    }, []);
 
     const buildDiagram = useCallback(
         (parsedTables: ParsedTable[]) => {
@@ -115,7 +120,7 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                 height: p.height,
             }));
 
-            const newEdges: Edge[] = [];
+            const newEdges: Edge<FkEdgeData>[] = [];
             for (const table of parsedTables) {
                 for (const fk of table.foreignKeys) {
                     if (!columnsByTable.has(fk.refTable)) continue;
@@ -128,7 +133,8 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                             sourceHandle: col,
                             target: fk.refTable,
                             targetHandle: refCol,
-                            type: "smoothstep",
+                            type: "fk",
+                            data: { onDelete: () => handleRemoveFk(table.name, col, fk.refTable, refCol) },
                             markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
                             style: { strokeWidth: 1.5 },
                         });
@@ -142,7 +148,7 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
             setEdges(newEdges);
             setGeneration((g) => g + 1);
         },
-        [setNodes, setEdges, handleAddColumn, handleDropColumn, handleDropTable],
+        [setNodes, setEdges, handleAddColumn, handleDropColumn, handleDropTable, handleRemoveFk],
     );
 
     const generate = useCallback(
@@ -208,6 +214,30 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
         (connection: Connection) => {
             if (!connection.source || !connection.target || !connection.sourceHandle || !connection.targetHandle) return;
             applySchemaEdit(withNewForeignKey(tables, connection.source, connection.sourceHandle, connection.target, connection.targetHandle));
+        },
+        [tables, applySchemaEdit],
+    );
+
+    // Select an edge/table and hit Delete or Backspace — ReactFlow removes it from the
+    // rendered diagram on its own, but that's just local view state; without this it
+    // would silently reappear on the next parse since the DDL still has it.
+    const handleEdgesDelete = useCallback(
+        (deleted: Edge[]) => {
+            let next = tables;
+            for (const edge of deleted) {
+                if (!edge.source || !edge.target || !edge.sourceHandle || !edge.targetHandle) continue;
+                next = withoutForeignKey(next, edge.source, edge.sourceHandle, edge.target, edge.targetHandle);
+            }
+            applySchemaEdit(next);
+        },
+        [tables, applySchemaEdit],
+    );
+
+    const handleNodesDelete = useCallback(
+        (deleted: Node[]) => {
+            let next = tables;
+            for (const node of deleted) next = withoutTable(next, node.id);
+            applySchemaEdit(next);
         },
         [tables, applySchemaEdit],
     );
@@ -344,7 +374,10 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                             onNodesChange={onNodesChange}
                             onEdgesChange={onEdgesChange}
                             onConnect={handleConnect}
+                            onEdgesDelete={handleEdgesDelete}
+                            onNodesDelete={handleNodesDelete}
                             nodeTypes={nodeTypes}
+                            edgeTypes={edgeTypes}
                             defaultViewport={viewport}
                             proOptions={{ hideAttribution: true }}
                             minZoom={0.1}

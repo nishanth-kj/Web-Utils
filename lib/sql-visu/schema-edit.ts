@@ -60,6 +60,28 @@ export function withNewForeignKey(tables: ParsedTable[], fromTable: string, from
     });
 }
 
+/** Removes one foreign key relationship — used when a dragged connection/edge is deleted from the diagram. */
+export function withoutForeignKey(tables: ParsedTable[], fromTable: string, fromColumn: string, toTable: string, toColumn: string): ParsedTable[] {
+    return tables.map((t) => {
+        if (t.name !== fromTable) return t;
+        const foreignKeys = t.foreignKeys
+            .map((fk) => {
+                if (fk.refTable !== toTable) return fk;
+                const idx = fk.columns.indexOf(fromColumn);
+                if (idx === -1 || fk.refColumns[idx] !== toColumn) return fk;
+                return { ...fk, columns: fk.columns.filter((_, i) => i !== idx), refColumns: fk.refColumns.filter((_, i) => i !== idx) };
+            })
+            .filter((fk) => fk.columns.length > 0);
+
+        const stillForeignKey = new Set(foreignKeys.flatMap((fk) => fk.columns));
+        return {
+            ...t,
+            foreignKeys,
+            columns: t.columns.map((c) => (c.name === fromColumn && !stillForeignKey.has(c.name) ? { ...c, isForeignKey: false } : c)),
+        };
+    });
+}
+
 /** Removes a column from a table and repairs any foreign key that referenced it. */
 export function withoutColumn(tables: ParsedTable[], tableName: string, columnName: string): ParsedTable[] {
     return tables.map((t) => {
