@@ -7,46 +7,49 @@ interface UseEditorOptions {
     debounceMs?: number;
 }
 
+function sessionKey(format: Format) {
+    return `web-viewer-content-${format}`;
+}
+
+function readSession(format: Format): string | null {
+    return typeof window === 'undefined' ? null : sessionStorage.getItem(sessionKey(format));
+}
+
 export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: UseEditorOptions) {
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);
     const [isSaved, setIsSaved] = useState(true);
-    
-    // Sync to props without useEffect to avoid cascading renders
+
+    // Sync to prop changes during render (not an effect) so a format switch
+    // via client-side navigation takes effect before the first paint.
     const [prevInitialContent, setPrevInitialContent] = useState(initialContent);
     const [prevInitialFormat, setPrevInitialFormat] = useState(initialFormat);
 
     if (initialContent !== prevInitialContent || initialFormat !== prevInitialFormat) {
         setPrevInitialContent(initialContent);
         setPrevInitialFormat(initialFormat);
-        
-        let savedContent = null;
-        if (typeof window !== 'undefined') {
-            savedContent = sessionStorage.getItem(`web-viewer-content-${initialFormat}`);
-        }
-
-        setContent(savedContent !== null ? savedContent : initialContent);
+        setContent(readSession(initialFormat) ?? initialContent);
         setFormat(initialFormat);
         setIsSaved(true);
     }
 
-    // Load initial data on mount
+    // Restore any sessionStorage content once mounted. This can't be done
+    // during render like the sync above: `content` has to start out equal to
+    // `initialContent` so it matches the server-rendered HTML that preview
+    // components (JSON tree, Markdown, SVG) already produced — sessionStorage
+    // only exists client-side, so reading it has to wait for mount.
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const savedContent = sessionStorage.getItem(`web-viewer-content-${format}`);
+        const savedContent = readSession(format);
         if (savedContent !== null && savedContent !== content) {
             setContent(savedContent);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only, by design
     }, []);
 
     // Debounced sessionStorage persistence
     useEffect(() => {
         if (typeof window === 'undefined') return;
-
-        const timer = setTimeout(() => {
-            sessionStorage.setItem(`web-viewer-content-${format}`, content);
-        }, debounceMs);
-
+        const timer = setTimeout(() => sessionStorage.setItem(sessionKey(format), content), debounceMs);
         return () => clearTimeout(timer);
     }, [content, format, debounceMs]);
 

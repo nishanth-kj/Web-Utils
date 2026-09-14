@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { MonacoEditor as Editor, type OnMount } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
 import {
     FileEdit,
-    Terminal as TerminalIcon,
-    Table as TableIcon,
-    Code,
     Eye,
     Copy as CopyIcon,
     Braces,
-    Layout,
     ChevronDown,
     Maximize2,
     PanelLeftClose,
@@ -23,10 +19,6 @@ import {
     Download,
     Trash
 } from "lucide-react";
-import { TableViewer } from '@/components/view/table-viewer';
-import { HTMLViewer } from '@/components/view/html-viewer';
-import { CodeViewer } from '@/components/view/code-viewer';
-import { JsonTreeViewer } from '@/components/json/tree-viewer';
 import { PreviewPane } from '@/components/view/preview-pane';
 import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
@@ -41,10 +33,9 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
-import {  ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { formatSql, formatWithPrettier } from '@/lib/format-code';
 
@@ -56,8 +47,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
     });
 
     // Shell State
-    const [terminalInput, setTerminalInput] = useState('');
-    const [terminalOutput, setTerminalOutput] = useState<string[]>([
+    const [, setTerminalOutput] = useState<string[]>([
         'system: workspace activated',
         'system: terminal ready'
     ]);
@@ -86,9 +76,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     const [showEditor, setShowEditor] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [activeTab, setActiveTab] = useState("preview");
     const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-    const editorRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
     // Preview Settings
     const [useBootstrap] = useState(true);
@@ -160,53 +149,6 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
         }
     };
 
-    const handleTerminalSubmit = () => {
-        if (!terminalInput.trim()) return;
-        const cmd = terminalInput.toLowerCase().trim();
-        const newOutput = [...terminalOutput, `$ ${terminalInput}`];
-
-        switch(cmd) {
-            case 'help':
-                newOutput.push('available commands: clear, format, time, stats, info');
-                break;
-            case 'clear':
-                setTerminalOutput([]);
-                setTerminalInput('');
-                return;
-            case 'format':
-                handleAutoFormat();
-                break;
-            case 'time':
-                newOutput.push(`epoch: ${Math.floor(Date.now() / 1000)}`);
-                break;
-            case 'stats':
-                newOutput.push(`chars: ${content.length}`);
-                newOutput.push(`lines: ${content.split('\n').length}`);
-                break;
-            case 'info':
-                newOutput.push(`format: ${format}`);
-                newOutput.push(`file: ${fileName}`);
-                break;
-            default:
-                newOutput.push(`error: command not found: ${cmd}`);
-        }
-        setTerminalOutput(newOutput);
-        setTerminalInput('');
-    };
-
-    const isTabularData = useMemo(() => {
-        try {
-            const parsed = JSON.parse(content);
-            return Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object';
-        } catch {
-            return false;
-        }
-    }, [content]);
-
-    const parsedJson = useMemo(() => {
-        try { return JSON.parse(content); } catch { return null; }
-    }, [content]);
-
     return (
         <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full"}`}>
             {/* Unified Workspace Toolbar */}
@@ -272,11 +214,11 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                     <TypeIcon className="size-3" /> Font Size
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <input 
-                                        type="range" 
-                                        min="10" 
-                                        max="24" 
-                                        value={prefFontSize} 
+                                    <input
+                                        type="range"
+                                        min="10"
+                                        max="24"
+                                        value={prefFontSize}
                                         onChange={(e) => setPrefFontSize(Number(e.target.value))}
                                         className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                                     />
@@ -289,7 +231,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                 </label>
                                 <div className="flex gap-2">
                                     {[2, 4, 8].map(size => (
-                                        <Button 
+                                        <Button
                                             key={size}
                                             variant={prefTabSize === size ? "secondary" : "ghost"}
                                             size="sm"
@@ -307,12 +249,12 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
             </div>
 
             {/* Main Split Canvas */}
-            <div className="flex-1 flex overflow-hidden">
-                <ResizablePanelGroup direction="horizontal">
+            <div className="flex-1 flex min-w-0 overflow-hidden">
+                <ResizablePanelGroup direction="horizontal" className="min-w-0">
                     {showEditor && (
                         <>
-                            <ResizablePanel defaultSize={50} minSize={20}>
-                                <div className="flex flex-col h-full border-r bg-muted/5">
+                            <ResizablePanel defaultSize={50} minSize={20} className="min-w-0">
+                                <div className="flex flex-col h-full min-w-0 border-r bg-muted/5">
                                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                         <div className="flex items-center gap-2">
                                             <Code2 className="size-4 text-primary" />
@@ -338,29 +280,29 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                                         </div>
                                     </div>
                                     <div className="flex-1 relative overflow-hidden">
-                                    <Editor
-                                        height="100%"
-                                        language={getLanguage(format)}
-                                        value={content}
-                                        onChange={(value) => setContent(value || "")}
-                                        onMount={handleEditorDidMount}
-                                        theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
-                                        options={{
-                                            minimap: { enabled: false },
-                                            fontSize: prefFontSize,
-                                            tabSize: prefTabSize,
-                                            wordWrap: wordWrap,
-                                            automaticLayout: true,
-                                            padding: { top: 16 },
-                                            lineNumbersMinChars: 3,
-                                            scrollBeyondLastLine: false,
-                                        }}
-                                    />
-                                    {/* Subtle Editor Footer */}
-                                    <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
-                                        <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
-                                        <span>{content.length} characters</span>
-                                    </div>
+                                        <Editor
+                                            height="100%"
+                                            language={getLanguage(format)}
+                                            value={content}
+                                            onChange={(value) => setContent(value || "")}
+                                            onMount={handleEditorDidMount}
+                                            theme={resolvedTheme === 'dark' ? 'vs-dark' : 'light'}
+                                            options={{
+                                                minimap: { enabled: false },
+                                                fontSize: prefFontSize,
+                                                tabSize: prefTabSize,
+                                                wordWrap: wordWrap,
+                                                automaticLayout: true,
+                                                padding: { top: 16 },
+                                                lineNumbersMinChars: 3,
+                                                scrollBeyondLastLine: false,
+                                            }}
+                                        />
+                                        {/* Subtle Editor Footer */}
+                                        <div className="absolute bottom-0 right-4 h-6 flex items-center gap-4 text-[10px] font-bold text-muted-foreground/40 uppercase z-10 pointer-events-none">
+                                            <span>Line {cursorPos.line}, Col {cursorPos.col}</span>
+                                            <span>{content.length} characters</span>
+                                        </div>
                                     </div>
                                 </div>
                             </ResizablePanel>
@@ -368,8 +310,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                         </>
                     )}
 
-                    <ResizablePanel defaultSize={showEditor ? 50 : 100}>
-                        <div className="flex flex-col h-full bg-background border-l">
+                    <ResizablePanel defaultSize={showEditor ? 50 : 100} className="min-w-0">
+                        <div className="flex flex-col h-full min-w-0 bg-background border-l">
                             <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                 <div className="flex items-center h-8">
                                     <div className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase ring-offset-background transition-all bg-background text-foreground shadow-sm h-7">
@@ -379,8 +321,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                             </div>
 
                             <div className="flex-1 relative overflow-hidden">
-                                <PreviewPane 
-                                    format={format as any}
+                                <PreviewPane
+                                    format={format}
                                     content={content}
                                     setContent={setContent}
                                     useBootstrap={useBootstrap}

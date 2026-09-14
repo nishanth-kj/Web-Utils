@@ -2,7 +2,7 @@ import React from 'react';
 
 type SchemaProps = {
   type: "WebPage" | "SoftwareApplication" | "BreadcrumbList" | "HowTo" | "FAQPage";
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 };
 
 export function JsonLdSchema({ type, data }: SchemaProps) {

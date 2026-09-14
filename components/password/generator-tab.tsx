@@ -33,8 +33,10 @@ interface GeneratorTabProps {
   dbContent: string | null;
 }
 
+type WasmModule = typeof import("@/wasm/pkg/wasm.js");
+
 export function GeneratorTab({ dbContent }: GeneratorTabProps) {
-  const [wasmModule, setWasmModule] = useState<any>(null);
+  const [wasmModule, setWasmModule] = useState<WasmModule | null>(null);
 
   const [password, setPassword] = useState("");
   const [length, setLength] = useState(16);
@@ -50,7 +52,6 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
   const [strength, setStrength] = useState<PasswordStrength | null>(null);
   const [isLeaked, setIsLeaked] = useState<boolean | null>(null);
   const [hashes, setHashes] = useState<Record<string, string>>({});
-  const [showHashes, setShowHashes] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [hashRate, setHashRate] = useState(HASH_RATES[0].value);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -90,9 +91,12 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
     setPassword(newPass);
   }, [wasmModule, length, useUpper, useLower, useNumbers, useSymbols, generateMode, numWords, separator, dbContent]);
 
-  // Initial Generation
+  // Initial Generation — triggers the (WASM-backed) generator once its
+  // dependencies become ready; the `!password` guard makes this a one-shot
+  // action rather than a loop, since setting it flips the guard off.
   useEffect(() => {
     if (wasmModule && !password && dbContent) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       handleGenerate();
     }
   }, [wasmModule, dbContent, handleGenerate, password]);
@@ -100,10 +104,11 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
   // Analyze Password
   useEffect(() => {
     if (!password || !wasmModule) return;
+    const wasm = wasmModule; // narrowed non-null, safe to capture in the closure below
 
     async function analyze() {
       // 1. Strength
-      const result = wasmModule.check_password_strength(password, hashRate);
+      const result = wasm.check_password_strength(password, hashRate);
       setStrength({
         entropy: result.entropy,
         time_to_crack_seconds: result.time_to_crack_seconds,
@@ -113,7 +118,7 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
 
       // 2. Leak Check
       if (dbContent) {
-        const leaked = wasmModule.check_if_leaked(password, dbContent);
+        const leaked = wasm.check_if_leaked(password, dbContent);
         setIsLeaked(leaked);
       }
 
@@ -121,7 +126,7 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
       const newHashes: Record<string, string> = {};
       const displayAlgos = ["MD5", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "SHA3-224", "SHA3-256", "SHA3-384", "SHA3-512", "RIPEMD-160", "BLAKE3"];
       for (const algo of displayAlgos) {
-        newHashes[algo] = wasmModule.compute_hash(algo, password);
+        newHashes[algo] = wasm.compute_hash(algo, password);
       }
       setHashes(newHashes);
 
@@ -154,8 +159,7 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
   const startSimulation = () => {
     if (!password || !strength) return;
     setIsSimulating(true);
-    let attempts = 0;
-    let logs: string[] = [];
+    const logs: string[] = [];
 
     if (simulationRef.current) {
       simulationRef.current.innerHTML = "Initializing Matrix Attack...";
@@ -167,7 +171,6 @@ export function GeneratorTab({ dbContent }: GeneratorTabProps) {
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
         for (let i = 0; i < password.length; i++) r += chars[Math.floor(Math.random() * chars.length)];
 
-        attempts++;
         logs.push(`[${hashRate.toExponential(1)} H/s] ${r} -> <span style="color:#22c55e">FAILED</span>`);
         if (logs.length > 5) logs.shift();
 

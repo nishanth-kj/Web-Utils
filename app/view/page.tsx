@@ -1,18 +1,18 @@
-import { ALL_FORMATS, PREVIEWABLE_FORMATS } from '@/lib/formats';
+import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 import Link from 'next/link';
-import { 
-  FileCode, 
-  ChevronRight, 
-  Globe, 
-  Braces, 
-  Table, 
-  Image as ImageIcon, 
+import {
+  FileCode,
+  ChevronRight,
+  Globe,
+  Braces,
+  Table,
+  Image as ImageIcon,
   FileJson,
-  Sparkles,
-  Smartphone
+  Smartphone,
+  type LucideIcon
 } from 'lucide-react';
 
-const FORMAT_ICONS: Record<string, any> = {
+const FORMAT_ICONS: Record<string, LucideIcon> = {
   html: Globe,
   json: Braces,
   markdown: FileCode,

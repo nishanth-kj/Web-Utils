@@ -35,7 +35,7 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
                         return headers.reduce((obj, header, i) => {
                             obj[header] = values[i];
                             return obj;
-                        }, {} as any);
+                        }, {} as Record<string, string>);
                     });
                 }
             }
@@ -45,16 +45,7 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
         return null;
     }, [content, format]);
 
-    const formattedJsonContent = useMemo(() => {
-        if (format !== 'json') return content;
-        try {
-            return JSON.stringify(JSON.parse(content), null, 2);
-        } catch {
-            return content;
-        }
-    }, [content, format]);
-
-    const handleTableDataChange = (newData: any[]) => {
+    const handleTableDataChange = (newData: Record<string, string>[]) => {
         if (!setContent) return;
         if (format === 'json') {
             setContent(JSON.stringify(newData, null, 2));

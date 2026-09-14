@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { 
     Clock, 
     Calendar,
@@ -17,9 +17,7 @@ import {
     Plus,
     Pause,
     Play,
-    ArrowRight,
     Minus,
-    Maximize2
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -98,13 +96,6 @@ const BASE_OPTIONS = [
 
 const DEFAULT_ACTIVE = ['sec', 'ms', 'utc', 'loc', 'iso', 'rel'];
 
-const STEP_UNITS: { id: string; label: string; seconds: number }[] = [
-    { id: 'sec', label: 'sec', seconds: 1 },
-    { id: 'min', label: 'min', seconds: 60 },
-    { id: 'hour', label: 'hr', seconds: 3600 },
-    { id: 'day', label: 'day', seconds: 86400 },
-];
-
 
 // ----------------------------------------------------------------------
 // Helpers
@@ -118,7 +109,12 @@ const STEP_UNITS: { id: string; label: string; seconds: number }[] = [
 function useHoldRepeat(onStep: () => void) {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const stepRef = useRef(onStep);
-    stepRef.current = onStep;
+    // Keeps the ref pointing at the latest callback without making `start`
+    // itself unstable — a layout effect (not a render-time assignment) is the
+    // safe place to mutate a ref as a side effect.
+    useLayoutEffect(() => {
+        stepRef.current = onStep;
+    });
 
     const clear = useCallback(() => {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -367,7 +363,7 @@ export function EpochConverter() {
             let val = "Invalid Timezone";
             try {
                 val = date.toLocaleString(undefined, { timeZone: tz, hour12: clockFormat === '12h' });
-            } catch (e) {}
+            } catch {}
             return {
                 label: tz,
                 icon: <Globe className="size-4" />,
@@ -609,8 +605,8 @@ export function EpochConverter() {
                                                 <CommandList>
                                                     <CommandEmpty>No timezone found.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {typeof Intl !== 'undefined' && (Intl as any).supportedValuesOf ? (
-                                                            (Intl as any).supportedValuesOf('timeZone').map((tz: string) => {
+                                                        {typeof Intl !== 'undefined' && Intl.supportedValuesOf ? (
+                                                            Intl.supportedValuesOf('timeZone').map((tz: string) => {
                                                                 const tzId = `tz_${tz}`;
                                                                 return (
                                                                     <CommandItem

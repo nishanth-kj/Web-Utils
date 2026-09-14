@@ -1,6 +1,6 @@
 import { jsonrepair } from 'jsonrepair';
 
-export function parseMultipleJson(content: string): any[] {
+export function parseMultipleJson(content: string): unknown[] {
     const text = content.trim();
     if (!text) return [];
 
@@ -9,7 +9,7 @@ export function parseMultipleJson(content: string): any[] {
         return [JSON.parse(text)];
     } catch {}
 
-    const results: any[] = [];
+    const results: unknown[] = [];
     let i = 0;
 
     function skipWhitespaceAndCommas() {
@@ -23,7 +23,7 @@ export function parseMultipleJson(content: string): any[] {
         if (i >= text.length) break;
 
         const char = text[i];
-        let start = i;
+        const start = i;
 
         if (char === '{' || char === '[') {
             // Read until balanced
@@ -58,11 +58,11 @@ export function parseMultipleJson(content: string): any[] {
                 const chunk = text.substring(start, i);
                 try {
                     results.push(JSON.parse(chunk));
-                } catch (e) {
+                } catch {
                     try {
                         const repaired = jsonrepair(chunk);
                         results.push(JSON.parse(repaired));
-                    } catch (e2) {}
+                    } catch {}
                 }
             } else {
                 // Unbalanced, skip one char to prevent infinite loop

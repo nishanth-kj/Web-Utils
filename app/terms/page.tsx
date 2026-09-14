@@ -41,23 +41,23 @@ export default function TermsOfServicePage() {
 
                     <section>
                         <h2 className="text-xl font-semibold text-foreground mb-3">2. Use License</h2>
-                        <p>Permission is granted to temporarily download one copy of the materials on Web Utils's Website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
+                        <p>Permission is granted to temporarily download one copy of the materials on Web Utils&apos;s Website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
                         <ul className="list-disc pl-6 mt-2 space-y-1">
                             <li>modify or copy the materials;</li>
                             <li>use the materials for any commercial purpose or for any public display;</li>
-                            <li>attempt to reverse engineer any software contained on Web Utils's Website;</li>
+                            <li>attempt to reverse engineer any software contained on Web Utils&apos;s Website;</li>
                             <li>remove any copyright or other proprietary notations from the materials.</li>
                         </ul>
                     </section>
 
                     <section>
                         <h2 className="text-xl font-semibold text-foreground mb-3">3. Disclaimer</h2>
-                        <p>All the materials on Web Utils's Website are provided "as is". Web Utils makes no warranties, may it be expressed or implied, therefore negates all other warranties. Furthermore, Web Utils does not make any representations concerning the accuracy or reliability of the use of the materials on its Website or otherwise relating to such materials or any sites linked to this Website.</p>
+                        <p>All the materials on Web Utils&apos;s Website are provided &quot;as is&quot;. Web Utils makes no warranties, may it be expressed or implied, therefore negates all other warranties. Furthermore, Web Utils does not make any representations concerning the accuracy or reliability of the use of the materials on its Website or otherwise relating to such materials or any sites linked to this Website.</p>
                     </section>
 
                     <section>
                         <h2 className="text-xl font-semibold text-foreground mb-3">4. Limitations</h2>
-                        <p>Web Utils or its suppliers will not be hold accountable for any damages that will arise with the use or inability to use the materials on Web Utils's Website, even if Web Utils or an authorize representative of this Website has been notified, orally or written, of the possibility of such damage.</p>
+                        <p>Web Utils or its suppliers will not be hold accountable for any damages that will arise with the use or inability to use the materials on Web Utils&apos;s Website, even if Web Utils or an authorize representative of this Website has been notified, orally or written, of the possibility of such damage.</p>
                     </section>
                 </div>
             </div>

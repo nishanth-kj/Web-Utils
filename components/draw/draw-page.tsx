@@ -4,10 +4,7 @@ import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import ReactFlow, {
     addEdge,
     Background,
-    Controls,
     Connection,
-    Edge,
-
     Node,
     useNodesState,
     useEdgesState,
@@ -18,7 +15,7 @@ import ReactFlow, {
     XYPosition
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Sun, Moon, Link2 } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toPng } from 'html-to-image';
 import { Button } from "../ui/button";
@@ -31,6 +28,7 @@ import { RoughEdge } from './nodes/rough-edge';
 import { TextNode } from './nodes/text-node';
 import { ImageNode } from './nodes/image-node';
 import { ElementType } from './types';
+import { useHasMounted } from '@/lib/hooks/use-has-mounted';
 
 function FlowContent() {
     const { theme, setTheme } = useTheme();
@@ -44,7 +42,7 @@ function FlowContent() {
     const [roughness, setRoughness] = useState(1);
     const [opacity, setOpacity] = useState(100);
     const [isLocked, setIsLocked] = useState(false);
-    const [mounted, setMounted] = useState(false);
+    const mounted = useHasMounted();
 
     const nodeTypes = useMemo(() => ({
         rough: RoughNode,
@@ -57,7 +55,6 @@ function FlowContent() {
     }), []);
 
     useEffect(() => {
-        setMounted(true);
         const script = document.createElement('script');
         script.src = "https://cdn.jsdelivr.net/npm/roughjs@4.5.2/bundled/rough.js";
         script.async = true;
@@ -76,7 +73,7 @@ function FlowContent() {
 
     const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'rough' }, eds)), [setEdges]);
 
-    const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
+    const onPaneMouseDown = useCallback((e: MouseEvent) => {
         if (tool === 'selection' || tool === 'hand' || tool === 'eraser' || tool === 'connection') return;
 
         // Only start if clicking on the pane background, not on an existing node/edge or panel
@@ -95,7 +92,7 @@ function FlowContent() {
         setStartPos(position);
     }, [tool, screenToFlowPosition]);
 
-    const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
+    const onPaneMouseMove = useCallback((e: MouseEvent) => {
         if (!startPos) return;
 
         const currentPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
@@ -173,7 +170,14 @@ function FlowContent() {
         setStartPos(null);
     }, [draggingNodeId]);
 
-    const updateSelectedNodes = useCallback((updates: any) => {
+    const updateSelectedNodes = useCallback((updates: {
+        color?: string;
+        backgroundColor?: string;
+        strokeWidth?: number;
+        strokeStyle?: 'solid' | 'dashed' | 'dotted';
+        roughness?: number;
+        opacity?: number;
+    }) => {
         setNodes((nds) =>
             nds.map((node) => {
                 if (node.selected) {
@@ -205,8 +209,8 @@ function FlowContent() {
     useEffect(() => {
         const flowContainer = flowRef.current;
         if (!flowContainer) return;
-        const handleMouseDown = (e: MouseEvent) => onPaneMouseDown(e as any);
-        const handleMouseMove = (e: MouseEvent) => onPaneMouseMove(e as any);
+        const handleMouseDown = (e: MouseEvent) => onPaneMouseDown(e);
+        const handleMouseMove = (e: MouseEvent) => onPaneMouseMove(e);
         const handleMouseUp = () => onPaneMouseUp();
 
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -233,7 +237,7 @@ function FlowContent() {
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onPaneMouseMove, onPaneMouseUp, deleteSelected]);
+    }, [onPaneMouseDown, onPaneMouseMove, onPaneMouseUp, deleteSelected]);
 
     const handleDownload = useCallback(() => {
         const container = document.querySelector('.react-flow') as HTMLElement;
