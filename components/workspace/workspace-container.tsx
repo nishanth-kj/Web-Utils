@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { MonacoEditor as Editor, type OnMount } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
 import {
     FileEdit,
-    Terminal as TerminalIcon,
-    Table as TableIcon,
-    Code,
     Eye,
     Copy as CopyIcon,
     Braces,
-    Layout,
     ChevronDown,
     Maximize2,
     PanelLeftClose,
@@ -23,10 +19,6 @@ import {
     Download,
     Trash
 } from "lucide-react";
-import { TableViewer } from '@/components/view/table-viewer';
-import { HTMLViewer } from '@/components/view/html-viewer';
-import { CodeViewer } from '@/components/view/code-viewer';
-import { JsonTreeViewer } from '@/components/json/tree-viewer';
 import { PreviewPane } from '@/components/view/preview-pane';
 import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
@@ -41,7 +33,6 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
@@ -56,8 +47,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
     });
 
     // Shell State
-    const [terminalInput, setTerminalInput] = useState('');
-    const [terminalOutput, setTerminalOutput] = useState<string[]>([
+    const [, setTerminalOutput] = useState<string[]>([
         'system: workspace activated',
         'system: terminal ready'
     ]);
@@ -86,9 +76,8 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     const [showEditor, setShowEditor] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [activeTab, setActiveTab] = useState("preview");
     const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
-    const editorRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
 
     // Preview Settings
     const [useBootstrap] = useState(true);
@@ -159,53 +148,6 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
             setTerminalOutput(prev => [...prev, `error: format failed - ${e instanceof Error ? e.message : 'unknown'}`]);
         }
     };
-
-    const handleTerminalSubmit = () => {
-        if (!terminalInput.trim()) return;
-        const cmd = terminalInput.toLowerCase().trim();
-        const newOutput = [...terminalOutput, `$ ${terminalInput}`];
-
-        switch(cmd) {
-            case 'help':
-                newOutput.push('available commands: clear, format, time, stats, info');
-                break;
-            case 'clear':
-                setTerminalOutput([]);
-                setTerminalInput('');
-                return;
-            case 'format':
-                handleAutoFormat();
-                break;
-            case 'time':
-                newOutput.push(`epoch: ${Math.floor(Date.now() / 1000)}`);
-                break;
-            case 'stats':
-                newOutput.push(`chars: ${content.length}`);
-                newOutput.push(`lines: ${content.split('\n').length}`);
-                break;
-            case 'info':
-                newOutput.push(`format: ${format}`);
-                newOutput.push(`file: ${fileName}`);
-                break;
-            default:
-                newOutput.push(`error: command not found: ${cmd}`);
-        }
-        setTerminalOutput(newOutput);
-        setTerminalInput('');
-    };
-
-    const isTabularData = useMemo(() => {
-        try {
-            const parsed = JSON.parse(content);
-            return Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object';
-        } catch {
-            return false;
-        }
-    }, [content]);
-
-    const parsedJson = useMemo(() => {
-        try { return JSON.parse(content); } catch { return null; }
-    }, [content]);
 
     return (
         <div className={`flex flex-col w-full bg-background transition-all duration-300 ${isFullscreen ? "fixed inset-0 z-[200] h-screen" : "h-full"}`}>
@@ -380,7 +322,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
                             <div className="flex-1 relative overflow-hidden">
                                 <PreviewPane
-                                    format={format as any}
+                                    format={format}
                                     content={content}
                                     setContent={setContent}
                                     useBootstrap={useBootstrap}

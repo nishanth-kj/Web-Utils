@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Smartphone, Battery, Wifi, Signal } from 'lucide-react';
+import { Battery, Wifi, Signal } from 'lucide-react';
 
 interface AndroidXmlViewerProps {
     content: string;
@@ -9,11 +9,16 @@ export function AndroidXmlViewer({ content }: AndroidXmlViewerProps) {
     const [doc, setDoc] = useState<Document | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    // DOMParser is a browser-only API and this component is server-rendered
+    // as part of the /view/android-xml page (no ssr:false boundary around
+    // it), so parsing has to stay deferred to a client-only effect rather
+    // than computed during render — otherwise it would throw on the server.
+    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         try {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(content, 'text/xml');
-            
+
             // Check for parse errors
             const parseError = xmlDoc.getElementsByTagName('parsererror');
             if (parseError.length > 0) {
@@ -23,11 +28,12 @@ export function AndroidXmlViewer({ content }: AndroidXmlViewerProps) {
                 setDoc(xmlDoc);
                 setError(null);
             }
-        } catch (e: any) {
-            setError(e.message);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Failed to parse XML');
             setDoc(null);
         }
     }, [content]);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     if (error) {
         return (

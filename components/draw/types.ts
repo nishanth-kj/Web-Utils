@@ -44,4 +44,16 @@ export interface RoughGenerator {
 export interface RoughCanvas {
     draw: (drawable: unknown) => void;
     generator: RoughGenerator;
+    line: (x1: number, y1: number, x2: number, y2: number, options?: RoughOptions) => unknown;
+    path: (d: string, options?: RoughOptions) => unknown;
+}
+
+// roughjs is loaded globally via a CDN <script> (see draw-page.tsx), not
+// installed as a package, so this augments the ambient Window type instead.
+declare global {
+    interface Window {
+        rough?: {
+            canvas: (canvas: HTMLCanvasElement) => RoughCanvas;
+        };
+    }
 }

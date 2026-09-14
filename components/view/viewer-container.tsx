@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PreviewPane } from '@/components/view/preview-pane';
 import { ContainerProps } from '@/types';
@@ -13,7 +13,6 @@ import { useTheme } from 'next-themes';
 import {
     Code2,
     Eye,
-    Table as TableIcon,
     Maximize2,
     ExternalLink,
     PanelLeftClose,
@@ -25,8 +24,7 @@ import {
     ChevronDown,
     Download,
     Trash2,
-    Type,
-    Layout as LayoutIcon
+    Type
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -39,10 +37,9 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
-import { ALL_FORMATS, PREVIEWABLE_FORMATS, getLanguage } from '@/lib/formats';
+import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 
 export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
@@ -53,7 +50,6 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
         initialFormat,
     });
 
-    const [activeTab, setActiveTab] = useState("preview");
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
@@ -117,16 +113,6 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
             console.error(e);
         }
     };
-
-    const formattedContent = useMemo(() => {
-        try {
-            if (format === 'json') return formatMultipleJson(content);
-            if (format === 'yaml') return yaml.dump(yaml.load(content));
-        } catch {
-            return content;
-        }
-        return content;
-    }, [content, format]);
 
     const openFullPage = () => {
         const htmlContent = `
@@ -362,8 +348,8 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                 </div>
 
                                 <div className="flex-1 relative overflow-auto m-0 p-0 border-none bg-background">
-                                    <PreviewPane 
-                                        format={format as any}
+                                    <PreviewPane
+                                        format={format}
                                         content={content}
                                         setContent={setContent}
                                         useBootstrap={useBootstrap}

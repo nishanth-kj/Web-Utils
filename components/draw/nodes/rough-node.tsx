@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useLayoutEffect, useRef } from 'react';
-import { Handle, Position, NodeProps, NodeResizer, useStore } from 'reactflow';
-
-// Type for roughjs
-interface RoughCanvas {
-    generator: any;
-    draw: (drawable: any) => void;
-}
+import { NodeProps, NodeResizer, useStore } from 'reactflow';
 
 import { BaseNode } from './base-node';
 
+// reactflow's internal store state type isn't part of its public API surface,
+// so there's no exported type to annotate this selector's parameter with.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const selector = (s: any) => s.nodeInternals;
 
 export function RoughNode(props: NodeProps) {
@@ -28,7 +25,6 @@ export function RoughNode(props: NodeProps) {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // @ts-ignore
         const rough = window.rough;
         if (!rough) return;
 
@@ -74,11 +70,9 @@ export function RoughNode(props: NodeProps) {
     // Fallback if roughjs is not loaded
     const [roughLoaded, setRoughLoaded] = React.useState(false);
     React.useEffect(() => {
-        // @ts-ignore
         if (window.rough) setRoughLoaded(true);
         else {
             const interval = setInterval(() => {
-                // @ts-ignore
                 if (window.rough) {
                     setRoughLoaded(true);
                     clearInterval(interval);

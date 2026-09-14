@@ -12,7 +12,6 @@ export function RoughEdge({
     sourcePosition,
     targetPosition,
     style = {},
-    markerEnd,
     selected,
 }: EdgeProps) {
     const [edgePath] = getBezierPath({
@@ -35,7 +34,6 @@ export function RoughEdge({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // @ts-ignore
         const rough = window.rough;
         if (!rough) return;
 

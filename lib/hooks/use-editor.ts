@@ -30,11 +30,18 @@ export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: U
         setIsSaved(true);
     }
 
-    // Load initial data on mount
+    // Load initial data on mount. `content` deliberately starts out equal to
+    // `initialContent` (matching the server-rendered snapshot) and is only
+    // corrected from sessionStorage — a client-only store — once mounted;
+    // seeding it eagerly via a lazy useState initializer instead would read
+    // sessionStorage during the client's first render and mismatch the
+    // server HTML that server-rendered preview components (JSON tree,
+    // Markdown, SVG) already produced from `initialContent`.
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const savedContent = sessionStorage.getItem(`web-viewer-content-${format}`);
         if (savedContent !== null && savedContent !== content) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setContent(savedContent);
         }
     }, []);

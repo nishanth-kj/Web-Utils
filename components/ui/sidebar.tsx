@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeftIcon, Menu } from "lucide-react"
 
 import { useIsMobile } from "@/lib/hooks/use-mobile"
+import { useHasMounted } from "@/lib/hooks/use-has-mounted"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -164,6 +165,7 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const mounted = useHasMounted()
 
   if (collapsible === "none") {
     return (
@@ -179,11 +181,6 @@ function Sidebar({
       </div>
     )
   }
-
-  const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
 
   if (isMobile && mounted) {
     return (

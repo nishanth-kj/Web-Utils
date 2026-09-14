@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { 
-    Plus, Minus, MoreHorizontal, GripHorizontal, Activity, 
-    Copy, Trash2, Link2, ChevronUp, ChevronDown, 
+import {
+    Plus, Minus, GripHorizontal, Activity,
+    Copy, Trash2, ChevronUp, ChevronDown,
     ArrowUpToLine, ArrowDownToLine, Layers, RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Slider } from '@/components/ui/slider';
-import { Element } from './types';
+import type { Node } from 'reactflow';
 
 export interface StylePanelProps {
-    elements: any[];
+    elements: Node[];
     selectedElementIds: string[];
     setSelectedElementIds: (ids: string[]) => void;
     
@@ -36,7 +36,15 @@ export interface StylePanelProps {
     opacity: number;
     setOpacity: (o: number) => void;
     
-    updateElement: (id: string, updates: any) => void;
+    updateElement: (id: string, updates: {
+        color?: string;
+        backgroundColor?: string;
+        strokeWidth?: number;
+        strokeStyle?: 'solid' | 'dashed' | 'dotted';
+        roughness?: number;
+        opacity?: number;
+        zIndex?: number;
+    }) => void;
     duplicateSelected: () => void;
     deleteSelected: () => void;
     bringToFront: () => void;
@@ -249,13 +257,13 @@ export function StylePanel({
                                     className={`group flex items-center gap-2 p-1.5 rounded-xl border transition-all cursor-grab active:cursor-grabbing ${isSelected(el.id) ? 'bg-primary/5 border-primary/20' : 'border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
                                     onClick={() => setSelectedElementIds(isSelected(el.id) ? selectedElementIds.filter(id => id !== el.id) : [...selectedElementIds, el.id])}
                                 >
-                                    <div className="size-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${el.color}15`, color: el.color }}>
-                                        <div className="size-1.5 rounded-full" style={{ backgroundColor: el.color }} />
+                                    <div className="size-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${el.data?.color}15`, color: el.data?.color }}>
+                                        <div className="size-1.5 rounded-full" style={{ backgroundColor: el.data?.color }} />
                                     </div>
-                                    
+
                                     <div className="flex flex-col flex-1 min-w-0">
                                         <span className="text-[10px] font-bold capitalize truncate">{el.type}</span>
-                                        <span className="text-[8px] text-muted-foreground">Z-Index: {el.zIndex}</span>
+                                        <span className="text-[8px] text-muted-foreground">Z-Index: {el.data?.zIndex ?? 0}</span>
                                     </div>
 
                                     <div className={`flex items-center gap-1 transition-opacity ${isSelected(el.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>

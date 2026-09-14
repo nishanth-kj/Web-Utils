@@ -15,6 +15,8 @@ interface CrackerTabProps {
   dbContent: string | null;
 }
 
+type WasmModule = typeof import("@/wasm/pkg/wasm.js");
+
 function indexToPassword(idx: bigint, charset: string): string {
   const base = BigInt(charset.length);
   let length = 1;
@@ -64,7 +66,7 @@ function formatEstimatedTime(combinations: number, hashesPerSecond: number = 1_0
 }
 
 export function CrackerTab({ dbContent }: CrackerTabProps) {
-  const [wasmModule, setWasmModule] = useState<any>(null);
+  const [wasmModule, setWasmModule] = useState<WasmModule | null>(null);
 
   const [crackMode, setCrackMode] = useState<"dictionary" | "bruteforce">("dictionary");
   const [targetHash, setTargetHash] = useState("");
@@ -242,7 +244,7 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
               <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hash Algorithm</Label>
               <Select
                 value={crackAlgo}
-                onValueChange={(val) => setCrackAlgo(val as any)}
+                onValueChange={(val) => setCrackAlgo(val)}
                 disabled={isCracking}
               >
                 <SelectTrigger className="w-full h-10 bg-background shadow-sm text-sm overflow-hidden">
