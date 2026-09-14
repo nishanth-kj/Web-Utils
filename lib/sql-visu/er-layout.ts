@@ -15,7 +15,8 @@ export interface ErNodePosition {
 }
 
 function tableHeight(table: ParsedTable): number {
-    return HEADER_HEIGHT + Math.max(table.columns.length, 1) * ROW_HEIGHT + 16;
+    // + ROW_HEIGHT for the "Add Column" footer row every node renders.
+    return HEADER_HEIGHT + Math.max(table.columns.length, 1) * ROW_HEIGHT + ROW_HEIGHT + 16;
 }
 
 /**
