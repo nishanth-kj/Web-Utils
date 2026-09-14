@@ -128,7 +128,8 @@ export default function RootLayout({
                             "/time",
                             "/crypto",
                             "/password",
-                            "/dummy"
+                            "/dummy",
+                            "/code-video"
                           ]
                         }
                       }

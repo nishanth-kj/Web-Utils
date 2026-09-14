@@ -3,8 +3,6 @@ import {Format} from "@/types";
 import {DEFAULT_CONTENT} from "@/data/default-content";
 import {labelForFormat} from "@/lib/format-labels";
 import {ToolPageShell} from "@/components/shared/tool-page-shell";
-import {ToolSeoSection} from "@/components/shared/tool-seo-section";
-import {TOOL_SEO_CONTENT} from "@/data/tool-seo-content";
 
 export function generateStaticParams() {
     return [
@@ -24,7 +22,6 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
     const { type } = await params;
     const format = type as Format;
     const content = (DEFAULT_CONTENT as Record<string, string>)[format] || "";
-    const seoContent = TOOL_SEO_CONTENT[`/view/${type}`];
 
     return (
         <ToolPageShell
@@ -39,8 +36,6 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
                     </main>
                 </div>
             }
-        >
-            {seoContent && <ToolSeoSection {...seoContent} />}
-        </ToolPageShell>
+        />
     );
 }
