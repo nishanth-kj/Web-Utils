@@ -2,7 +2,7 @@
 
 import React, { useSyncExternalStore } from "react";
 import Link from "next/link";
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
 import { CONSENT_CHANGE_EVENT, getStoredConsent, setStoredConsent } from "@/lib/consent";
 
 function subscribe(callback: () => void) {
@@ -34,38 +34,30 @@ export function CookieConsent() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-[999] p-4 bg-card border border-border shadow-2xl rounded-xl transition-all duration-500 ease-in-out animate-in slide-in-from-bottom-5">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 text-foreground font-semibold text-sm">
-            <Info className="size-4 text-primary" />
-            Cookie Consent
-          </div>
-          <button
-            onClick={() => handleChoice(false)}
-            className="text-muted-foreground hover:bg-muted rounded-md p-1 transition-colors"
-            aria-label="Dismiss and decline"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Web Utils tools run entirely in your browser — nothing you paste or upload is sent to us. We&apos;d like to use
-          analytics and ad cookies to support the site.{" "}
-          <Link href="/privacy" className="text-primary hover:underline font-medium">
-            Learn more
-          </Link>.
+    // Kept deliberately compact — on short mobile viewports this sits over
+    // page content (it's `fixed`), so extra height directly risks covering
+    // a tool's primary action button.
+    <div className="fixed bottom-3 left-3 right-3 sm:left-auto sm:right-4 sm:bottom-4 sm:max-w-sm z-[999] p-3 bg-card border border-border shadow-2xl rounded-xl transition-all duration-500 ease-in-out animate-in slide-in-from-bottom-5">
+      <div className="flex flex-col gap-2.5">
+        <p className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+          <Info className="size-4 shrink-0 mt-0.5 text-primary" />
+          <span>
+            Tools run in your browser — nothing you paste is uploaded. We use cookies for analytics and ads;{" "}
+            <Link href="/privacy" className="text-primary hover:underline font-medium">
+              Privacy Policy
+            </Link>.
+          </span>
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => handleChoice(false)}
-            className="flex-1 py-2 bg-muted text-foreground text-sm font-semibold rounded-lg hover:bg-muted/70 transition-colors"
+            className="flex-1 py-1.5 bg-muted text-foreground text-sm font-semibold rounded-lg hover:bg-muted/70 transition-colors"
           >
             Decline
           </button>
           <button
             onClick={() => handleChoice(true)}
-            className="flex-1 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+            className="flex-1 py-1.5 bg-primary text-primary-foreground text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors"
           >
             Accept
           </button>

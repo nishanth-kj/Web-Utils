@@ -189,7 +189,7 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
     <TabsContent value="cracker" className="m-0 p-6">
       <div className="max-w-3xl mx-auto w-full mt-4 space-y-6">
         <div className="text-center space-y-2 mb-8">
-          <div className="mx-auto size-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto size-12 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-4">
             <Unlock className="size-6" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">Offline Hash Cracker</h2>
@@ -286,7 +286,7 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
                   <div className="flex flex-col gap-2 pt-2 border-t text-[10px] text-muted-foreground mt-2">
                     <div className="flex justify-between items-center">
                       <span>Total Combinations:</span>
-                      <span className="font-mono">{Math.pow(bruteCharset.length, bruteMinLen[0]).toLocaleString()}</span>
+                      <span className="font-mono">{Math.pow(bruteCharset.length, bruteMinLen[0]).toLocaleString('en-US')}</span>
                     </div>
                     
                     <div className="space-y-1 mt-2">
@@ -361,8 +361,8 @@ export function CrackerTab({ dbContent }: CrackerTabProps) {
             <div className={cn(
               "mt-6 p-4 rounded-xl border flex items-center justify-center animate-in zoom-in-95 duration-300",
               crackResult === "NOT_FOUND"
-                ? "bg-red-500/10 border-red-500/20 text-red-500"
-                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                ? "bg-destructive/10 border-destructive/20 text-destructive"
+                : "bg-success/10 border-success/20 text-success"
             )}>
               <div className="text-center">
                 <p className="text-xs font-bold uppercase tracking-widest mb-1 opacity-80">

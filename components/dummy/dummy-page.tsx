@@ -200,7 +200,7 @@ export function DummyFilePage() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4">
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                             <FilePlus className="size-8 text-primary" />
                             Dummy File Generator
                         </h1>
@@ -213,14 +213,14 @@ export function DummyFilePage() {
                 <div className="grid gap-6 md:grid-cols-3">
                     <Card className="md:col-span-2 border-border/50 shadow-md bg-muted/5">
                         <CardHeader>
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <Settings2 className="size-3" /> Configuration
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">File Name</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">File Name</label>
                                     <Input
                                         value={fileName}
                                         onChange={(e) => setFileName(e.target.value)}
@@ -230,7 +230,7 @@ export function DummyFilePage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Extension</label>
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Extension</label>
                                     <Input
                                         value={extension}
                                         onChange={(e) => setExtension(e.target.value)}
@@ -242,7 +242,7 @@ export function DummyFilePage() {
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block">File Size</label>
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block">File Size</label>
                                 <div className="flex gap-4">
                                     <Input
                                         type="number"
@@ -259,14 +259,14 @@ export function DummyFilePage() {
                                         className="flex-1"
                                     >
                                         <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50">
-                                            <TabsTrigger value="KB" disabled={isGenerating} className="font-black text-xs">KB</TabsTrigger>
-                                            <TabsTrigger value="MB" disabled={isGenerating} className="font-black text-xs">MB</TabsTrigger>
-                                            <TabsTrigger value="GB" disabled={isGenerating} className="font-black text-xs">GB</TabsTrigger>
+                                            <TabsTrigger value="KB" disabled={isGenerating} className="font-bold text-xs">KB</TabsTrigger>
+                                            <TabsTrigger value="MB" disabled={isGenerating} className="font-bold text-xs">MB</TabsTrigger>
+                                            <TabsTrigger value="GB" disabled={isGenerating} className="font-bold text-xs">GB</TabsTrigger>
                                         </TabsList>
                                     </Tabs>
                                 </div>
                                 <p className="text-xs text-muted-foreground font-medium">
-                                    ≈ {formatBytes(byteSize)} ({byteSize.toLocaleString()} bytes)
+                                    ≈ {formatBytes(byteSize)} ({byteSize.toLocaleString('en-US')} bytes)
                                 </p>
                             </div>
 
@@ -300,7 +300,7 @@ export function DummyFilePage() {
 
                             <div className="pt-2 flex gap-3">
                                 <Button
-                                    className="flex-1 h-14 text-sm font-black uppercase tracking-widest gap-3 shadow-lg shadow-primary/20"
+                                    className="flex-1 h-14 text-sm font-bold uppercase tracking-widest gap-3"
                                     onClick={generateFile}
                                     disabled={isGenerating || !isValidSize}
                                 >
@@ -328,7 +328,7 @@ export function DummyFilePage() {
 
                     <Card className="border-border/50 shadow-sm bg-muted/20">
                         <CardHeader>
-                            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                            <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                 <Info className="size-3 text-primary" /> Info
                             </CardTitle>
                         </CardHeader>

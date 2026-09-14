@@ -54,12 +54,12 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     const [useBootstrap, setUseBootstrap] = useState(true);
     const [useTailwind, setUseTailwind] = useState(true);
     const [showEditor, setShowEditor] = useState(true);
-    
+
     // Editor Settings from LocalStorage
     const [prefFontSize, setPrefFontSize] = useLocalStorage('editorFontSize', 14);
     const [prefTabSize, setPrefTabSize] = useLocalStorage('editorTabSize', 4);
     const [prefWordWrap, setPrefWordWrap] = useLocalStorage('editorWordWrap', 'off');
-    
+
     const [fileName, setFileName] = useState(`view.${getLanguage(initialFormat)}`);
 
     const handleWordWrapToggle = () => {
@@ -186,7 +186,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                     >
                         {showEditor ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
                     </Button>
-                    
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
@@ -199,11 +199,11 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                     <Type className="size-3" /> Font Size
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <input 
-                                        type="range" 
-                                        min="10" 
-                                        max="24" 
-                                        value={prefFontSize} 
+                                    <input
+                                        type="range"
+                                        min="10"
+                                        max="24"
+                                        value={prefFontSize}
                                         onChange={(e) => setPrefFontSize(Number(e.target.value))}
                                         className="flex-1 h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
                                     />
@@ -216,7 +216,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                 </label>
                                 <div className="flex gap-2">
                                     {[2, 4, 8].map(size => (
-                                        <Button 
+                                        <Button
                                             key={size}
                                             variant={prefTabSize === size ? "secondary" : "ghost"}
                                             size="sm"
@@ -232,9 +232,9 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                     <AlignLeft className="size-3" /> Word Wrap
                                 </label>
-                                <Button 
-                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'} 
-                                    size="sm" 
+                                <Button
+                                    variant={prefWordWrap === 'on' ? 'secondary' : 'ghost'}
+                                    size="sm"
                                     className="h-7 w-full text-[10px] font-bold"
                                     onClick={handleWordWrapToggle}
                                 >
@@ -251,12 +251,12 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
             </div>
 
             {/* Split UI with Resizable Panels */}
-            <div className="flex-1 flex overflow-hidden">
-                <ResizablePanelGroup direction="horizontal">
+            <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
+                <ResizablePanelGroup direction="horizontal" className="min-w-0 min-h-0">
                     {showEditor && (
                         <>
-                            <ResizablePanel defaultSize={40} minSize={20}>
-                                <div className="flex flex-col h-full border-r bg-muted/5">
+                            <ResizablePanel defaultSize={50} minSize={20} className="min-w-0 min-h-0">
+                                <div className="flex flex-col h-full min-w-0 min-h-0 border-r bg-muted/5">
                                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                         <div className="flex items-center gap-2">
                                             <Code2 className="size-4 text-primary" />
@@ -285,7 +285,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             </Button>
                                         </div>
                                     </div>
-                                    <div className="flex-1 relative overflow-hidden">
+                                    <div className="flex-1 relative min-w-0 min-h-0 overflow-hidden">
                                         <Editor
                                             height="100%"
                                             language={getLanguage(format)}
@@ -310,8 +310,8 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                         </>
                     )}
 
-                    <ResizablePanel defaultSize={showEditor ? 60 : 100}>
-                        <div className="flex flex-col h-full bg-background">
+                    <ResizablePanel defaultSize={showEditor ? 50 : 100} className="min-w-0 min-h-0">
+                        <div className="flex flex-col h-full min-w-0 min-h-0 bg-background">
                             <div className="flex-1 flex flex-col overflow-hidden">
                                 <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                     <div className="flex items-center h-8">
@@ -319,21 +319,21 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <Eye className="size-3 mr-2" /> Preview
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2">
                                         {format === 'html' && (
                                             <div className="flex items-center gap-1">
-                                                <Button 
-                                                    variant={useBootstrap ? "secondary" : "ghost"} 
-                                                    size="sm" 
+                                                <Button
+                                                    variant={useBootstrap ? "secondary" : "ghost"}
+                                                    size="sm"
                                                     className="h-7 text-[10px] uppercase px-2 font-bold"
                                                     onClick={() => setUseBootstrap(!useBootstrap)}
                                                 >
                                                     BS
                                                 </Button>
-                                                <Button 
-                                                    variant={useTailwind ? "secondary" : "ghost"} 
-                                                    size="sm" 
+                                                <Button
+                                                    variant={useTailwind ? "secondary" : "ghost"}
+                                                    size="sm"
                                                     className="h-7 text-[10px] uppercase px-2 font-bold"
                                                     onClick={() => setUseTailwind(!useTailwind)}
                                                 >
