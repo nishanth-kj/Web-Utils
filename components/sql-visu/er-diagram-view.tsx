@@ -15,6 +15,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { AlertTriangle, Database, Download, Loader2, Play, Plus, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -136,7 +137,10 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
                             type: "fk",
                             data: { onDelete: () => handleRemoveFk(table.name, col, fk.refTable, refCol) },
                             markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
-                            style: { strokeWidth: 1.5 },
+                            // Explicit instead of relying on the .react-flow__edge-path CSS class:
+                            // html-to-image's PNG export can't reliably inline external stylesheet
+                            // rules, so a class-only stroke silently renders invisible in exports.
+                            style: { stroke: "#b1b1b7", strokeWidth: 1.5, fill: "none" },
                         });
                     });
                 }
@@ -246,14 +250,23 @@ export function ErDiagramView({ dialect, ddl, onDdlChange }: ErDiagramViewProps)
         const { toPng } = await import("html-to-image");
         const container = document.querySelector(".sql-visu-er .react-flow") as HTMLElement | null;
         if (!container) return;
-        const dataUrl = await toPng(container, {
-            backgroundColor: resolvedTheme === "dark" ? "#09090b" : "#fafafa",
-            filter: (node) => !node?.classList?.contains("react-flow__minimap") && !node?.classList?.contains("react-flow__controls"),
-        });
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "er-diagram.png";
-        a.click();
+        try {
+            const dataUrl = await toPng(container, {
+                backgroundColor: resolvedTheme === "dark" ? "#09090b" : "#fafafa",
+                filter: (node) => !node?.classList?.contains("react-flow__minimap") && !node?.classList?.contains("react-flow__controls"),
+                // Monaco's CSS loads from a CDN without CORS headers; reading its cssRules to
+                // embed @font-face declarations throws a SecurityError that otherwise aborts
+                // the whole export. The diagram doesn't need any custom fonts embedded anyway.
+                skipFonts: true,
+            });
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = "er-diagram.png";
+            a.click();
+        } catch (err) {
+            console.error(err);
+            toast.error("Couldn't export the diagram as PNG.");
+        }
     }, [resolvedTheme]);
 
     const insertSql = useMemo(() => generateSampleInserts(tables, dialect, rowsPerTable), [tables, dialect, rowsPerTable]);

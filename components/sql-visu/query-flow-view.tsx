@@ -13,6 +13,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { AlertTriangle, Download, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -112,14 +113,23 @@ export function QueryFlowView({ dialect, query, onQueryChange }: QueryFlowViewPr
         const { toPng } = await import("html-to-image");
         const container = document.querySelector(".sql-visu-flow .react-flow") as HTMLElement | null;
         if (!container) return;
-        const dataUrl = await toPng(container, {
-            backgroundColor: resolvedTheme === "dark" ? "#09090b" : "#fafafa",
-            filter: (node) => !node?.classList?.contains("react-flow__controls"),
-        });
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "query-flow.png";
-        a.click();
+        try {
+            const dataUrl = await toPng(container, {
+                backgroundColor: resolvedTheme === "dark" ? "#09090b" : "#fafafa",
+                filter: (node) => !node?.classList?.contains("react-flow__controls"),
+                // Monaco's CSS loads from a CDN without CORS headers; reading its cssRules to
+                // embed @font-face declarations throws a SecurityError that otherwise aborts
+                // the whole export. The diagram doesn't need any custom fonts embedded anyway.
+                skipFonts: true,
+            });
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = "query-flow.png";
+            a.click();
+        } catch (err) {
+            console.error(err);
+            toast.error("Couldn't export the diagram as PNG.");
+        }
     }, [resolvedTheme]);
 
     return (
