@@ -44,6 +44,10 @@ export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: U
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setContent(savedContent);
         }
+        // Deliberately empty: this must run exactly once on mount, reading
+        // whatever `format`/`content` were at that moment — not on every
+        // change, which is what including them as deps would do.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Debounced sessionStorage persistence
