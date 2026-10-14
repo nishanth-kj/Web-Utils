@@ -3,6 +3,10 @@ import Footer from "@/components/common/Footer";
 
 import type { Metadata } from "next";
 
+// Update this date whenever the terms change.
+const EFFECTIVE_DATE = "October 14, 2026";
+const GITHUB_URL = "https://github.com/nishanth-kj/Web-Utils";
+
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "Read the Terms of Service for using the Web Utils suite of developer utilities.",
@@ -31,7 +35,7 @@ export default function TermsOfServicePage() {
             />
             <div className="max-w-4xl mx-auto space-y-8 flex-1 w-full p-6 py-12">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Terms of Service</h1>
-                <p className="text-muted-foreground">Effective Date: {new Date().toLocaleDateString()}</p>
+                <p className="text-muted-foreground">Effective date: {EFFECTIVE_DATE}</p>
                 
                 <div className="space-y-6 text-foreground/80 leading-relaxed">
                     <section>
@@ -40,24 +44,29 @@ export default function TermsOfServicePage() {
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-semibold text-foreground mb-3">2. Use License</h2>
-                        <p>Permission is granted to temporarily download one copy of the materials on Web Utils&apos;s Website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
+                        <h2 className="text-xl font-semibold text-foreground mb-3">2. Using the tools</h2>
+                        <p>You may use the tools on this Website free of charge for personal and commercial work. Anything you create with them (formatted code, converted files, images, videos, diagrams) belongs to you, and you are responsible for having the right to use the content you put into them.</p>
+                        <p className="mt-2">You agree not to:</p>
                         <ul className="list-disc pl-6 mt-2 space-y-1">
-                            <li>modify or copy the materials;</li>
-                            <li>use the materials for any commercial purpose or for any public display;</li>
-                            <li>attempt to reverse engineer any software contained on Web Utils&apos;s Website;</li>
-                            <li>remove any copyright or other proprietary notations from the materials.</li>
+                            <li>disrupt or overload the Website, for example with automated requests at an abusive rate;</li>
+                            <li>use the Website to distribute malware or to break the law;</li>
+                            <li>present the Website, or a copy of it, as an official Web Utils service when it is not.</li>
                         </ul>
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-semibold text-foreground mb-3">3. Disclaimer</h2>
-                        <p>All the materials on Web Utils&apos;s Website are provided &quot;as is&quot;. Web Utils makes no warranties, may it be expressed or implied, therefore negates all other warranties. Furthermore, Web Utils does not make any representations concerning the accuracy or reliability of the use of the materials on its Website or otherwise relating to such materials or any sites linked to this Website.</p>
+                        <h2 className="text-xl font-semibold text-foreground mb-3">3. Source code license</h2>
+                        <p>The Web Utils source code is published under the <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="text-primary underline-offset-4 hover:underline" target="_blank" rel="noopener noreferrer">MIT License</a> on <a href={GITHUB_URL} className="text-primary underline-offset-4 hover:underline" target="_blank" rel="noopener noreferrer">GitHub</a>. That license governs copying, modifying and redistributing the code; these Terms govern use of the hosted Website at webutils.site. The Web Utils name and logo are not covered by the code license.</p>
                     </section>
 
                     <section>
-                        <h2 className="text-xl font-semibold text-foreground mb-3">4. Limitations</h2>
-                        <p>Web Utils or its suppliers will not be hold accountable for any damages that will arise with the use or inability to use the materials on Web Utils&apos;s Website, even if Web Utils or an authorize representative of this Website has been notified, orally or written, of the possibility of such damage.</p>
+                        <h2 className="text-xl font-semibold text-foreground mb-3">4. Disclaimer</h2>
+                        <p>All the materials on Web Utils&apos;s Website are provided &quot;as is&quot;. Web Utils makes no warranties, expressed or implied, and disclaims all other warranties. Furthermore, Web Utils does not make any representations concerning the accuracy or reliability of the use of the materials on its Website or otherwise relating to such materials or any sites linked to this Website.</p>
+                    </section>
+
+                    <section>
+                        <h2 className="text-xl font-semibold text-foreground mb-3">5. Limitations</h2>
+                        <p>Web Utils or its suppliers will not be held accountable for any damages that will arise with the use or inability to use the materials on Web Utils&apos;s Website, even if Web Utils or an authorized representative of this Website has been notified, orally or written, of the possibility of such damage.</p>
                     </section>
                 </div>
             </div>
