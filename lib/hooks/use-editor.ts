@@ -15,6 +15,12 @@ function readSession(format: Format): string | null {
     return typeof window === 'undefined' ? null : sessionStorage.getItem(sessionKey(format));
 }
 
+// Seeds the content another format's viewer opens with (e.g. after a
+// conversion), since each format keeps its own session draft.
+export function writeSessionContent(format: Format, content: string) {
+    sessionStorage.setItem(sessionKey(format), content);
+}
+
 export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: UseEditorOptions) {
     const [content, setContent] = useState(initialContent);
     const [format, setFormat] = useState<Format>(initialFormat);

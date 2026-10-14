@@ -29,6 +29,7 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             { question: "Does the JSON formatter upload my data anywhere?", answer: "No. Parsing, repairing, and formatting all happen in your browser with JavaScript — your JSON never leaves your device." },
             { question: "Can it fix broken JSON automatically?", answer: "Yes, for common mistakes like trailing commas, single-quoted strings, and unquoted keys. It falls back to strict parsing for anything more broken than that." },
             { question: "What's the difference between the tree view and the table view?", answer: "The tree view lets you expand and collapse nested objects and arrays. The table view only appears when your JSON is an array of objects, and shows each field as an editable column." },
+            { question: "Can I convert JSON to YAML or CSV?", answer: "Yes. Use Convert in the source toolbar. JSON to CSV needs an object or an array of objects; nested values are written into their cell as JSON text." },
             { question: "Can I format multiple JSON documents at once?", answer: "Yes — paste several JSON documents back to back and the formatter parses and pretty-prints each one separately." },
             { question: "How is this different from other online JSON formatters?", answer: "It runs entirely client-side with no upload step, includes an editable tree/table view instead of plain text, and auto-repairs many syntax mistakes instead of only reporting them." },
         ],
@@ -53,7 +54,7 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
         faqs: [
             { question: "Why does my YAML fail to parse but the same data works as JSON?", answer: "YAML uses indentation instead of braces, so a single stray space or a mixed tab/space indent changes the structure. Try the JSON Formatter if you just need to validate the data itself." },
             { question: "Does it support multiple documents in one file (--- separators)?", answer: "Yes — js-yaml, the parser behind this tool, supports document separators as well as anchors and aliases." },
-            { question: "Can I convert YAML to JSON here?", answer: "Not directly on this page — format your YAML here, then paste the resulting structure into the JSON Formatter or Code Editor to convert it." },
+            { question: "Can I convert YAML to JSON here?", answer: "Yes. Choose Convert → YAML to JSON in the source toolbar and the JSON Formatter opens with the converted data. Multi-document YAML becomes one JSON document per --- section." },
             { question: "Is my YAML sent anywhere for validation?", answer: "No, parsing happens entirely in your browser via the js-yaml library." },
         ],
         relatedHrefs: ["/view/json", "/view/xml", "/editor"],
@@ -140,11 +141,12 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             "Copy the CSV text or download it as a .csv file when you're done.",
         ],
         errors: [
-            { title: "Columns look misaligned", description: "Rows are split on plain commas, so a value that itself contains a comma will shift every column after it. Remove or re-escape commas inside individual fields." },
+            { title: "Unterminated quoted field", description: "A value opens with a double quote but never closes it, so the rest of the file is read as one cell. Close the quote, and write a literal quote inside a quoted value as two quotes (\"\")." },
             { title: "First row is treated as data instead of headers", description: "The table always uses row 1 as column names; if your file doesn't have a header row, add one before pasting." },
         ],
         faqs: [
-            { question: "Does it handle quoted fields with commas inside them?", answer: "It splits on commas directly, so fields containing commas should be checked carefully afterward — quote-aware parsing isn't guaranteed for every edge case." },
+            { question: "Does it handle quoted fields with commas inside them?", answer: "Yes. Parsing follows RFC 4180, so quoted fields can contain commas, line breaks and escaped quotes (\"\"), and they are quoted again correctly when you edit the table and export." },
+            { question: "Can I convert CSV to JSON?", answer: "Yes. Choose Convert → CSV to JSON in the source toolbar; each row becomes an object keyed by the header row." },
             { question: "Can I edit cells and export the changes?", answer: "Yes, editing a cell in the table updates the CSV text immediately, which you can then copy or download." },
             { question: "What delimiter does it expect?", answer: "Comma-separated values; semicolon- or tab-separated files will need to be converted first." },
             { question: "Is my CSV uploaded anywhere?", answer: "No, parsing and editing happen entirely in your browser." },
