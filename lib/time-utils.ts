@@ -22,10 +22,11 @@ export function formatRelativeTime(date: Date): string {
 }
 
 export function getDayOfYear(date: Date): number {
-    const start = new Date(date.getFullYear(), 0, 0);
-    const diff = date.getTime() - start.getTime();
-    const oneDay = 1000 * 60 * 60 * 24;
-    return Math.floor(diff / oneDay);
+    // Compare calendar dates in UTC: local midnights are 23 or 25 hours apart
+    // across a DST change, which would otherwise floor to the previous day.
+    const start = Date.UTC(date.getFullYear(), 0, 0);
+    const current = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    return Math.round((current - start) / 86400000);
 }
 
 export function getWeekNumber(date: Date): number {
