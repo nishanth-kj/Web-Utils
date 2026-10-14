@@ -10,7 +10,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CommandMenu } from "@/components/layout/command-menu";
 import { JsonLdSchema } from "@/components/seo/Schema";
 import { getBreadcrumbs } from "@/lib/breadcrumbs";
-// import { AdBanner } from "@/components/ads/AdBanner";
 
 export function Navbar() {
     const pathname = usePathname();
@@ -79,19 +78,6 @@ export function Navbar() {
                         </nav>
                     )}
                 </div>
-
-                {/* Desktop Ad Banner - Perfectly Centered in Navbar */}
-                {/* <div className="pointer-events-auto absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center justify-center md:flex">
-                    <div className="relative flex h-[50px] w-[320px] lg:w-[468px] items-center justify-center overflow-hidden">
-                        <AdBanner
-                            dataAdSlot="3740953936"
-                            dataAdFormat="auto"
-                            dataFullWidthResponsive={false}
-                            className="h-[50px] w-full border-none bg-transparent"
-                            style={{ height: "50px", width: "100%" }}
-                        />
-                    </div>
-                </div> */}
 
                 <div className="flex shrink-0 items-center gap-1.5">
                     <CommandMenu />

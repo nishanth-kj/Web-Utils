@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 type AdBannerProps = {
@@ -27,47 +27,35 @@ export function AdBanner({
     style,
 }: AdBannerProps) {
     const isDev = process.env.NODE_ENV === "development";
+    const insRef = useRef<HTMLModElement>(null);
+    const requested = useRef(false);
 
     useEffect(() => {
-        let timeoutId: NodeJS.Timeout;
-        try {
-            // Delay slightly to ensure DOM is mounted and has layout dimensions
-            timeoutId = setTimeout(() => {
-                const ads = document.getElementsByClassName("adsbygoogle");
-                const unfilledAds = Array.from(ads).filter((ad) => {
-                    const isUnfilled =
-                        !ad.getAttribute("data-ad-status") &&
-                        !ad.getAttribute("data-adsbygoogle-status");
-                    const hasWidth =
-                        ad.parentElement && ad.parentElement.offsetWidth > 0;
-                    return isUnfilled && hasWidth;
-                });
-
-                // Push for each unfilled ad slot
-                unfilledAds.forEach(() => {
-                    try {
-                        (window.adsbygoogle = window.adsbygoogle || []).push({});
-                    } catch (err) {
-                        console.error("AdSense push error:", err);
-                    }
-                });
-            }, 100);
-        } catch (error) {
-            console.error("AdSense error:", error);
-        }
+        // One push per <ins>, from the instance that owns it. Pushing once per
+        // unfilled slot on every mount over-requests as soon as two banners
+        // share a page, and StrictMode re-runs effects in development.
+        // The short delay lets the slot get its layout width first.
+        const timeoutId = setTimeout(() => {
+            const ins = insRef.current;
+            if (!ins || requested.current || ins.getAttribute("data-adsbygoogle-status")) return;
+            requested.current = true;
+            try {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+            } catch (err) {
+                console.error("AdSense push error:", err);
+            }
+        }, 100);
         return () => clearTimeout(timeoutId);
     }, []);
 
     return (
         <div className={cn("overflow-hidden rounded-lg w-full block", className)}>
             <ins
+                ref={insRef}
                 className="adsbygoogle"
                 style={{
-                    display: "inline-block",
+                    display: "block",
                     width: "100%",
-                    height: "50px",
-                    minWidth: "300px",
-                    minHeight: "50px",
                     ...style,
                 }}
                 data-ad-client="ca-pub-2215957287486434"

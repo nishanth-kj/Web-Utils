@@ -6,6 +6,7 @@ import { Search, Copy, Check, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdsCard } from "@/components/shared/ads-card";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { type Category, type Tool, TOOL_CATEGORIES, TOOLS } from "@/lib/constants/tools";
 import Footer from "@/components/common/Footer";
 import { cn } from "@/lib/utils";
@@ -175,6 +176,9 @@ export default function ToolsListingPage() {
                             ))
                         )}
                     </div>
+
+                    {/* After the whole tool list: below the fold, so it can't shift content into view. */}
+                    <AdSlot className="mb-8" />
 
                     <AdsCard
                         variant="horizontal"

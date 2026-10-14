@@ -29,6 +29,11 @@ export function CookieConsent() {
 
   const handleChoice = (accepted: boolean) => {
     setStoredConsent(accepted ? "accepted" : "declined");
+    // Declining after an earlier "Accept" (via Cookie settings): ad and
+    // analytics scripts already running can't be unloaded, so start fresh.
+    if (!accepted && (window.adsbygoogle || "dataLayer" in window)) {
+      window.location.reload();
+    }
   };
 
   if (!isVisible) return null;
