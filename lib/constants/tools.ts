@@ -10,6 +10,7 @@ import {
     Key,
     Clapperboard,
     Bug,
+    Video,
     ImagePlus
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
@@ -173,6 +174,16 @@ export const TOOLS: Tool[] = [
         category: "core",
         status: "Available",
         icon: Bug,
+        isNew: true
+    },
+    {
+        id: "video-editor",
+        name: "Video Editor",
+        description: "Trim a video and adjust brightness, contrast, saturation, rotation, and flip, then export the clip as WebM",
+        href: "/video-editor",
+        category: "media",
+        status: "Available",
+        icon: Video,
         isNew: true
     },
     {

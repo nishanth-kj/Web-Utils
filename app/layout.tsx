@@ -130,6 +130,7 @@ export default function RootLayout({
                             "/password",
                             "/dummy",
                             "/code-video",
+                            "/video-editor",
                             "/image-editor"
                           ]
                         }
