@@ -15,7 +15,10 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/documentation",
-  }
+  },
+  // Overlaps /docs (the page the footer links to); keep a single indexed
+  // documentation page instead of two thin ones competing for the same queries.
+  robots: { index: false, follow: true },
 };
 
 export default function Layout({

@@ -25,36 +25,34 @@ const TOOL_ROUTES = [
   ...PREVIEWABLE_FORMATS.map((format) => `/view/${format}`),
 ];
 
+// /settings (per-browser preferences) and /documentation (overlaps /docs)
+// are noindex, so they stay out of the sitemap too.
 const INFO_ROUTES = [
-  '/documentation',
   '/docs',
   '/about',
   '/faq',
   '/contact',
-  '/settings',
   '/privacy',
   '/terms',
 ];
 
+// No lastModified: the build has no reliable per-page modification date, and
+// stamping every URL with the build time tells crawlers unchanged pages
+// changed on every deploy, which teaches them to ignore the field.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
   return [
     {
       url: baseUrl,
-      lastModified,
       changeFrequency: 'weekly' as const,
       priority: 1,
     },
     ...TOOL_ROUTES.map((route) => ({
       url: `${baseUrl}${route}`,
-      lastModified,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
     ...INFO_ROUTES.map((route) => ({
       url: `${baseUrl}${route}`,
-      lastModified,
       changeFrequency: 'monthly' as const,
       priority: 0.4,
     })),

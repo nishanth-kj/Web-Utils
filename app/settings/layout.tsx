@@ -15,7 +15,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/settings",
-  }
+  },
+  // Per-browser preferences: nothing here is useful as a search result.
+  robots: { index: false, follow: true },
 };
 
 export default function Layout({
