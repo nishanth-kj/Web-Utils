@@ -13,18 +13,7 @@ import { cn } from "@/lib/utils";
 export default function ToolsListingPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeCategory, setActiveCategory] = useState("all");
-    // Seeded as null (not Date.now()) so the server and the client's first
-    // render agree; the real, ticking value only exists after mount.
-    const [liveEpoch, setLiveEpoch] = useState<number | null>(null);
-    const [copied, setCopied] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        const tick = () => setLiveEpoch(Math.floor(Date.now() / 1000));
-        tick();
-        const interval = setInterval(tick, 1000);
-        return () => clearInterval(interval);
-    }, []);
 
     const filteredTools = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -44,13 +33,6 @@ export default function ToolsListingPage() {
             tools: filteredTools.filter((tool) => tool.category === category.id),
         })).filter((category) => category.tools.length > 0);
     }, [filteredTools]);
-
-    const handleCopyEpoch = () => {
-        if (liveEpoch === null) return;
-        navigator.clipboard.writeText(String(liveEpoch));
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2000);
-    };
 
     const clearFilters = () => {
         setSearchQuery("");
@@ -95,21 +77,7 @@ export default function ToolsListingPage() {
                         <span className="hidden h-1 w-1 rounded-full bg-border sm:inline-block" />
                         <span>No account required</span>
                         <span className="hidden h-1 w-1 rounded-full bg-border sm:inline-block" />
-                        <button
-                            type="button"
-                            onClick={handleCopyEpoch}
-                            title="Copy Unix epoch"
-                            className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-accent"
-                        >
-                            <span className="size-1.5 rounded-full bg-emerald-500" />
-                            <span className="tabular-nums">{liveEpoch ?? "—"}</span>
-                            {copied ? (
-                                <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
-                            ) : (
-                                <Copy className="size-3 text-muted-foreground" />
-                            )}
-                            <span className="sr-only">{copied ? "Copied epoch" : "Copy epoch"}</span>
-                        </button>
+                        <LiveEpochBadge />
                     </div>
 
                     <div className="mt-10 flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
@@ -190,6 +158,47 @@ export default function ToolsListingPage() {
                 <Footer />
             </div>
         </main>
+    );
+}
+
+// Owns the per-second tick so only this badge re-renders, not the whole
+// tool list.
+function LiveEpochBadge() {
+    // Seeded as null (not Date.now()) so the server and the client's first
+    // render agree; the real, ticking value only exists after mount.
+    const [liveEpoch, setLiveEpoch] = useState<number | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        const tick = () => setLiveEpoch(Math.floor(Date.now() / 1000));
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleCopyEpoch = () => {
+        if (liveEpoch === null) return;
+        navigator.clipboard.writeText(String(liveEpoch));
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={handleCopyEpoch}
+            title="Copy Unix epoch"
+            className="inline-flex items-center gap-2 rounded-full border bg-background px-2.5 py-1 font-mono text-xs text-foreground transition-colors hover:bg-accent"
+        >
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            <span className="tabular-nums">{liveEpoch ?? "—"}</span>
+            {copied ? (
+                <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+                <Copy className="size-3 text-muted-foreground" />
+            )}
+            <span className="sr-only">{copied ? "Copied epoch" : "Copy epoch"}</span>
+        </button>
     );
 }
 

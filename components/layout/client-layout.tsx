@@ -66,8 +66,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (localStorage.getItem("hasSeenSplash_v1")) return;
+        // Visitors landing on a tool (mostly from search) came to use it right
+        // away; hiding it behind the intro would delay their first paint.
+        if (pathname !== "/") {
+            localStorage.setItem("hasSeenSplash_v1", "true");
+            return;
+        }
         const frame = window.requestAnimationFrame(() => setShowSplash(true));
         return () => window.cancelAnimationFrame(frame);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- first landing page only
     }, []);
 
     const handleSplashComplete = () => {
