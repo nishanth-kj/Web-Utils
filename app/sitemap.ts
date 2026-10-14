@@ -20,6 +20,7 @@ const TOOL_ROUTES = [
   '/sql-visualization',
   '/code-video',
   '/code-visualizer',
+  '/video-editor',
   '/image-editor',
   ...PREVIEWABLE_FORMATS.map((format) => `/view/${format}`),
 ];
