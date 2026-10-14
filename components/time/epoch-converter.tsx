@@ -223,7 +223,9 @@ export function EpochConverter() {
     // Seeded as null (not Date.now()) so the server and the client's first
     // render agree; the real, ticking value only exists after mount.
     const [liveEpoch, setLiveEpoch] = useState<number | null>(null);
-    const [isPaused, setIsPaused] = useState(false);
+    // Paused by default (issue #30): while live, every tick replaces a
+    // non-empty input with the current time, which overwrote what people typed.
+    const [isPaused, setIsPaused] = useState(true);
     const [copied, setCopied] = useState<CopiedField>(null);
 
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -298,6 +300,12 @@ export function EpochConverter() {
         return { parsedDate: d, epochSeconds: Math.floor(d.getTime() / 1000), epochMillis: d.getTime(), error: "", isInputMillis: false };
     }, [input]);
 
+    // A value the user enters must not be replaced by the next live tick.
+    const handleManualInput = (value: string) => {
+        setIsPaused(true);
+        setInput(value);
+    };
+
     const setNow = () => {
         const now = Math.floor(Date.now() / 1000);
         setInput(String(now));
@@ -316,6 +324,7 @@ export function EpochConverter() {
                 current.getTime() + direction * 1000
             );
 
+            setIsPaused(true);
             setInput(String(Math.floor(next.getTime() / 1000)));
         },
         [parsedDate]
@@ -458,7 +467,7 @@ export function EpochConverter() {
                                 <Input
                                     type="text"
                                     value={input}
-                                    onChange={(e) => setInput(e.target.value)}
+                                    onChange={(e) => handleManualInput(e.target.value)}
                                     placeholder="Enter timestamp or date..."
                                     className="h-10 font-mono text-sm px-3 border-0 rounded-none shadow-none focus-visible:ring-0 bg-transparent"
                                 />
@@ -502,7 +511,7 @@ export function EpochConverter() {
 
                                     <Input
                                         type="datetime-local"
-                                        onChange={(e) => setInput(e.target.value)}
+                                        onChange={(e) => handleManualInput(e.target.value)}
                                         className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
                                         title="Pick a date"
                                     />
