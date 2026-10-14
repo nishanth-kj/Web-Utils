@@ -14,8 +14,10 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored/generated output, not app source.
     "wasm/pkg/**",
-    // Bundled Claude Code skill files, not part of this app.
+    // Locally installed agent skill files (gitignored), not part of this app.
     ".agents/**",
+    ".claude/**",
+    "data/skills/**",
     // Plain CommonJS Node build script (no "type": "module" in package.json),
     // so require() here is intentional rather than a lint violation.
     "scripts/submit-indexnow.js",

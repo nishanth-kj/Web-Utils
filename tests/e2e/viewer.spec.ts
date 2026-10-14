@@ -56,3 +56,32 @@ test("format menu only links to generated pages", async ({ page }) => {
     await expect(page.getByRole("menuitem", { name: "TypeScript" })).toHaveCount(0);
     await expect(page.getByRole("menuitem", { name: "YAML" })).toBeVisible();
 });
+
+test.describe("keeps the user's text (issue #37)", () => {
+    const editorText = (page: Page) => page.locator(".monaco-editor .view-lines").first();
+
+    test("when switching formats", async ({ page }) => {
+        await openViewerWith(page, "json", '{"kept_marker": 1}');
+        await expect(editorText(page)).toContainText("kept_marker", { timeout: 15_000 });
+
+        await page.getByRole("button", { name: "json", exact: true }).click();
+        await page.getByRole("menuitem", { name: "YAML" }).click();
+
+        await expect(page).toHaveURL(/\/view\/yaml$/);
+        await expect(editorText(page)).toContainText("kept_marker", { timeout: 15_000 });
+    });
+
+    test("when opening the code editor from a preview", async ({ page }) => {
+        await openViewerWith(page, "html", "<p>kept_marker</p>");
+        await expect(editorText(page)).toContainText("kept_marker", { timeout: 15_000 });
+
+        await page.getByRole("button", { name: "Open in Editor" }).click();
+
+        await expect(page).toHaveURL(/\/editor$/);
+        await expect(editorText(page)).toContainText("kept_marker", { timeout: 15_000 });
+        // The file name input follows the handed-over format.
+        await expect
+            .poll(() => page.locator("input").evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value)))
+            .toContain("index.html");
+    });
+});

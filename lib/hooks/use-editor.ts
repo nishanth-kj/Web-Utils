@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Format } from '@/types';
+import { ALL_FORMATS } from '@/lib/formats';
 
 interface UseEditorOptions {
     initialContent: string;
@@ -19,6 +20,24 @@ function readSession(format: Format): string | null {
 // conversion), since each format keeps its own session draft.
 export function writeSessionContent(format: Format, content: string) {
     sessionStorage.setItem(sessionKey(format), content);
+}
+
+export function readSessionContent(format: Format): string | null {
+    return readSession(format);
+}
+
+const EDITOR_FORMAT_KEY = 'web-editor-format';
+
+// The code editor reopens in the format it was last used with, or the one a
+// viewer hands it through "Open in Editor".
+export function writeEditorFormat(format: Format) {
+    sessionStorage.setItem(EDITOR_FORMAT_KEY, format);
+}
+
+export function readEditorFormat(): Format | null {
+    if (typeof window === 'undefined') return null;
+    const value = sessionStorage.getItem(EDITOR_FORMAT_KEY);
+    return value && (ALL_FORMATS as string[]).includes(value) ? (value as Format) : null;
 }
 
 export function useEditor({ initialContent, initialFormat, debounceMs = 500 }: UseEditorOptions) {
