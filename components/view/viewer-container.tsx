@@ -44,6 +44,7 @@ import {
 import { useEditor, writeSessionContent } from '@/lib/hooks/use-editor';
 import { CONVERSIONS, type Conversion } from '@/lib/convert';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { getLanguage, PREVIEWABLE_FORMATS } from '@/lib/formats';
 import { buildPreviewDocument, openSandboxedPreview, svgToDataUrl } from '@/lib/preview-document';
 import { Separator } from '@/components/ui/separator';
@@ -62,6 +63,8 @@ const PRETTIER_PARSERS: Partial<Record<Format, string>> = {
 export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
     const router = useRouter();
     const { resolvedTheme } = useTheme();
+    // Side-by-side panes leave each about 180px wide on a phone; stack them instead.
+    const isMobile = useIsMobile();
     const { content, setContent, format, setFormat } = useEditor({
         initialContent,
         initialFormat,
@@ -280,11 +283,11 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
 
             {/* Split UI with Resizable Panels */}
             <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
-                <ResizablePanelGroup direction="horizontal" className="min-w-0 min-h-0">
+                <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="min-w-0 min-h-0">
                     {showEditor && (
                         <>
                             <ResizablePanel defaultSize={50} minSize={20} className="min-w-0 min-h-0">
-                                <div className="flex flex-col h-full min-w-0 min-h-0 border-r bg-muted/5">
+                                <div className="flex flex-col h-full min-w-0 min-h-0 border-b md:border-b-0 md:border-r bg-muted/5">
                                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                         <div className="flex items-center gap-2">
                                             <Code2 className="size-4 text-primary" />

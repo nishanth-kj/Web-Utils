@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/resizable";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
+import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { formatSql, formatWithPrettier } from '@/lib/format-code';
@@ -43,6 +44,8 @@ import { toast } from 'sonner';
 
 export function WorkspaceContainer({ initialContent, initialFormat }: ContainerProps) {
     const { resolvedTheme } = useTheme();
+    // Side-by-side panes leave each about 180px wide on a phone; stack them instead.
+    const isMobile = useIsMobile();
     const { content, setContent, format, setFormat, isSaved, setIsSaved } = useEditor({
         initialContent,
         initialFormat,
@@ -259,11 +262,11 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
             {/* Main Split Canvas */}
             <div className="flex-1 flex min-w-0 overflow-hidden">
-                <ResizablePanelGroup direction="horizontal" className="min-w-0">
+                <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"} className="min-w-0">
                     {showEditor && (
                         <>
                             <ResizablePanel defaultSize={50} minSize={20} className="min-w-0">
-                                <div className="flex flex-col h-full min-w-0 border-r bg-muted/5">
+                                <div className="flex flex-col h-full min-w-0 border-b md:border-b-0 md:border-r bg-muted/5">
                                     <div className="flex items-center justify-between px-4 h-11 border-b bg-muted/10">
                                         <div className="flex items-center gap-2">
                                             <Code2 className="size-4 text-primary" />
