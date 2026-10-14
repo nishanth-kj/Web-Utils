@@ -409,6 +409,32 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
         relatedHrefs: ["/editor", "/draw", "/sql-visualization"],
     },
 
+    "/uml": {
+        toolName: "UML Diagram Editor",
+        pagePath: "/uml",
+        what: "The UML Diagram Editor turns plain-text diagram descriptions into UML diagrams as you type: class, sequence, activity, state and use case diagrams. It uses Mermaid syntax, so the same text works in GitHub, GitLab and many documentation tools, and the diagram is rendered in your browser without uploading anything. Diagrams-as-text are easy to review in pull requests and keep in version control next to the code they describe.",
+        steps: [
+            "Pick a starting point from Examples, or start typing your own diagram in the editor.",
+            "The preview re-renders shortly after you stop typing.",
+            "If the text has a mistake, the error message names the line, and the last working diagram stays visible.",
+            "Download the result as an SVG for documents and wikis, or as a PNG for slides and chat.",
+            "Use Copy to put the diagram source on your clipboard and paste it into a README or pull request.",
+        ],
+        errors: [
+            { title: "Parse error on line N", description: "The line named in the message doesn't match the diagram's syntax, often a missing arrow, an unclosed bracket or brace, or a keyword written differently (for example sequenceDiagram is one word)." },
+            { title: "No diagram type detected", description: "The first line must name the diagram type: classDiagram, sequenceDiagram, flowchart TD (activity), stateDiagram-v2 or usecase-beta." },
+            { title: "Labels with special characters break the diagram", description: "Wrap labels that contain brackets, colons or quotes in double quotes, for example A[\"Total: $10 (incl. tax)\"]." },
+        ],
+        faqs: [
+            { question: "Which UML diagrams are supported?", answer: "Class, sequence, activity (flowchart), state and use case diagrams. Use case diagrams use Mermaid's newer usecase-beta syntax, which may still change." },
+            { question: "Is my diagram uploaded to a server?", answer: "No. Mermaid parses and renders the diagram in your browser, and the text is only kept in this browser tab's session storage." },
+            { question: "Can I use the same text on GitHub?", answer: "Yes. GitHub, GitLab and many Markdown tools render Mermaid code blocks, so you can paste the source into a fenced block marked mermaid. Very new diagram types such as usecase-beta may need a recent Mermaid version on those sites." },
+            { question: "Does it support PlantUML syntax?", answer: "No. PlantUML needs a server to render, while Mermaid runs entirely in the browser. Most PlantUML class and sequence diagrams translate to Mermaid with small syntax changes." },
+            { question: "Can I export a high-resolution image?", answer: "SVG export is vector, so it stays sharp at any size. PNG export is rendered at twice the on-screen size." },
+        ],
+        relatedHrefs: ["/draw", "/sql-visualization", "/code-visualizer", "/editor"],
+    },
+
     "/code-visualizer": {
         toolName: "Code Visualizer",
         pagePath: "/code-visualizer",
