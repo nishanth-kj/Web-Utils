@@ -97,10 +97,10 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
         ],
         errors: [
             { title: "Styles from Bootstrap/Tailwind aren't applying", description: "Make sure the matching toggle (BS or TW) is switched on — without it, only your own inline styles and <style> tags are used." },
-            { title: "My script tag doesn't run as expected", description: "The preview loads your HTML into a fresh iframe document, so scripts that expect elements from the parent page won't have access to them." },
+            { title: "My script tag doesn't run as expected", description: "The preview loads your HTML into a fresh, sandboxed iframe document. Scripts run, but they can't reach the parent page, and cookies and localStorage are unavailable because the frame has its own isolated origin." },
         ],
         faqs: [
-            { question: "Is the preview sandboxed?", answer: "Yes, your HTML renders inside an isolated iframe document rather than the main page." },
+            { question: "Is the preview sandboxed?", answer: "Yes. Your HTML renders in an iframe sandboxed with a unique, opaque origin, so scripts in it can't read this site's cookies, storage, or page content. The Full Page view uses the same sandbox." },
             { question: "Can I preview Bootstrap and Tailwind together?", answer: "Yes, both toggles can be enabled at once, though the two frameworks' default styles may conflict as they would on any real page." },
             { question: "Does it support live reload for external files?", answer: "No — this is a single-document previewer; it doesn't fetch or watch external HTML/CSS/JS files." },
             { question: "Is my HTML sent to a server to render?", answer: "No, everything renders locally in your browser via an iframe." },
@@ -119,11 +119,12 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             "Copy the SVG markup or download it as a .svg file.",
         ],
         errors: [
-            { title: "Nothing renders in the preview", description: "The root element must be a valid <svg> tag with a viewBox or explicit width/height; a missing or malformed root tag leaves the preview blank rather than showing an error." },
+            { title: "This SVG could not be rendered", description: "The markup must be well-formed XML with an <svg> root element. An unclosed tag, an unescaped & or a missing root element stops the whole image from rendering." },
             { title: "The graphic looks cropped or the wrong size", description: "Check the viewBox values — SVG scales to fit its container based on viewBox, not the raw width/height attributes." },
         ],
         faqs: [
             { question: "Can I edit the SVG and see changes live?", answer: "Yes, the preview updates as you type in the source panel." },
+            { question: "Do scripts inside the SVG run?", answer: "No. The SVG is displayed as an image, which disables scripts, event handlers and external resource loading, so previewing an untrusted file is safe. CSS and SMIL animations still play." },
             { question: "Does it optimize or minify my SVG?", answer: "No, this is a viewer, not an optimizer — use the source editor to clean up unnecessary attributes manually." },
             { question: "Can I convert SVG to PNG here?", answer: "Not on this page — download the SVG and convert it with an image tool if you need a raster format." },
         ],
@@ -406,5 +407,79 @@ export const TOOL_SEO_CONTENT: Record<string, ToolSeoContent> = {
             { question: "Why does the typing look human instead of a robotic constant speed?", answer: "Each character's delay is randomized within a range around your chosen typing speed, with pauses after newlines and faster spacing on whitespace, so the animation reads like a real person typing." },
         ],
         relatedHrefs: ["/editor", "/draw", "/sql-visualization"],
+    },
+
+    "/code-visualizer": {
+        toolName: "Code Visualizer",
+        pagePath: "/code-visualizer",
+        what: "The Code Visualizer runs a short JavaScript or Python program one step at a time and draws what happens: the line being executed, the call stack with each frame's local variables, and the objects and arrays on the heap with arrows for references. It is built for understanding recursion, closures, and aliasing bugs, and for teaching how code actually executes. JavaScript runs in a sandboxed interpreter and Python runs on Pyodide (CPython compiled to WebAssembly), both inside your browser.",
+        steps: [
+            "Pick JavaScript or Python, then write code in the editor or load the sample program.",
+            "The program is traced automatically shortly after you stop typing.",
+            "Step forward and backward through execution, or drag the step slider to jump anywhere in the run.",
+            "Watch the highlighted line, the call stack frames, and the heap diagram change at each step.",
+            "Read printed output in the output panel; runtime errors are reported with their message below it.",
+        ],
+        errors: [
+            { title: "Trace stopped early", description: "Tracing records at most 2,000 steps so infinite loops can't freeze the tab. Shrink the input (for example a smaller n for a recursive function) to see the whole run." },
+            { title: "Python takes a few seconds the first time", description: "The Python runtime (Pyodide, several megabytes) downloads once and is then cached by the browser. Your code still runs locally; only the runtime is fetched." },
+            { title: "Import or module not found", description: "Only the standard library is available. Third-party packages, network access, and file system access are not supported in the visualizer." },
+        ],
+        faqs: [
+            { question: "Is my code sent to a server to run?", answer: "No. JavaScript is interpreted in the browser and Python runs on Pyodide, a WebAssembly build of CPython, in your browser tab." },
+            { question: "Which languages are supported?", answer: "JavaScript and Python. Stick to standard-library code; DOM APIs, network calls and third-party packages aren't available while tracing." },
+            { question: "How is this different from a normal debugger?", answer: "A debugger pauses a running program; the visualizer records every step first, so you can move backward as well as forward and see references between objects drawn as arrows." },
+            { question: "Why is there a step limit?", answer: "Recording every step of a long-running program would use a lot of memory, so traces stop after 2,000 steps. That is enough for typical teaching examples and interview-style problems." },
+        ],
+        relatedHrefs: ["/editor", "/code-video", "/sql-visualization"],
+    },
+
+    "/video-editor": {
+        toolName: "Video Editor",
+        pagePath: "/video-editor",
+        what: "The Video Editor trims a clip and applies simple corrections (brightness, contrast, saturation, grayscale, sepia, invert, rotation, and flips), then exports the result as a WebM video. The video is decoded, filtered on a canvas, and re-encoded with your browser's built-in MediaRecorder, so the file is never uploaded.",
+        steps: [
+            "Open a video file from your device.",
+            "Set the trim start and end points on the timeline.",
+            "Adjust color, rotation, flip, and volume; the preview updates live.",
+            "Export the clip and wait while it records in real time.",
+            "Download the finished WebM file.",
+        ],
+        errors: [
+            { title: "Export button is unavailable", description: "Exporting needs MediaRecorder and canvas capture support. Current Chrome, Edge, and Firefox support both; some older or embedded browsers do not." },
+            { title: "Export takes as long as the clip", description: "Encoding happens by playing the trimmed section in real time, so a 30-second clip takes about 30 seconds. Keep the tab in the foreground while it runs." },
+            { title: "The video won't open", description: "The browser has to be able to play the file natively. If a codec isn't supported (some HEVC/H.265 or ProRes files), convert it to MP4 (H.264) or WebM first." },
+        ],
+        faqs: [
+            { question: "Is my video uploaded?", answer: "No. Decoding, filtering, and encoding all happen in your browser tab; nothing leaves your device." },
+            { question: "What format does it export?", answer: "WebM (VP9 or VP8 video with Opus audio, depending on what your browser supports). WebM plays in all modern browsers and in VLC." },
+            { question: "Is there a file size limit?", answer: "There is no fixed limit, but the whole clip is processed in memory, so very long or very high-resolution videos may be slow on low-memory devices." },
+            { question: "Can I add text, music, or join multiple clips?", answer: "Not currently. The editor handles one clip at a time with trimming, color adjustments, rotation, flips, and volume." },
+        ],
+        relatedHrefs: ["/image-editor", "/code-video", "/draw"],
+    },
+
+    "/image-editor": {
+        toolName: "Image Editor",
+        pagePath: "/image-editor",
+        what: "The Image Editor crops, resizes, and rotates images and adjusts brightness, contrast, saturation, and blur, with grayscale, sepia, and invert filters. Edits are applied on an HTML canvas in your browser and exported as PNG or JPEG with an adjustable quality setting.",
+        steps: [
+            "Open an image from your device.",
+            "Crop by dragging the crop box, or resize by entering new dimensions.",
+            "Rotate or flip the image and adjust the color sliders.",
+            "Choose PNG for lossless output or JPEG with a quality level for smaller files.",
+            "Export and download the edited image.",
+        ],
+        errors: [
+            { title: "Exported JPEG has a black background", description: "JPEG has no transparency, so transparent areas are flattened. Export as PNG to keep transparency." },
+            { title: "The image won't open", description: "The file must be an image format your browser can display, such as PNG, JPEG, WebP, GIF, or AVIF. HEIC photos from iPhones may need converting first in some browsers." },
+        ],
+        faqs: [
+            { question: "Are my images uploaded?", answer: "No. Every edit happens on a canvas in your browser and the export is generated locally." },
+            { question: "Does exporting keep the photo's EXIF metadata?", answer: "No. Canvas exports contain only pixel data, so camera details and GPS location are removed, which is useful before sharing a photo publicly." },
+            { question: "PNG or JPEG: which should I choose?", answer: "PNG is lossless and keeps transparency, which suits screenshots and graphics. JPEG produces much smaller files for photos; lower the quality setting to shrink them further." },
+            { question: "Can I undo an edit?", answer: "Use Reset adjustments to clear the color sliders, or Reset all to return to the image as it was opened. The original file on your device is never modified." },
+        ],
+        relatedHrefs: ["/video-editor", "/draw", "/code-video"],
     },
 };
