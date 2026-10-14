@@ -30,6 +30,7 @@ import { ANALOG_EXAMPLES, CIRCUIT_FILE_VERSION, parseCircuitDocument, type Circu
 import { PALETTE, PART_DEFS, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
 import { SHORT_CIRCUIT_CURRENT, initialSimState, solveCircuit, type SolveResult } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
+import { downloadJson } from "../download";
 import { PartNode } from "./part-node";
 import { PartSymbol } from "./part-symbol";
 import { PropertiesPanel } from "./properties-panel";
@@ -86,17 +87,6 @@ function nextId(kind: AnalogKind, nodes: PartNodeT[]) {
     let n = 1;
     while (nodes.some((node) => node.id === `${prefix}${n}`)) n++;
     return `${prefix}${n}`;
-}
-
-function downloadText(text: string, fileName: string) {
-    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
 }
 
 export function AnalogSimulator() {
@@ -290,13 +280,15 @@ function AnalogSimulatorInner() {
     };
 
     const saveCircuit = () => {
-        downloadText(JSON.stringify({ version: CIRCUIT_FILE_VERSION, mode: "analog", ...toDocument(nodes, edges) }, null, 2), "circuit.json");
+        downloadJson({ version: CIRCUIT_FILE_VERSION, mode: "analog", ...toDocument(nodes, edges) }, "circuit.json");
     };
 
     const openCircuit = async (file: File | undefined) => {
         if (!file) return;
         try {
-            loadDocument(parseCircuitDocument(JSON.parse(await file.text())));
+            const json = JSON.parse(await file.text());
+            if (json?.mode === "logic") throw new Error("This is a logic circuit. Open it from the Logic tab.");
+            loadDocument(parseCircuitDocument(json));
             toast.success(`Opened ${file.name}`);
         } catch (error) {
             toast.error("Couldn't open that file", { description: error instanceof Error ? error.message : String(error) });
