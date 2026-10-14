@@ -12,7 +12,7 @@ Instantly visualize code execution, design ER diagrams, edit media, format data,
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Website](https://img.shields.io/badge/Live_Site-webutils.site-emerald?style=flat-square&logo=google-chrome)](https://webutils.site)
 
-[**Explore Live Demo**](https://webutils.site) • [**Report a Bug**](https://github.com/nishanth-kj/Web-Utils/issues) • [**Request a Feature**](https://github.com/nishanth-kj/Web-Utils/issues)
+[**Explore Live Demo**](https://webutils.site) • [**Documentation**](docs/README.md) • [**Report a Bug**](https://github.com/nishanth-kj/Web-Utils/issues) • [**Request a Feature**](https://github.com/nishanth-kj/Web-Utils/issues)
 
 </div>
 
@@ -118,7 +118,7 @@ Instantly visualize code execution, design ER diagrams, edit media, format data,
 
 ## 🤝 Contributing
 
-Contributions are always welcome! Whether it's adding a new developer utility, improving documentation, or fixing a bug:
+Contributions are always welcome! Please read our [Contributing Guide](docs/CONTRIBUTING.md) for full details. Whether it's adding a new developer utility, improving documentation, or fixing a bug:
 
 1. **Fork** the repository.
 2. **Create a branch** for your feature or fix (`git checkout -b feature/amazing-tool` or `git checkout -b issues/<number>`).
@@ -131,9 +131,3 @@ Contributions are always welcome! Whether it's adding a new developer utility, i
 ## 📄 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-Built with ❤️ by <a href="https://github.com/nishanth-kj">Nishanth KJ</a>
-</div>
