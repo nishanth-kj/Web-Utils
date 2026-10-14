@@ -110,9 +110,17 @@ Instantly visualize code execution, design ER diagrams, edit media, format data,
 | Command | Description |
 | :--- | :--- |
 | `npm run dev` | Starts the Next.js development server with Turbopack |
-| `npm run build` | Builds the optimized production bundle and generates static routes |
-| `npm run start` | Serves the production build locally |
+| `npm run build` | Builds the static export into `out/` (and pings IndexNow on Vercel production builds only) |
+| `npm run start` | Serves the static export in `out/` locally |
 | `npm run lint` | Runs ESLint to check for code quality and style issues |
+| `npm run typecheck` | Type-checks the project with `tsc` |
+| `npm test` | Runs the Vitest unit tests in `tests/unit` |
+| `npm run test:e2e` | Runs Playwright smoke tests against `out/` (build first; run `npx playwright install chromium` once) |
+
+### Repository notes
+
+- `.agents/skills/`, `.claude/skills/` and `data/skills/` hold copies of the same agent skill files (SEO, performance, Core Web Vitals, accessibility, Vercel guides) installed from [addyosmani/web-quality-skills](https://github.com/addyosmani/web-quality-skills) and tracked in `skills-lock.json`. They are development aids for AI coding assistants and are not part of the app bundle.
+- `wasm/` is the Rust crate behind the password tools; its compiled output in `wasm/pkg/` is committed so the site builds without a Rust toolchain.
 
 ---
 

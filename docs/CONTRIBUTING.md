@@ -91,12 +91,19 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 Before creating a commit or opening a Pull Request, ensure your changes pass all checks:
 
 ```bash
-# 1. Run ESLint
+# 1. Run ESLint and the type checker
 npm run lint
+npm run typecheck
 
-# 2. Verify Next.js production build and type checking
+# 2. Run the unit tests
+npm test
+
+# 3. Verify the production build, then smoke-test it in a browser
 npm run build
+npm run test:e2e
 ```
+
+The same checks run in GitHub Actions on every pull request (`.github/workflows/ci.yml`). Add a unit test in `tests/unit/` when you change a parser, formatter or converter in `lib/`.
 
 ---
 
