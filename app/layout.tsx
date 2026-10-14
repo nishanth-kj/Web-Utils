@@ -132,6 +132,7 @@ export default function RootLayout({
                             "/dummy",
                             "/code-video",
                             "/uml",
+                            "/circuit",
                             "/video-editor",
                             "/image-editor"
                           ]
