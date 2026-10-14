@@ -33,7 +33,7 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useEditor } from '@/lib/hooks/use-editor';
+import { readEditorFormat, readSessionContent, useEditor, writeEditorFormat } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
@@ -59,6 +59,20 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     // UI State
     const [fileName, setFileName] = useState(`index.${getLanguage(initialFormat)}`);
+
+    // Reopen in the format last used here, or the one a viewer handed over
+    // with "Open in Editor", together with that format's draft (issue #37).
+    // useEditor has already restored the default format's draft by now.
+    React.useEffect(() => {
+        const savedFormat = readEditorFormat();
+        if (!savedFormat || savedFormat === format) return;
+        const savedContent = readSessionContent(savedFormat);
+        setFormat(savedFormat);
+        if (savedContent !== null) setContent(savedContent);
+        setFileName(`index.${getLanguage(savedFormat)}`);
+        setIsSaved(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only restore
+    }, []);
 
     
     // Editor Settings from LocalStorage
@@ -100,6 +114,7 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
 
     const handleFormatChange = (newFormat: Format) => {
         setFormat(newFormat);
+        writeEditorFormat(newFormat);
         const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
         setFileName(`${namePart}.${getLanguage(newFormat)}`);
     };

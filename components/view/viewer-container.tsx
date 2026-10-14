@@ -41,7 +41,7 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useEditor, writeSessionContent } from '@/lib/hooks/use-editor';
+import { useEditor, writeEditorFormat, writeSessionContent } from '@/lib/hooks/use-editor';
 import { CONVERSIONS, type Conversion } from '@/lib/convert';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { useIsMobile } from '@/lib/hooks/use-mobile';
@@ -133,6 +133,27 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
         }
     };
 
+    // Switching format keeps the user's text (issue #37). It is saved as the
+    // target format's draft synchronously, before navigating, because the
+    // debounced autosave would otherwise lose the race against the new page
+    // loading its own sample. An untouched sample is simply replaced.
+    const handleFormatSwitch = (fmt: Format) => {
+        if (fmt === format) return;
+        if (content.trim() && content !== initialContent) {
+            writeSessionContent(fmt, content);
+        }
+        setFormat(fmt);
+        router.push(`/view/${fmt}`);
+    };
+
+    // The code editor opens with this text and format instead of its own
+    // JSON draft (issue #37).
+    const handleOpenInEditor = () => {
+        writeSessionContent(format, content);
+        writeEditorFormat(format);
+        router.push('/editor');
+    };
+
     const conversions = CONVERSIONS[format] ?? [];
 
     const handleConvert = (conversion: Conversion) => {
@@ -179,10 +200,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                         <DropdownMenuContent align="start" className="min-w-[150px]">
                             {/* Only formats with a statically generated /view/[type] page. */}
                             {PREVIEWABLE_FORMATS.map((fmt) => (
-                                <DropdownMenuItem key={fmt} onClick={() => {
-                                    setFormat(fmt);
-                                    router.push(`/view/${fmt}`);
-                                }} className="text-[10px] font-bold uppercase">
+                                <DropdownMenuItem key={fmt} onClick={() => handleFormatSwitch(fmt)} className="text-[10px] font-bold uppercase">
                                     {labelForFormat(fmt)}
                                 </DropdownMenuItem>
                             ))}
@@ -294,7 +312,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => router.push('/editor')} className="size-7" title="Open in Editor" aria-label="Open in Editor">
+                                            <Button variant="ghost" size="icon" onClick={handleOpenInEditor} className="size-7" title="Open in Editor" aria-label="Open in Editor">
                                                 <FileEdit className="size-3.5" />
                                             </Button>
                                             <Separator orientation="vertical" className="h-4 mx-1" />

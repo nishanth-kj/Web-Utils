@@ -8,7 +8,8 @@ export function EditorTool() {
             <h1 className="sr-only">Online Code Editor and Formatter</h1>
             <main className="flex-1 overflow-hidden relative">
                 <WorkspaceContainer
-                    initialContent='{\n  "name": "Web Utils Workspace",\n  "status": "Ready"\n}'
+                    // An expression, not a quoted attribute: JSX attribute strings don't process \n escapes.
+                    initialContent={'{\n  "name": "Web Utils Workspace",\n  "status": "Ready"\n}'}
                     initialFormat="json"
                 />
             </main>
