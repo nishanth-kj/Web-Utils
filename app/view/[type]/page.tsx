@@ -24,7 +24,8 @@ export default async function ViewPage({ params }: { params: Promise<{ type: str
     const { type } = await params;
     const format = type as Format;
     const content = (DEFAULT_CONTENT as Record<string, string>)[format] || "";
-    const seoContent = TOOL_SEO_CONTENT[`/view/${format}`];
+    // The JSON formatter page shows only the tool, without the help section below it.
+    const seoContent = format === "json" ? undefined : TOOL_SEO_CONTENT[`/view/${format}`];
 
     return (
         <ToolPageShell
