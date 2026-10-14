@@ -38,6 +38,8 @@ import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
 import { formatSql, formatWithPrettier } from '@/lib/format-code';
+import { formatXml, findXmlError } from '@/lib/xml';
+import { toast } from 'sonner';
 
 export function WorkspaceContainer({ initialContent, initialFormat }: ContainerProps) {
     const { resolvedTheme } = useTheme();
@@ -113,7 +115,10 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
     };
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(content);
+        navigator.clipboard.writeText(content).then(
+            () => toast.success('Copied to clipboard'),
+            () => toast.error("Couldn't copy: the browser blocked clipboard access.")
+        );
     };
 
     const handleAutoFormat = async () => {
@@ -124,6 +129,10 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
             } else if (format === 'yaml') {
                 const parsed = yaml.load(content);
                 setContent(yaml.dump(parsed));
+            } else if (format === 'xml' || format === 'svg' || format === 'android-xml') {
+                const xmlError = findXmlError(content);
+                if (xmlError) throw new Error(xmlError);
+                setContent(formatXml(content));
             } else if (format === 'sql') {
                 setContent(await formatSql(content));
             } else {
@@ -134,7 +143,6 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
                     'typescript': 'babel-ts',
                     'react': 'babel-ts',
                     'markdown': 'markdown',
-                    'xml': 'html',
                 };
                 const parser = parserMap[format];
                 if (parser) {
@@ -144,8 +152,9 @@ export function WorkspaceContainer({ initialContent, initialFormat }: ContainerP
             setIsSaved(true);
             setTerminalOutput(prev => [...prev, 'system: code formatted successfully']);
         } catch (e) {
-            console.error(e);
-            setTerminalOutput(prev => [...prev, `error: format failed - ${e instanceof Error ? e.message : 'unknown'}`]);
+            const message = e instanceof Error ? e.message : 'unknown';
+            toast.error("Couldn't format this file", { description: message });
+            setTerminalOutput(prev => [...prev, `error: format failed - ${message}`]);
         }
     };
 

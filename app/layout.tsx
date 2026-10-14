@@ -5,6 +5,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ClientLayout } from "@/components/layout/client-layout";
+import { Toaster } from "@/components/ui/sonner";
 import { CookieConsent } from "@/components/common/CookieConsent";
 import { DeferOnPrerender } from "@/components/common/DeferOnPrerender";
 import { ConsentGate } from "@/components/common/ConsentGate";
@@ -198,6 +199,7 @@ export default function RootLayout({
         >
           {/* CLIENT PART MOVED HERE */}
           <ClientLayout>{children}</ClientLayout>
+          <Toaster position="bottom-center" />
         </ThemeProvider>
         <CookieConsent />
       </body>

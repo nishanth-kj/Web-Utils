@@ -29,6 +29,7 @@ import { TextNode } from './nodes/text-node';
 import { ImageNode } from './nodes/image-node';
 import { ElementType } from './types';
 import { useHasMounted } from '@/lib/hooks/use-has-mounted';
+import { toast } from "sonner";
 
 function FlowContent() {
     const { theme, setTheme } = useTheme();
@@ -258,6 +259,7 @@ function FlowContent() {
             a.click();
         }).catch((err) => {
             console.error('Failed to export image', err);
+            toast.error("Couldn't export the diagram as an image. Try again, or remove embedded external images.");
         });
     }, [theme]);
 

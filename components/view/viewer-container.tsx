@@ -3,10 +3,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PreviewPane } from '@/components/view/preview-pane';
-import { ContainerProps } from '@/types';
+import { ContainerProps, Format } from '@/types';
 import yaml from 'js-yaml';
 import { formatSql, formatWithPrettier } from '@/lib/format-code';
-import { formatMultipleJson } from '@/lib/json-parser';
+import { parseMultipleJson } from '@/lib/json-parser';
+import { formatXml, findXmlError } from '@/lib/xml';
+import { labelForFormat } from '@/lib/format-labels';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { MonacoEditor as Editor } from '@/components/shared/lazy-monaco';
 import { useTheme } from 'next-themes';
@@ -39,9 +42,20 @@ import {
 } from "@/components/ui/resizable";
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
-import { ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { getLanguage, PREVIEWABLE_FORMATS } from '@/lib/formats';
 import { buildPreviewDocument, openSandboxedPreview, svgToDataUrl } from '@/lib/preview-document';
 import { Separator } from '@/components/ui/separator';
+
+// Prettier parser per format; formats missing here have their own formatter
+// (JSON, YAML, XML family, SQL) or none at all.
+const PRETTIER_PARSERS: Partial<Record<Format, string>> = {
+    html: 'html',
+    css: 'css',
+    javascript: 'babel',
+    typescript: 'babel-ts',
+    react: 'babel-ts',
+    markdown: 'markdown',
+};
 
 export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
     const router = useRouter();
@@ -87,32 +101,38 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     };
 
     const handleAutoFormat = async () => {
+        if (!content.trim()) return;
         try {
             if (format === 'json') {
-                setContent(formatMultipleJson(content));
+                setContent(parseMultipleJson(content).map((doc) => JSON.stringify(doc, null, 2)).join('\n\n'));
             } else if (format === 'yaml') {
-                const parsed = yaml.load(content);
-                setContent(yaml.dump(parsed));
+                setContent(yaml.loadAll(content).map((doc) => yaml.dump(doc)).join('---\n'));
+            } else if (format === 'xml' || format === 'svg' || format === 'android-xml') {
+                const xmlError = findXmlError(content);
+                if (xmlError) throw new Error(xmlError);
+                setContent(formatXml(content));
             } else if (format === 'sql') {
                 setContent(await formatSql(content));
             } else {
-                const parserMap: Record<string, string> = {
-                    'html': 'html',
-                    'css': 'css',
-                    'javascript': 'babel',
-                    'typescript': 'babel-ts',
-                    'react': 'babel-ts',
-                    'markdown': 'babel',
-                    'xml': 'html',
-                };
-                const parser = parserMap[format];
-                if (parser) {
-                    setContent(await formatWithPrettier(content, parser));
+                const parser = PRETTIER_PARSERS[format];
+                if (!parser) {
+                    toast.info(`Formatting isn't available for ${labelForFormat(format)}.`);
+                    return;
                 }
+                setContent(await formatWithPrettier(content, parser));
             }
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            toast.error(`Couldn't format this ${labelForFormat(format)}`, {
+                description: error instanceof Error ? error.message : String(error),
+            });
         }
+    };
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(content).then(
+            () => toast.success('Copied to clipboard'),
+            () => toast.error("Couldn't copy: the browser blocked clipboard access.")
+        );
     };
 
     const openFullPage = () => {
@@ -137,12 +157,13 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="min-w-[150px]">
-                            {ALL_FORMATS.slice(0, 10).map((fmt) => (
+                            {/* Only formats with a statically generated /view/[type] page. */}
+                            {PREVIEWABLE_FORMATS.map((fmt) => (
                                 <DropdownMenuItem key={fmt} onClick={() => {
                                     setFormat(fmt);
                                     router.push(`/view/${fmt}`);
                                 }} className="text-[10px] font-bold uppercase">
-                                    {fmt}
+                                    {labelForFormat(fmt)}
                                 </DropdownMenuItem>
                             ))}
                         </DropdownMenuContent>
@@ -156,6 +177,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                         </div>
                         <input
                             type="text"
+                            aria-label="File name"
                             value={fileName}
                             onChange={(e) => setFileName(e.target.value)}
                             className="bg-transparent border-none outline-none text-[11px] font-bold text-foreground min-w-[120px] placeholder:text-muted-foreground/50"
@@ -168,6 +190,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                     <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={showEditor ? "Hide source editor" : "Show source editor"}
                         className="size-8 rounded-md text-muted-foreground"
                         onClick={() => setShowEditor(!showEditor)}
                     >
@@ -176,7 +199,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground">
+                            <Button variant="ghost" size="icon" aria-label="Editor settings" className="size-8 rounded-md text-muted-foreground">
                                 <Settings className="size-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -188,6 +211,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="range"
+                                        aria-label="Font size"
                                         min="10"
                                         max="24"
                                         value={prefFontSize}
@@ -231,7 +255,7 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button variant="ghost" size="icon" className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
+                    <Button variant="ghost" size="icon" aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"} className="size-8 rounded-md text-muted-foreground" onClick={() => setIsFullscreen(!isFullscreen)}>
                         <Maximize2 className="size-4" />
                     </Button>
                 </div>
@@ -250,24 +274,24 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" onClick={() => router.push('/editor')} className="size-7" title="Open in Editor">
+                                            <Button variant="ghost" size="icon" onClick={() => router.push('/editor')} className="size-7" title="Open in Editor" aria-label="Open in Editor">
                                                 <FileEdit className="size-3.5" />
                                             </Button>
                                             <Separator orientation="vertical" className="h-4 mx-1" />
-                                            <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7" title="Format">
+                                            <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7" title="Format" aria-label="Format document">
                                                 <AlignLeft className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Wrap">
+                                            <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Toggle word wrap" aria-label="Toggle word wrap">
                                                 <Type className="size-3.5" />
                                             </Button>
                                             <Separator orientation="vertical" className="h-4 mx-1" />
-                                            <Button variant="ghost" size="icon" onClick={() => navigator.clipboard.writeText(content)} className="size-7">
+                                            <Button variant="ghost" size="icon" onClick={handleCopy} className="size-7" title="Copy" aria-label="Copy source">
                                                 <Copy className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={handleDownload} className="size-7">
+                                            <Button variant="ghost" size="icon" onClick={handleDownload} className="size-7" title="Download" aria-label="Download file">
                                                 <Download className="size-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={handleClear} className="size-7 text-destructive">
+                                            <Button variant="ghost" size="icon" onClick={handleClear} className="size-7 text-destructive" title="Clear" aria-label="Clear editor">
                                                 <Trash2 className="size-3.5" />
                                             </Button>
                                         </div>

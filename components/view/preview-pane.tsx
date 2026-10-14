@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LayoutIcon } from "lucide-react";
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
+import { csvToRecords, recordsToCsv } from '@/lib/csv';
 import { Format } from '@/types';
 
 interface PreviewPaneProps {
@@ -20,30 +21,20 @@ interface PreviewPaneProps {
 }
 
 export function PreviewPane({ format, content, setContent, useBootstrap = false, useTailwind = false }: PreviewPaneProps) {
-    const tableData = useMemo(() => {
+    const { tableData, csvError } = useMemo(() => {
         try {
             if (format === 'json') {
                 const parsed = JSON.parse(content);
                 if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-                    return parsed;
+                    return { tableData: parsed, csvError: null };
                 }
             } else if (format === 'csv') {
-                const lines = content.trim().split('\n');
-                if (lines.length > 0) {
-                    const headers = lines[0].split(',');
-                    return lines.slice(1).map(line => {
-                        const values = line.split(',');
-                        return headers.reduce((obj, header, i) => {
-                            obj[header] = values[i];
-                            return obj;
-                        }, {} as Record<string, string>);
-                    });
-                }
+                return { tableData: csvToRecords(content), csvError: null };
             }
-        } catch {
-            return null;
+        } catch (error) {
+            return { tableData: null, csvError: format === 'csv' && error instanceof Error ? error.message : null };
         }
-        return null;
+        return { tableData: null, csvError: null };
     }, [content, format]);
 
     const handleTableDataChange = (newData: Record<string, string>[]) => {
@@ -52,12 +43,7 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
             setContent(JSON.stringify(newData, null, 2));
         } else if (format === 'csv') {
             if (newData.length > 0) {
-                const headers = Object.keys(newData[0]);
-                const newContent = [
-                    headers.join(','), 
-                    ...newData.map(row => headers.map(h => row[h]).join(','))
-                ].join('\n');
-                setContent(newContent);
+                setContent(recordsToCsv(newData));
             }
         }
     };
@@ -89,7 +75,13 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
             {format === 'svg' && <SVGViewer content={content} />}
             {format === 'csv' && (
                 <div className="p-8 bg-background h-full overflow-auto">
-                    <TableViewer data={tableData || []} onDataChange={handleTableDataChange} />
+                    {csvError ? (
+                        <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                            Couldn&apos;t read this CSV: {csvError}
+                        </p>
+                    ) : (
+                        <TableViewer data={tableData || []} onDataChange={handleTableDataChange} />
+                    )}
                 </div>
             )}
             {['yaml', 'react', 'xml'].includes(format) && (

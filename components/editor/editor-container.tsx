@@ -46,6 +46,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { HTMLViewer } from '@/components/view/html-viewer';
 import { CodeViewer } from '@/components/view/code-viewer';
+import { toast } from "sonner";
 
 export function EditorContainer({ initialContent, initialFormat }: ContainerProps) {
     const { resolvedTheme } = useTheme();
@@ -109,8 +110,10 @@ export function EditorContainer({ initialContent, initialFormat }: ContainerProp
             } else if (format === 'yaml') {
                 setContent(yaml.dump(yaml.load(content)));
             }
-        } catch {
-            console.error("Format error");
+        } catch (error) {
+            toast.error("Couldn't format this file", {
+                description: error instanceof Error ? error.message : String(error),
+            });
         }
     };
 
