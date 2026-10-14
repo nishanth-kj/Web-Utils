@@ -12,7 +12,8 @@ import {
     Bug,
     Video,
     ImagePlus,
-    Workflow
+    Workflow,
+    CircuitBoard
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -175,6 +176,16 @@ export const TOOLS: Tool[] = [
         category: "core",
         status: "Available",
         icon: Workflow,
+        isNew: true
+    },
+    {
+        id: "circuit-simulator",
+        name: "Circuit Simulator",
+        description: "Wire up batteries, resistors, bulbs, LEDs, switches and capacitors and watch voltages and currents update live",
+        href: "/circuit",
+        category: "core",
+        status: "Available",
+        icon: CircuitBoard,
         isNew: true
     },
     {

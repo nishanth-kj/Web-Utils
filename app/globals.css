@@ -214,3 +214,20 @@
   width: 3px !important;
 }
 
+
+/* Circuit simulator: dashes travelling along a wire in the direction of the current. */
+@keyframes circuit-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+.circuit-flow {
+  animation: circuit-flow 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circuit-flow {
+    animation: none;
+  }
+}
