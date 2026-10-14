@@ -9,7 +9,8 @@ import {
     Eye,
     Key,
     Clapperboard,
-    Bug
+    Bug,
+    ImagePlus
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -172,6 +173,16 @@ export const TOOLS: Tool[] = [
         category: "core",
         status: "Available",
         icon: Bug,
+        isNew: true
+    },
+    {
+        id: "image-editor",
+        name: "Image Editor",
+        description: "Crop, resize, rotate, and color-adjust an image, then export it as PNG or JPEG",
+        href: "/image-editor",
+        category: "media",
+        status: "Available",
+        icon: ImagePlus,
         isNew: true
     }
 ];
