@@ -11,7 +11,8 @@ import {
     Clapperboard,
     Bug,
     Video,
-    ImagePlus
+    ImagePlus,
+    Workflow
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -164,6 +165,16 @@ export const TOOLS: Tool[] = [
         category: "media",
         status: "Available",
         icon: Clapperboard,
+        isNew: true
+    },
+    {
+        id: "uml-editor",
+        name: "UML Diagram Editor",
+        description: "Write class, sequence, activity, state and use case diagrams as text, preview them live, and export SVG or PNG",
+        href: "/uml",
+        category: "core",
+        status: "Available",
+        icon: Workflow,
         isNew: true
     },
     {

@@ -18,6 +18,7 @@ const TOOL_ROUTES = [
   '/password',
   '/dummy',
   '/sql-visualization',
+  '/uml',
   '/code-video',
   '/code-visualizer',
   '/video-editor',
