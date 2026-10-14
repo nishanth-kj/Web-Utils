@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-// import { FloatingAd } from "@/components/ads/FloatingAd";
 
 // The splash only runs on a visitor's first load, so its GSAP dependency
 // stays out of the bundle every other visit.
@@ -51,7 +50,6 @@ function LayoutContent({
                 <div className="relative flex h-full flex-1 flex-col min-h-0 overflow-hidden">
                     <div id="main-content" tabIndex={-1} className="relative flex-1 min-h-0 h-full flex flex-col overflow-hidden outline-none">
                         {children}
-                        {/* <FloatingAd /> */}
                     </div>
                 </div>
             </div>

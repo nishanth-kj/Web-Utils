@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { CookieSettingsButton } from "@/components/common/CookieSettingsButton";
 
 const FOOTER_LINKS = [
     { href: "/docs", label: "Docs" },
@@ -29,6 +30,7 @@ export default function Footer() {
                             {link.label}
                         </Link>
                     ))}
+                    <CookieSettingsButton className="transition-colors hover:text-foreground" />
                 </nav>
             </div>
         </footer>

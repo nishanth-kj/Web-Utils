@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { JsonLdSchema } from "@/components/seo/Schema";
 import { TOOLS } from "@/lib/constants/tools";
+import { AdSlot } from "@/components/ads/AdSlot";
 
 export interface ToolFaqEntry {
     question: string;
@@ -83,6 +84,9 @@ export function ToolSeoSection({ toolName, pagePath, what, steps, errors, faqs, 
                     ))}
                 </ol>
             </div>
+
+            {/* Below the tool and its instructions, so it never sits next to the tool's controls. */}
+            <AdSlot />
 
             {errors.length > 0 && (
                 <div className="space-y-3">

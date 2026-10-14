@@ -13,3 +13,9 @@ export function setStoredConsent(value: ConsentValue) {
     window.localStorage.setItem(STORAGE_KEY, value);
     window.dispatchEvent(new CustomEvent<ConsentValue>(CONSENT_CHANGE_EVENT, { detail: value }));
 }
+
+// Reopens the banner so the visitor can change an earlier decision.
+export function clearStoredConsent() {
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent<null>(CONSENT_CHANGE_EVENT, { detail: null }));
+}
