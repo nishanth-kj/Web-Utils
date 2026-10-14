@@ -53,3 +53,9 @@ Cargo.lock
 .vscode/
 .idea/
 *.swp
+
+# AI agent skills: installed locally per developer, not part of the app
+/.agents/
+/.claude/skills/
+/data/skills/
+/skills-lock.json

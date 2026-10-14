@@ -119,7 +119,6 @@ Instantly visualize code execution, design ER diagrams, edit media, format data,
 
 ### Repository notes
 
-- `.agents/skills/`, `.claude/skills/` and `data/skills/` hold copies of the same agent skill files (SEO, performance, Core Web Vitals, accessibility, Vercel guides) installed from [addyosmani/web-quality-skills](https://github.com/addyosmani/web-quality-skills) and tracked in `skills-lock.json`. They are development aids for AI coding assistants and are not part of the app bundle.
 - `wasm/` is the Rust crate behind the password tools; its compiled output in `wasm/pkg/` is committed so the site builds without a Rust toolchain.
 
 ---
