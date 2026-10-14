@@ -1,5 +1,7 @@
 import { ImageEditorPage } from "@/components/image-editor/image-editor-page";
 import { ToolPageShell } from "@/components/shared/tool-page-shell";
+import { ToolSeoSection } from "@/components/shared/tool-seo-section";
+import { TOOL_SEO_CONTENT } from "@/data/tool-seo-content";
 
 export default function Page() {
     return (
@@ -10,6 +12,8 @@ export default function Page() {
                     <ImageEditorPage />
                 </>
             }
-        />
+        >
+            <ToolSeoSection {...TOOL_SEO_CONTENT["/image-editor"]} />
+        </ToolPageShell>
     );
 }

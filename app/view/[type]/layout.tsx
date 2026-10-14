@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { labelForFormat } from "@/lib/format-labels";
+import { labelForFormat, seoForFormat } from "@/lib/format-labels";
 
 export async function generateMetadata({
   params,
@@ -8,14 +8,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { type } = await params;
   const label = labelForFormat(type);
-  const description = `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`;
+  const { title, description } = seoForFormat(type);
 
   return {
-    title: `${label} Viewer`,
+    title,
     description,
     keywords: [`${label} viewer`, `${label} formatter`, `${label} preview`, "online viewer", "syntax highlighting"],
     openGraph: {
-      title: `${label} Viewer | Web Utils`,
+      title: `${title} | Web Utils`,
       description,
       url: `https://webutils.site/view/${type}`,
     },
@@ -33,13 +33,13 @@ export default async function Layout({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  const label = labelForFormat(type);
+  const { title, description } = seoForFormat(type);
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": `${label} Viewer | Web Utils`,
-    "description": `View, format, and preview ${label} content instantly in your browser with syntax highlighting and live rendering.`,
+    "name": `${title} | Web Utils`,
+    "description": description,
     "url": `https://webutils.site/view/${type}`,
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Any"
