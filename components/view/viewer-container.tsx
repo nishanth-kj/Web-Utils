@@ -27,7 +27,8 @@ import {
     ChevronDown,
     Download,
     Trash2,
-    Type
+    Type,
+    ArrowLeftRight
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -40,7 +41,8 @@ import {
     ResizablePanel,
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useEditor } from '@/lib/hooks/use-editor';
+import { useEditor, writeSessionContent } from '@/lib/hooks/use-editor';
+import { CONVERSIONS, type Conversion } from '@/lib/convert';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { getLanguage, PREVIEWABLE_FORMATS } from '@/lib/formats';
 import { Separator } from '@/components/ui/separator';
@@ -125,6 +127,21 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                 description: error instanceof Error ? error.message : String(error),
             });
         }
+    };
+
+    const conversions = CONVERSIONS[format] ?? [];
+
+    const handleConvert = (conversion: Conversion) => {
+        try {
+            writeSessionContent(conversion.to, conversion.convert(content));
+        } catch (error) {
+            toast.error(`Couldn't convert to ${labelForFormat(conversion.to)}`, {
+                description: error instanceof Error ? error.message : String(error),
+            });
+            return;
+        }
+        toast.success(`Converted to ${labelForFormat(conversion.to)}`);
+        router.push(`/view/${conversion.to}`);
     };
 
     const handleCopy = () => {
@@ -294,6 +311,24 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                             <Button variant="ghost" size="icon" onClick={handleAutoFormat} className="size-7" title="Format" aria-label="Format document">
                                                 <AlignLeft className="size-3.5" />
                                             </Button>
+                                            {conversions.length > 0 && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-[10px] font-bold uppercase" title="Convert to another format">
+                                                            <ArrowLeftRight className="size-3.5" />
+                                                            <span className="hidden sm:inline">Convert</span>
+                                                            <span className="sr-only sm:hidden">Convert</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {conversions.map((conversion) => (
+                                                            <DropdownMenuItem key={conversion.to} onClick={() => handleConvert(conversion)} className="text-xs">
+                                                                {conversion.label}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
                                             <Button variant="ghost" size="icon" onClick={handleWordWrapToggle} className="size-7" title="Toggle word wrap" aria-label="Toggle word wrap">
                                                 <Type className="size-3.5" />
                                             </Button>
