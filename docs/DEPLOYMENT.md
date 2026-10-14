@@ -45,7 +45,7 @@ Web Utils is pre-configured for zero-configuration deployment on **Vercel**:
 ### Ads and consent
 
 - AdSense and Google Tag Manager load only after a visitor accepts the cookie banner (`components/common/ConsentGate.tsx`). Visitors can change their choice from **Cookie settings** in the footer.
-- Explicit ad placements use `components/ads/AdSlot.tsx` (labelled, reserved height, below tool content). Pass a different `slot` to use a dedicated AdSense unit for a placement.
+- Explicit ad placements use `components/ads/AdSlot.tsx` (labelled, reserved height). It is currently placed below the tool list on the homepage, never next to tool controls. Pass a different `slot` to use a dedicated AdSense unit for a placement.
 - For visitors in the EEA, UK and Switzerland, Google requires a Google-certified consent management platform (CMP) for personalized ads. The simplest option is AdSense's own **Privacy & messaging → European regulations** message; if you enable it, review whether the custom banner should still show in those regions.
 
 ---
