@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
+import { buildPreviewDocument, PREVIEW_SANDBOX_NO_JS, PREVIEW_SANDBOX_WITH_JS } from '@/lib/preview-document';
 
 interface HTMLViewerProps {
   content: string;
@@ -10,42 +11,19 @@ interface HTMLViewerProps {
 }
 
 export function HTMLViewer({ content, useBootstrap = false, useTailwind = false, enableJS = true }: HTMLViewerProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const srcDoc = useMemo(
+    () => buildPreviewDocument(content, { useBootstrap, useTailwind }),
+    [content, useBootstrap, useTailwind]
+  );
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      const doc = iframeRef.current.contentDocument;
-      if (doc) {
-        doc.open();
-        doc.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              ${useBootstrap ? '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">' : ''}
-              ${useTailwind ? '<script src="https://cdn.tailwindcss.com"></script>' : ''}
-              <style>
-                body { margin: 0; padding: 0; background-color: transparent !important; }
-              </style>
-            </head>
-            <body>
-              ${content}
-              ${useBootstrap ? '<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>' : ''}
-            </body>
-          </html>
-        `);
-        doc.close();
-      }
-    }
-  }, [content, useBootstrap, useTailwind]);
-
+  // No allow-same-origin: the preview runs in an opaque origin, so pasted
+  // scripts cannot read this site's cookies, storage, or parent DOM.
   return (
     <iframe
-      ref={iframeRef}
+      srcDoc={srcDoc}
       className="w-full h-full min-h-[500px] border-none"
       title="HTML Viewer"
-      sandbox={`allow-same-origin allow-popups ${enableJS ? 'allow-scripts' : ''}`}
+      sandbox={enableJS ? PREVIEW_SANDBOX_WITH_JS : PREVIEW_SANDBOX_NO_JS}
     />
   );
 }

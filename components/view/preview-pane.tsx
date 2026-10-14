@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { HTMLViewer } from '@/components/view/html-viewer';
+import { SVGViewer } from '@/components/view/svg-viewer';
 import { CodeViewer } from '@/components/view/code-viewer';
 import { TableViewer } from '@/components/view/table-viewer';
 import { JsonTreeViewer } from '@/components/json/tree-viewer';
@@ -85,9 +86,7 @@ export function PreviewPane({ format, content, setContent, useBootstrap = false,
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                 </div>
             )}
-            {format === 'svg' && (
-                <div className="flex items-center justify-center p-8 bg-background h-full overflow-auto" dangerouslySetInnerHTML={{ __html: content }} />
-            )}
+            {format === 'svg' && <SVGViewer content={content} />}
             {format === 'csv' && (
                 <div className="p-8 bg-background h-full overflow-auto">
                     <TableViewer data={tableData || []} onDataChange={handleTableDataChange} />

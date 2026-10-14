@@ -40,6 +40,7 @@ import {
 import { useEditor } from '@/lib/hooks/use-editor';
 import { useLocalStorage } from '@/lib/hooks/use-local-storage';
 import { ALL_FORMATS, getLanguage } from '@/lib/formats';
+import { buildPreviewDocument, openSandboxedPreview, svgToDataUrl } from '@/lib/preview-document';
 import { Separator } from '@/components/ui/separator';
 
 export function ViewerContainer({ initialContent, initialFormat }: ContainerProps) {
@@ -115,26 +116,12 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
     };
 
     const openFullPage = () => {
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>Preview - Web Utils</title>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body class="bg-white p-4">
-                    ${content}
-                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-                </body>
-            </html>
-        `;
-
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        const markup = format === 'svg' ? `<img src="${svgToDataUrl(content)}" alt="SVG preview" style="max-width:100%">` : content;
+        openSandboxedPreview(buildPreviewDocument(markup, {
+            useBootstrap: format === 'html' && useBootstrap,
+            useTailwind: format === 'html' && useTailwind,
+            background: '#ffffff',
+        }));
     };
 
     return (
@@ -341,9 +328,11 @@ export function ViewerContainer({ initialContent, initialFormat }: ContainerProp
                                                 </Button>
                                             </div>
                                         )}
-                                        <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold uppercase rounded-md px-3" onClick={openFullPage}>
-                                            <ExternalLink className="size-3 mr-2" /> Full Page
-                                        </Button>
+                                        {(format === 'html' || format === 'svg') && (
+                                            <Button variant="outline" size="sm" className="h-7 text-[10px] font-bold uppercase rounded-md px-3" onClick={openFullPage}>
+                                                <ExternalLink className="size-3 mr-2" /> Full Page
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
