@@ -39,6 +39,7 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete }: Pr
                     <li>Add parts from the palette, then drag between the dots on their ends to connect wires.</li>
                     <li>Select a part to change its value, rotate it, or delete it. Values accept 4.7k, 100µ, 2.2M.</li>
                     <li>Click a switch to flip it.</li>
+                    <li>Run, Pause and Stop control the simulation: pause freezes the readings, stop switches everything off.</li>
                     <li>Moving dashes show current and its direction; faster means more current.</li>
                     <li>Press Delete or Backspace to remove the selection.</li>
                 </ul>

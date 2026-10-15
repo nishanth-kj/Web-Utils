@@ -40,6 +40,7 @@ import {
     type LogicWire,
 } from "@/lib/circuit/logic/logic";
 import { downloadJson } from "../download";
+import { SimulationControls, SimulationNotice, type SimStatus } from "../simulation-controls";
 import { LogicPanel } from "./logic-panel";
 import { GateSymbol, LOGIC_NODE_TYPES } from "./logic-nodes";
 import { LogicRuntimeContext, type LogicNodeData } from "./logic-runtime";
@@ -49,6 +50,7 @@ const EDGE_TYPES = { signal: SignalEdge };
 const STORAGE_KEY = "web-circuit-logic";
 const FIT_OPTIONS = { padding: 0.4 };
 const PALETTE: LogicKind[] = ["switch", "clock", "led", ...GATE_KINDS];
+const POWERED_OFF: LogicResult = { outputs: {}, leds: {}, wires: {}, stable: true };
 
 type LogicNodeT = Node<LogicNodeData>;
 
@@ -139,25 +141,43 @@ function LogicSimulatorInner() {
     const model = useMemo(() => JSON.parse(modelKey) as { parts: LogicPart[]; wires: LogicWire[] }, [modelKey]);
     const clockKey = JSON.stringify(model.parts.filter((part) => part.kind === "clock").map((part) => [part.id, part.period ?? 1]));
 
+    const [status, setStatus] = useState<SimStatus>("running");
+
+    // Clock time only advances while running, so pausing holds every clock.
     const [clockValues, setClockValues] = useState<Record<string, boolean>>({});
-    const clockStart = useRef(0);
+    const clockTime = useRef(0);
     useEffect(() => {
         const clocks = JSON.parse(clockKey) as [string, number][];
-        if (clocks.length === 0) return;
-        if (!clockStart.current) clockStart.current = performance.now();
+        if (clocks.length === 0 || status !== "running") return;
+        let last = performance.now();
         const timer = window.setInterval(() => {
-            const elapsed = (performance.now() - clockStart.current) / 1000;
-            const next = Object.fromEntries(clocks.map(([id, period]) => [id, Math.floor(elapsed / (period / 2)) % 2 === 1]));
+            const now = performance.now();
+            clockTime.current += (now - last) / 1000;
+            last = now;
+            const next = Object.fromEntries(clocks.map(([id, period]) => [id, Math.floor(clockTime.current / (period / 2)) % 2 === 1]));
             setClockValues((previous) => (clocks.every(([id]) => previous[id] === next[id]) ? previous : next));
         }, 50);
         return () => window.clearInterval(timer);
-    }, [clockKey]);
+    }, [clockKey, status]);
 
     // Each update settles from the previous outputs, so latches keep state.
+    // Nothing is recomputed while paused; stopped shows everything off.
     const [result, setResult] = useState<LogicResult>(() => simulateLogic(model.parts, model.wires));
     useEffect(() => {
+        if (status !== "running") return;
         setResult((previous) => simulateLogic(model.parts, model.wires, clockValues, previous.outputs));
-    }, [model, clockValues]);
+    }, [model, clockValues, status]);
+    const shownResult = status === "stopped" ? POWERED_OFF : result;
+
+    const runSimulation = () => setStatus("running");
+    const pauseSimulation = () => setStatus((current) => (current === "running" ? "paused" : current));
+    // Stop is "power off": clocks reset and latches forget.
+    const stopSimulation = () => {
+        clockTime.current = 0;
+        setClockValues({});
+        setResult(POWERED_OFF);
+        setStatus("stopped");
+    };
 
     const table = useMemo(() => truthTable(model.parts, model.wires), [model]);
     const currentInputs = model.parts.filter((part) => part.kind === "switch").map((part) => Boolean(part.on));
@@ -265,7 +285,7 @@ function LogicSimulatorInner() {
         }
     };
 
-    const runtime = useMemo(() => ({ result, toggleSwitch }), [result, toggleSwitch]);
+    const runtime = useMemo(() => ({ result: shownResult, toggleSwitch }), [shownResult, toggleSwitch]);
     const selectedNode = nodes.find((node) => node.selected);
     const selectedEdge = edges.find((edge) => edge.selected);
 
@@ -288,6 +308,7 @@ function LogicSimulatorInner() {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <SimulationControls status={status} onRun={runSimulation} onPause={pauseSimulation} onStop={stopSimulation} />
                     <div className="ml-auto flex items-center gap-1">
                         <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={clearCircuit}>
                             <Eraser className="size-3.5" /> Clear
@@ -339,7 +360,8 @@ function LogicSimulatorInner() {
                     </div>
 
                     <div ref={canvasRef} className="relative min-h-[320px] min-w-0 flex-1">
-                        {!result.stable && (
+                        <SimulationNotice status={status} />
+                        {!shownResult.stable && (
                             <div role="alert" className="absolute inset-x-3 top-3 z-10 flex gap-2 rounded-lg border border-destructive/40 bg-background/95 px-3 py-2 text-xs text-destructive shadow-sm backdrop-blur">
                                 <AlertTriangle className="size-4 shrink-0" />
                                 This circuit oscillates: a feedback loop never settles (for example a NOT gate wired to its own input).
@@ -376,10 +398,10 @@ function LogicSimulatorInner() {
                                 selectedNode && {
                                     id: selectedNode.id,
                                     data: selectedNode.data,
-                                    value: selectedNode.data.kind === "led" ? Boolean(result.leds[selectedNode.id]) : Boolean(result.outputs[selectedNode.id]),
+                                    value: selectedNode.data.kind === "led" ? Boolean(shownResult.leds[selectedNode.id]) : Boolean(shownResult.outputs[selectedNode.id]),
                                 }
                             }
-                            wire={selectedEdge && { id: selectedEdge.id, value: Boolean(result.wires[selectedEdge.id]) }}
+                            wire={selectedEdge && { id: selectedEdge.id, value: Boolean(shownResult.wires[selectedEdge.id]) }}
                             table={table}
                             currentInputs={currentInputs}
                             onUpdate={(patch) => selectedNode && updatePart(selectedNode.id, patch)}

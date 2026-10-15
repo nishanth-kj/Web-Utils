@@ -231,3 +231,8 @@
     animation: none;
   }
 }
+
+/* Paused simulation: current stops moving along the wires. */
+.circuit-paused .circuit-flow {
+  animation-play-state: paused;
+}
