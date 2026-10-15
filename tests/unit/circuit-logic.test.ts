@@ -53,14 +53,14 @@ describe("simulateLogic", () => {
 
     it("remembers a bit in the SR latch", () => {
         const { parts, wires } = example("sr-latch");
-        let state = simulateLogic(withSwitches(parts, { s: true }), wires).outputs;
-        state = simulateLogic(withSwitches(parts, {}), wires, {}, state).outputs;
-        let result = simulateLogic(withSwitches(parts, {}), wires, {}, state);
+        let result = simulateLogic(withSwitches(parts, { s: true }), wires);
+        result = simulateLogic(withSwitches(parts, {}), wires, {}, result);
+        result = simulateLogic(withSwitches(parts, {}), wires, {}, result);
         expect(result.leds.q).toBe(true);
         expect(result.leds.qn).toBe(false);
 
-        state = simulateLogic(withSwitches(parts, { r: true }), wires, {}, result.outputs).outputs;
-        result = simulateLogic(withSwitches(parts, {}), wires, {}, state);
+        result = simulateLogic(withSwitches(parts, { r: true }), wires, {}, result);
+        result = simulateLogic(withSwitches(parts, {}), wires, {}, result);
         expect(result.leds.q).toBe(false);
         expect(result.leds.qn).toBe(true);
     });

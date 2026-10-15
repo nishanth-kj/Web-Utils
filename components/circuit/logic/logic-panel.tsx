@@ -5,14 +5,26 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GATE_KINDS, isGate, type GateKind, type TruthTable } from "@/lib/circuit/logic/logic";
+import { GATE_KINDS, isFlipFlop, isGate, isIndicator, type GateKind, type LogicKind, type TruthTable } from "@/lib/circuit/logic/logic";
 import { cn } from "@/lib/utils";
 import type { LogicNodeData } from "./logic-runtime";
 
 const CLOCK_PERIODS = [0.25, 0.5, 1, 2, 4];
 
+const PART_TITLES: Partial<Record<LogicKind, string>> = {
+    switch: "Switch",
+    button: "Push button",
+    clock: "Clock",
+    led: "LED",
+    probe: "Logic probe",
+    seg7: "7-segment display",
+    dff: "D flip-flop",
+    jkff: "JK flip-flop",
+    tff: "T flip-flop",
+};
+
 interface LogicPanelProps {
-    part?: { id: string; data: LogicNodeData; value: boolean };
+    part?: { id: string; data: LogicNodeData; value: boolean; display?: number };
     wire?: { id: string; value: boolean };
     table: TruthTable | { reason: string };
     currentInputs: boolean[];
@@ -76,7 +88,7 @@ function renderSelection(
         <>
             <div className="flex items-center justify-between gap-2">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    {isGate(data.kind) ? `${data.kind.toUpperCase()} gate` : data.kind === "led" ? "LED" : data.kind === "clock" ? "Clock" : "Switch"}
+                    {isGate(data.kind) ? `${data.kind.toUpperCase()} gate` : PART_TITLES[data.kind]}
                 </h2>
                 <Button variant="ghost" size="icon" className="size-7 text-destructive" onClick={onDelete} aria-label="Delete part" title="Delete">
                     <Trash2 className="size-3.5" />
@@ -139,7 +151,10 @@ function renderSelection(
             )}
 
             <p className="text-xs">
-                {data.kind === "led" ? "Input" : "Output"}: <span className="font-mono font-semibold">{part.value ? "1" : "0"}</span>
+                {data.kind === "seg7" ? "Showing" : isIndicator(data.kind) ? "Input" : isFlipFlop(data.kind) ? "Q" : "Output"}:{" "}
+                <span className="font-mono font-semibold">
+                    {data.kind === "seg7" ? (part.display ?? 0).toString(16).toUpperCase() : part.value ? "1" : "0"}
+                </span>
             </p>
         </>
     );

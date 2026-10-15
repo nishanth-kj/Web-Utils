@@ -1,27 +1,33 @@
-// Digital logic simulation: switches and clocks drive gates, gates drive
-// LEDs. Signals are booleans; an unconnected input reads as 0.
+// Digital logic simulation: inputs (switches, push buttons, clocks) drive
+// gates and edge-triggered flip-flops, which drive LEDs, logic probes and
+// 7-segment displays. Signals are booleans; an unconnected input reads as 0.
 
-export type GateKind = "and" | "or" | "not" | "nand" | "nor" | "xor" | "xnor";
-export type LogicKind = "switch" | "clock" | "led" | GateKind;
+export type GateKind = "and" | "or" | "not" | "buffer" | "nand" | "nor" | "xor" | "xnor";
+export type FlipFlopKind = "dff" | "jkff" | "tff";
+export type LogicKind = "switch" | "button" | "clock" | "led" | "probe" | "seg7" | GateKind | FlipFlopKind;
 
-export const GATE_KINDS: GateKind[] = ["and", "or", "not", "nand", "nor", "xor", "xnor"];
+export type InputHandle = "in0" | "in1" | "in2" | "in3";
+export type OutputHandle = "out" | "outn";
+
+export const GATE_KINDS: GateKind[] = ["and", "or", "not", "buffer", "nand", "nor", "xor", "xnor"];
+export const FLIP_FLOP_KINDS: FlipFlopKind[] = ["dff", "jkff", "tff"];
 
 export interface LogicPart {
     id: string;
     kind: LogicKind;
-    /** Switch: its position. */
+    /** Switch position, or whether a push button is held. */
     on?: boolean;
     /** Clock: full period in seconds. */
     period?: number;
-    /** Name shown for switches and LEDs, and used in the truth table. */
+    /** Name shown for inputs and outputs, and used in the truth table and timing diagram. */
     label?: string;
 }
 
 export interface LogicWire {
     id: string;
-    /** "<partId>:out" */
+    /** "<partId>:out" or, for a flip-flop's Q̄, "<partId>:outn" */
     from: string;
-    /** "<partId>:in0" or "<partId>:in1" */
+    /** "<partId>:in0" … "<partId>:in3" */
     to: string;
 }
 
@@ -35,10 +41,77 @@ export interface LogicDocument {
     wires: LogicWire[];
 }
 
+interface Pin<Id> {
+    id: Id;
+    label: string;
+    /** Edge-triggered clock input (drawn with a ▷ marker). */
+    clock?: boolean;
+}
+
+const OUT: Pin<OutputHandle>[] = [{ id: "out", label: "" }];
+const ONE_INPUT: Pin<InputHandle>[] = [{ id: "in0", label: "" }];
+const TWO_INPUTS: Pin<InputHandle>[] = [
+    { id: "in0", label: "" },
+    { id: "in1", label: "" },
+];
+const Q_OUTPUTS: Pin<OutputHandle>[] = [
+    { id: "out", label: "Q" },
+    { id: "outn", label: "Q̄" },
+];
+
+/** Input and output pins of each kind of part, top to bottom. */
+export const PINS: Record<LogicKind, { inputs: Pin<InputHandle>[]; outputs: Pin<OutputHandle>[] }> = {
+    switch: { inputs: [], outputs: OUT },
+    button: { inputs: [], outputs: OUT },
+    clock: { inputs: [], outputs: OUT },
+    led: { inputs: ONE_INPUT, outputs: [] },
+    probe: { inputs: ONE_INPUT, outputs: [] },
+    seg7: {
+        inputs: [
+            { id: "in0", label: "1" },
+            { id: "in1", label: "2" },
+            { id: "in2", label: "4" },
+            { id: "in3", label: "8" },
+        ],
+        outputs: [],
+    },
+    not: { inputs: ONE_INPUT, outputs: OUT },
+    buffer: { inputs: ONE_INPUT, outputs: OUT },
+    and: { inputs: TWO_INPUTS, outputs: OUT },
+    or: { inputs: TWO_INPUTS, outputs: OUT },
+    nand: { inputs: TWO_INPUTS, outputs: OUT },
+    nor: { inputs: TWO_INPUTS, outputs: OUT },
+    xor: { inputs: TWO_INPUTS, outputs: OUT },
+    xnor: { inputs: TWO_INPUTS, outputs: OUT },
+    dff: {
+        inputs: [
+            { id: "in0", label: "D" },
+            { id: "in1", label: "CLK", clock: true },
+        ],
+        outputs: Q_OUTPUTS,
+    },
+    jkff: {
+        inputs: [
+            { id: "in0", label: "J" },
+            { id: "in1", label: "CLK", clock: true },
+            { id: "in2", label: "K" },
+        ],
+        outputs: Q_OUTPUTS,
+    },
+    tff: {
+        inputs: [
+            { id: "in0", label: "T" },
+            { id: "in1", label: "CLK", clock: true },
+        ],
+        outputs: Q_OUTPUTS,
+    },
+};
+
 const GATE_FUNCS: Record<GateKind, (a: boolean, b: boolean) => boolean> = {
     and: (a, b) => a && b,
     or: (a, b) => a || b,
     not: (a) => !a,
+    buffer: (a) => a,
     nand: (a, b) => !(a && b),
     nor: (a, b) => !(a || b),
     xor: (a, b) => a !== b,
@@ -46,72 +119,138 @@ const GATE_FUNCS: Record<GateKind, (a: boolean, b: boolean) => boolean> = {
 };
 
 export const isGate = (kind: LogicKind): kind is GateKind => (GATE_KINDS as string[]).includes(kind);
+export const isFlipFlop = (kind: LogicKind): kind is FlipFlopKind => (FLIP_FLOP_KINDS as string[]).includes(kind);
+export const isInput = (kind: LogicKind) => kind === "switch" || kind === "button" || kind === "clock";
+/** Parts the truth table and timing diagram read as outputs. */
+export const isIndicator = (kind: LogicKind) => kind === "led" || kind === "probe";
 
-/** Input handles a part accepts. */
-export function inputsOf(kind: LogicKind): ("in0" | "in1")[] {
-    if (kind === "switch" || kind === "clock") return [];
-    if (kind === "not" || kind === "led") return ["in0"];
-    return ["in0", "in1"];
+export const inputsOf = (kind: LogicKind): InputHandle[] => PINS[kind].inputs.map((pin) => pin.id);
+export const outputsOf = (kind: LogicKind): OutputHandle[] => PINS[kind].outputs.map((pin) => pin.id);
+export const hasOutput = (kind: LogicKind) => outputsOf(kind).length > 0;
+
+export interface FlipFlopMemory {
+    q: boolean;
+    /** Clock input level at the last update, to detect rising edges. */
+    clock: boolean;
 }
 
-export const hasOutput = (kind: LogicKind) => kind !== "led";
-
 export interface LogicResult {
-    /** Output value of every switch, clock and gate. */
+    /** Value of every output pin, keyed "<partId>:out" / "<partId>:outn". */
     outputs: Record<string, boolean>;
-    /** Value at each LED's input. */
+    /** Value at each LED's and logic probe's input. */
     leds: Record<string, boolean>;
+    /** Number shown on each 7-segment display (0–15, shown in hex). */
+    displays: Record<string, number>;
     /** Value carried by each wire. */
     wires: Record<string, boolean>;
+    /** Flip-flop state carried into the next update. */
+    memory: Record<string, FlipFlopMemory>;
     /** False when feedback never settles (e.g. a NOT gate feeding itself). */
     stable: boolean;
 }
 
+export const POWERED_OFF: LogicResult = { outputs: {}, leds: {}, displays: {}, wires: {}, memory: {}, stable: true };
+
 const MAX_PASSES = 64;
+const MAX_FLIP_FLOP_ROUNDS = 16;
 
 /**
- * Settles the circuit from the previous outputs, so latches keep their state.
- * `clockValues` gives each clock's current level.
+ * Settles the circuit starting from the previous result, so latches and
+ * flip-flops keep their state. `clockValues` gives each clock's current level.
  */
 export function simulateLogic(
     parts: LogicPart[],
     wires: LogicWire[],
     clockValues: Record<string, boolean> = {},
-    previous: Record<string, boolean> = {}
+    previous: Pick<LogicResult, "outputs" | "memory"> = POWERED_OFF
 ): LogicResult {
     const driver = new Map<string, string>();
-    for (const wire of wires) driver.set(wire.to, wire.from.split(":")[0]);
+    for (const wire of wires) driver.set(wire.to, wire.from);
 
+    const memory: Record<string, FlipFlopMemory> = { ...previous.memory };
     const outputs: Record<string, boolean> = {};
     for (const part of parts) {
-        if (part.kind === "switch") outputs[part.id] = Boolean(part.on);
-        else if (part.kind === "clock") outputs[part.id] = Boolean(clockValues[part.id]);
-        else if (isGate(part.kind)) outputs[part.id] = Boolean(previous[part.id]);
+        const out = `${part.id}:out`;
+        if (part.kind === "switch" || part.kind === "button") outputs[out] = Boolean(part.on);
+        else if (part.kind === "clock") outputs[out] = Boolean(clockValues[part.id]);
+        else if (isGate(part.kind)) outputs[out] = Boolean(previous.outputs[out]);
+        else if (isFlipFlop(part.kind)) {
+            const q = Boolean(memory[part.id]?.q);
+            outputs[out] = q;
+            outputs[`${part.id}:outn`] = !q;
+        }
     }
-    const input = (id: string, handle: string) => {
+    const input = (id: string, handle: InputHandle) => {
         const source = driver.get(`${id}:${handle}`);
         return source ? Boolean(outputs[source]) : false;
     };
 
     const gates = parts.filter((part) => isGate(part.kind));
-    let stable = false;
-    for (let pass = 0; pass < MAX_PASSES && !stable; pass++) {
-        stable = true;
-        for (const gate of gates) {
-            const value = GATE_FUNCS[gate.kind as GateKind](input(gate.id, "in0"), input(gate.id, "in1"));
-            if (value !== outputs[gate.id]) {
-                outputs[gate.id] = value;
-                stable = false;
+    const settle = () => {
+        for (let pass = 0; pass < MAX_PASSES; pass++) {
+            let changed = false;
+            for (const gate of gates) {
+                const value = GATE_FUNCS[gate.kind as GateKind](input(gate.id, "in0"), input(gate.id, "in1"));
+                if (value !== outputs[`${gate.id}:out`]) {
+                    outputs[`${gate.id}:out`] = value;
+                    changed = true;
+                }
+            }
+            if (!changed) return true;
+        }
+        return false;
+    };
+
+    // Flip-flops sample their inputs on a rising clock edge; their new
+    // outputs can clock further flip-flops (ripple counters), so repeat until
+    // nothing changes.
+    let stable = settle();
+    const flipFlops = parts.filter((part) => isFlipFlop(part.kind));
+    for (let round = 0; round < MAX_FLIP_FLOP_ROUNDS; round++) {
+        let changed = false;
+        for (const ff of flipFlops) {
+            const clock = input(ff.id, "in1");
+            const before = memory[ff.id];
+            // A flip-flop seen for the first time (power-up, or just added)
+            // takes its clock level as-is: an input that is already high
+            // isn't a rising edge.
+            if (!before) {
+                memory[ff.id] = { q: false, clock };
+                continue;
+            }
+            let q = before.q;
+            if (clock && !before.clock) {
+                if (ff.kind === "dff") q = input(ff.id, "in0");
+                else if (ff.kind === "tff") q = input(ff.id, "in0") ? !q : q;
+                else {
+                    const j = input(ff.id, "in0");
+                    const k = input(ff.id, "in2");
+                    q = j && k ? !q : j ? true : k ? false : q;
+                }
+            }
+            memory[ff.id] = { q, clock };
+            if (q !== outputs[`${ff.id}:out`]) {
+                outputs[`${ff.id}:out`] = q;
+                outputs[`${ff.id}:outn`] = !q;
+                changed = true;
             }
         }
+        if (!changed) break;
+        stable = settle();
     }
 
     const leds: Record<string, boolean> = {};
-    for (const part of parts) if (part.kind === "led") leds[part.id] = input(part.id, "in0");
+    const displays: Record<string, number> = {};
+    for (const part of parts) {
+        if (isIndicator(part.kind)) leds[part.id] = input(part.id, "in0");
+        if (part.kind === "seg7") {
+            displays[part.id] = inputsOf("seg7").reduce((sum, handle, bit) => sum + (input(part.id, handle) ? 1 << bit : 0), 0);
+        }
+    }
     const wireValues: Record<string, boolean> = {};
-    for (const wire of wires) wireValues[wire.id] = Boolean(outputs[wire.from.split(":")[0]]);
+    for (const wire of wires) wireValues[wire.id] = Boolean(outputs[wire.from]);
 
-    return { outputs, leds, wires: wireValues, stable };
+    return { outputs, leds, displays, wires: wireValues, memory, stable };
 }
 
 /** True when some gate's output feeds back into its own inputs. */
@@ -142,28 +281,31 @@ export interface TruthTable {
 }
 
 /**
- * Truth table over the switches (inputs) and LEDs (outputs), or the reason
- * one can't be made for this circuit.
+ * Truth table over the switches and push buttons (inputs) and LEDs and logic
+ * probes (outputs), or the reason one can't be made for this circuit.
  */
 export function truthTable(parts: LogicPart[], wires: LogicWire[]): TruthTable | { reason: string } {
-    const switches = parts.filter((part) => part.kind === "switch");
-    const leds = parts.filter((part) => part.kind === "led");
+    const inputs = parts.filter((part) => part.kind === "switch" || part.kind === "button");
+    const indicators = parts.filter((part) => isIndicator(part.kind));
     if (parts.some((part) => part.kind === "clock")) return { reason: "Truth tables aren't shown for circuits with a clock." };
-    if (switches.length === 0 || leds.length === 0) return { reason: "Add at least one switch and one LED to see a truth table." };
-    if (switches.length > MAX_TRUTH_TABLE_INPUTS) return { reason: `Truth tables are shown for up to ${MAX_TRUTH_TABLE_INPUTS} switches.` };
+    if (parts.some((part) => isFlipFlop(part.kind))) {
+        return { reason: "Flip-flops remember earlier inputs, so outputs depend on history. Use the timing diagram instead." };
+    }
+    if (inputs.length === 0 || indicators.length === 0) return { reason: "Add at least one switch and one LED to see a truth table." };
+    if (inputs.length > MAX_TRUTH_TABLE_INPUTS) return { reason: `Truth tables are shown for up to ${MAX_TRUTH_TABLE_INPUTS} switches.` };
     if (hasFeedback(parts, wires)) return { reason: "This circuit has feedback (like a latch), so its outputs depend on its history, not just its inputs." };
 
     const name = (part: LogicPart) => part.label || part.id;
-    const rows = Array.from({ length: 2 ** switches.length }, (_, row) => {
-        const values = switches.map((_, i) => Boolean((row >> (switches.length - 1 - i)) & 1));
-        const set = parts.map((part) => (part.kind === "switch" ? { ...part, on: values[switches.indexOf(part)] } : part));
+    const rows = Array.from({ length: 2 ** inputs.length }, (_, row) => {
+        const values = inputs.map((_, i) => Boolean((row >> (inputs.length - 1 - i)) & 1));
+        const set = parts.map((part) => (inputs.includes(part) ? { ...part, on: values[inputs.indexOf(part)] } : part));
         const result = simulateLogic(set, wires);
-        return { inputs: values, outputs: leds.map((led) => result.leds[led.id]) };
+        return { inputs: values, outputs: indicators.map((indicator) => result.leds[indicator.id]) };
     });
-    return { inputs: switches.map(name), outputs: leds.map(name), rows };
+    return { inputs: inputs.map(name), outputs: indicators.map(name), rows };
 }
 
-const LOGIC_KINDS: LogicKind[] = ["switch", "clock", "led", ...GATE_KINDS];
+const LOGIC_KINDS = Object.keys(PINS) as LogicKind[];
 export const MIN_CLOCK_PERIOD = 0.1;
 export const MAX_CLOCK_PERIOD = 10;
 
@@ -186,6 +328,7 @@ export function parseLogicDocument(input: unknown): LogicDocument {
         };
         if (typeof part.label === "string") clean.label = part.label.slice(0, 12);
         if (part.kind === "switch") clean.on = Boolean(part.on);
+        if (part.kind === "button") clean.on = false;
         if (part.kind === "clock") {
             const period = Number.isFinite(part.period) ? Number(part.period) : 1;
             clean.period = Math.min(MAX_CLOCK_PERIOD, Math.max(MIN_CLOCK_PERIOD, period));
@@ -203,8 +346,8 @@ export function parseLogicDocument(input: unknown): LogicDocument {
         const [toId, toHandle] = wire.to.split(":");
         const fromKind = kindOf.get(fromId);
         const toKind = kindOf.get(toId);
-        if (!fromKind || !toKind || fromHandle !== "out" || !hasOutput(fromKind)) return;
-        if (!inputsOf(toKind).includes(toHandle as "in0" | "in1") || used.has(wire.to)) return;
+        if (!fromKind || !toKind || !outputsOf(fromKind).includes(fromHandle as OutputHandle)) return;
+        if (!inputsOf(toKind).includes(toHandle as InputHandle) || used.has(wire.to)) return;
         used.add(wire.to);
         cleanWires.push({ id: typeof wire.id === "string" && wire.id ? wire.id : `w${i + 1}`, from: wire.from, to: wire.to });
     });
@@ -220,6 +363,9 @@ export interface LogicExample {
     description: string;
     circuit: LogicDocument;
 }
+
+// Wire from a flip-flop's Q̄ output.
+const wn = (id: string, from: string, to: string): LogicWire => ({ id, from: `${from}:outn`, to });
 
 export const LOGIC_EXAMPLES: LogicExample[] = [
     {
@@ -312,6 +458,51 @@ export const LOGIC_EXAMPLES: LogicExample[] = [
                 w("w4", "g2", "g1:in1"),
                 w("w5", "g2", "q:in0"),
                 w("w6", "g1", "qn:in0"),
+            ],
+        },
+    },
+    {
+        id: "d-flip-flop",
+        label: "D flip-flop",
+        description: "Set D, then press CLK: Q copies D on the rising edge and holds it until the next press.",
+        circuit: {
+            parts: [
+                { id: "d", kind: "switch", label: "D", x: 0, y: 40 },
+                { id: "clk", kind: "button", label: "CLK", x: 0, y: 180 },
+                { id: "ff1", kind: "dff", label: "FF1", x: 200, y: 80 },
+                { id: "q", kind: "led", label: "Q", x: 420, y: 70 },
+                { id: "qn", kind: "led", label: "Q̄", x: 420, y: 170 },
+            ],
+            wires: [w("w1", "d", "ff1:in0"), w("w2", "clk", "ff1:in1"), w("w3", "ff1", "q:in0"), wn("w4", "ff1", "qn:in0")],
+        },
+    },
+    {
+        id: "counter",
+        label: "4-bit counter (7-segment)",
+        description: "A clock ripples through four T flip-flops; the display counts 0 to F. Turn EN off to hold the count.",
+        circuit: {
+            parts: [
+                { id: "en", kind: "switch", label: "EN", on: true, x: 0, y: 40 },
+                { id: "clk", kind: "clock", label: "CLK", period: 0.5, x: 0, y: 240 },
+                { id: "ff1", kind: "tff", label: "FF1", x: 200, y: 120 },
+                { id: "ff2", kind: "tff", label: "FF2", x: 380, y: 120 },
+                { id: "ff3", kind: "tff", label: "FF3", x: 560, y: 120 },
+                { id: "ff4", kind: "tff", label: "FF4", x: 740, y: 120 },
+                { id: "disp", kind: "seg7", label: "COUNT", x: 960, y: 100 },
+            ],
+            wires: [
+                w("w1", "en", "ff1:in0"),
+                w("w2", "en", "ff2:in0"),
+                w("w3", "en", "ff3:in0"),
+                w("w4", "en", "ff4:in0"),
+                w("w5", "clk", "ff1:in1"),
+                wn("w6", "ff1", "ff2:in1"),
+                wn("w7", "ff2", "ff3:in1"),
+                wn("w8", "ff3", "ff4:in1"),
+                w("w9", "ff1", "disp:in0"),
+                w("w10", "ff2", "disp:in1"),
+                w("w11", "ff3", "disp:in2"),
+                w("w12", "ff4", "disp:in3"),
             ],
         },
     },
