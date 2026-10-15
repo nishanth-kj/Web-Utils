@@ -6,7 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LED_COLORS, LED_MAX_CURRENT, PART_DEFS, type LedColor } from "@/lib/circuit/analog/parts";
+import {
+    AC_DEFAULT_FREQUENCY,
+    AC_MAX_FREQUENCY,
+    AC_MIN_FREQUENCY,
+    LED_COLORS,
+    LED_MAX_CURRENT,
+    PART_DEFS,
+    type LedColor,
+} from "@/lib/circuit/analog/parts";
+import { DEFAULT_TIME_PER_DIV, TIME_PER_DIV_OPTIONS, VOLTS_PER_DIV_OPTIONS } from "@/lib/circuit/analog/scope";
 import type { PartReading } from "@/lib/circuit/analog/solver";
 import { formatSI, parseSI } from "@/lib/circuit/units";
 import type { PartNodeData } from "./runtime";
@@ -24,6 +33,8 @@ const VALUE_LABELS: Partial<Record<PartNodeData["kind"], string>> = {
     battery: "Voltage",
     capacitor: "Capacitance",
     zener: "Breakdown voltage",
+    ac: "Peak voltage",
+    inductor: "Inductance",
     fuse: "Rating",
 };
 
@@ -58,7 +69,7 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onRe
 
     const def = PART_DEFS[part.data.kind];
     const reading = part.reading;
-    const isBattery = part.data.kind === "battery";
+    const isBattery = part.data.kind === "battery" || part.data.kind === "ac";
 
     return (
         <div className="space-y-4 p-4">
@@ -105,6 +116,61 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onRe
                 </div>
             )}
 
+            {part.data.kind === "ac" && (
+                <ValueEditor
+                    key={`${part.id}:f:${part.data.frequency}`}
+                    id="ac-frequency"
+                    label="Frequency"
+                    value={part.data.frequency ?? AC_DEFAULT_FREQUENCY}
+                    unit="Hz"
+                    min={AC_MIN_FREQUENCY}
+                    max={AC_MAX_FREQUENCY}
+                    onCommit={(frequency) => onUpdate({ frequency })}
+                />
+            )}
+
+            {part.data.kind === "oscilloscope" && (
+                <div className="space-y-3">
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-muted-foreground" htmlFor="scope-time">Time / division</label>
+                        <Select value={String(part.data.timePerDiv ?? DEFAULT_TIME_PER_DIV)} onValueChange={(value) => onUpdate({ timePerDiv: Number(value) })}>
+                            <SelectTrigger id="scope-time" className="h-8 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {TIME_PER_DIV_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={String(option)} className="text-xs">
+                                        {formatSI(option, "s")}/div
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-muted-foreground" htmlFor="scope-volts">Volts / division</label>
+                        <Select
+                            value={part.data.voltsPerDiv === undefined ? "auto" : String(part.data.voltsPerDiv)}
+                            onValueChange={(value) => onUpdate({ voltsPerDiv: value === "auto" ? undefined : Number(value) })}
+                        >
+                            <SelectTrigger id="scope-volts" className="h-8 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="auto" className="text-xs">Automatic</SelectItem>
+                                {VOLTS_PER_DIV_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={String(option)} className="text-xs">
+                                        {formatSI(option, "V")}/div
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                        Wire channel A (yellow) and B (cyan) to the points to measure; both read against ground (or the source&apos;s − terminal).
+                    </p>
+                </div>
+            )}
+
             {part.data.kind === "potentiometer" && (
                 <div className="space-y-2">
                     <div className="flex items-baseline justify-between">
@@ -142,7 +208,7 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onRe
                 </Button>
             )}
 
-            {reading && part.data.kind !== "ground" && (
+            {reading && part.data.kind !== "ground" && part.data.kind !== "oscilloscope" && (
                 <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
                     <Readout label={isBattery ? "Terminal voltage" : "Voltage"} value={formatSI(Math.abs(reading.voltage), "V")} />
                     <Readout label={isBattery ? "Delivers" : "Current"} value={formatSI(Math.abs(reading.current), "A")} />
@@ -164,6 +230,7 @@ function Readout({ label, value }: { label: string; value: string }) {
 }
 
 function ValueEditor({
+    id = "part-value",
     label,
     value,
     unit,
@@ -171,6 +238,7 @@ function ValueEditor({
     max,
     onCommit,
 }: {
+    id?: string;
     label: string;
     value: number;
     unit: string;
@@ -197,9 +265,9 @@ function ValueEditor({
 
     return (
         <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground" htmlFor="part-value">{label}</label>
+            <label className="text-[11px] font-semibold text-muted-foreground" htmlFor={id}>{label}</label>
             <Input
-                id="part-value"
+                id={id}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onBlur={commit}
@@ -207,11 +275,11 @@ function ValueEditor({
                     if (event.key === "Enter") commit();
                 }}
                 aria-invalid={Boolean(error)}
-                aria-describedby={error ? "part-value-error" : undefined}
+                aria-describedby={error ? `${id}-error` : undefined}
                 className="h-8 font-mono text-xs"
             />
             {error && (
-                <p id="part-value-error" className="text-[11px] text-destructive">
+                <p id={`${id}-error`} className="text-[11px] text-destructive">
                     {error}
                 </p>
             )}

@@ -18,17 +18,22 @@ import {
 //   resistor, bulb, motor, buzzer   g = 1/R              e = 0
 //   potentiometer                    two resistors meeting at the wiper
 //   battery                          g = 1/r_internal     e = V   (Thevenin source)
+//   AC source                        g = 1/r_internal     e = V_peak · sin(2π f t)
 //   capacitor                        g = C/dt             e = v(previous step)   (backward Euler)
+//   inductor                         g = dt/L             e = −i(previous step)/g   (backward Euler)
 //   LED, diode, Zener                piecewise linear: off ≈ open; on: g = 1/R_on, e = V_forward;
 //                                    Zener breakdown: g = 1/R_z, e = −V_z
 //   switch, button, wire, ammeter    closed: g = 1 kS (1 mΩ);  open: g ≈ 0
 //   fuse                             0.05 Ω until the current exceeds its rating, then open for good
 //   voltmeter                        10 MΩ
+//   oscilloscope                     ideal probe: no branch, it only reads node voltages
 // Wires are tiny resistors rather than merged nodes so each one gets its own
 // current (and direction) for display.
 
 const WIRE_CONDUCTANCE = 1e3;
-const OPEN_CONDUCTANCE = 1e-12;
+// Open switches, off diodes and blown fuses: small enough that their leakage
+// stays under the 1 nV / 100 pA display floor even at hundreds of volts.
+const OPEN_CONDUCTANCE = 1e-15;
 // Ties floating nodes weakly to the reference so they don't make the system
 // singular.
 const GMIN = 1e-9;
@@ -40,23 +45,24 @@ export type JunctionState = "off" | "on" | "reverse";
 
 export interface SimState {
     capacitorVoltages: Record<string, number>;
+    inductorCurrents: Record<string, number>;
     /** Conduction state of each LED, diode and Zener. */
     junctions: Record<string, JunctionState>;
     /** Fuses stay blown until the simulation is restarted or the fuse replaced. */
     blownFuses: Record<string, true>;
 }
 
-export const initialSimState = (): SimState => ({ capacitorVoltages: {}, junctions: {}, blownFuses: {} });
+export const initialSimState = (): SimState => ({ capacitorVoltages: {}, inductorCurrents: {}, junctions: {}, blownFuses: {} });
 
 export interface PartReading {
     /** V(a) − V(b): across a battery, its terminal voltage. */
     voltage: number;
     /**
      * Current through the part from a to b (potentiometer: into terminal a).
-     * For a battery: the current it delivers out of its + terminal.
+     * For a battery or AC source: the current it delivers out of terminal a.
      */
     current: number;
-    /** Power absorbed by the part. For a battery: power delivered. */
+    /** Power absorbed by the part. For a battery or AC source: power delivered. */
     power: number;
     /** LEDs and diodes: whether they conduct (forward or, for a Zener, in breakdown). */
     on?: boolean;
@@ -94,15 +100,17 @@ function forwardModel(part: AnalogPart) {
         : { voltage: DIODE_FORWARD_VOLTAGE, resistance: DIODE_ON_RESISTANCE };
 }
 
-export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimState, dt: number): SolveResult {
+/** `time` is the simulated time in seconds, used by AC sources. */
+export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimState, dt: number, time = 0): SolveResult {
     // --- Number the terminals; ground (or a fallback) is the 0 V reference.
     const index = new Map<string, number>();
     const hasGround = parts.some((part) => part.kind === "ground");
     const fallbackReference = hasGround
         ? null
         : (() => {
-              const battery = parts.find((part) => part.kind === "battery");
-              if (battery) return `${battery.id}:b`;
+              // A source's − terminal, as you'd ground it on a bench.
+              const source = parts.find((part) => part.kind === "battery" || part.kind === "ac");
+              if (source) return `${source.id}:b`;
               return parts.length > 0 ? `${parts[0].id}:a` : null;
           })();
 
@@ -126,6 +134,8 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
         switch (part.kind) {
             case "battery":
                 return [{ a, b, g: 1 / BATTERY_INTERNAL_RESISTANCE, e: part.value }];
+            case "ac":
+                return [{ a, b, g: 1 / BATTERY_INTERNAL_RESISTANCE, e: part.value * Math.sin(2 * Math.PI * (part.frequency ?? 1) * time) }];
             case "resistor":
             case "bulb":
             case "motor":
@@ -152,6 +162,10 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
                 return [{ a, b, g: blownFuses[part.id] ? OPEN_CONDUCTANCE : 1 / FUSE_RESISTANCE, e: 0 }];
             case "capacitor":
                 return [{ a, b, g: Math.max(part.value, 1e-15) / dt, e: previous.capacitorVoltages[part.id] ?? 0 }];
+            case "inductor": {
+                const g = dt / Math.max(part.value, 1e-12);
+                return [{ a, b, g, e: -(previous.inductorCurrents[part.id] ?? 0) / g }];
+            }
             case "led":
             case "diode":
             case "zener": {
@@ -164,6 +178,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
                 return [{ a, b, g: OPEN_CONDUCTANCE, e: 0 }];
             }
             case "ground":
+            case "oscilloscope":
                 return [];
         }
     };
@@ -231,6 +246,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
 
     const readings: Record<string, PartReading> = {};
     const capacitorVoltages: Record<string, number> = {};
+    const inductorCurrents: Record<string, number> = {};
     let shortCircuit = false;
     const overloadedLeds: string[] = [];
 
@@ -240,14 +256,14 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
             readings[part.id] = { voltage: 0, current: 0, power: 0 };
             continue;
         }
-        const voltage = at(voltages, node(part, "a")) - at(voltages, node(part, "b"));
+        const voltage = difference(at(voltages, node(part, "a")), at(voltages, node(part, "b")));
         const throughAtoB = snap(branchCurrent(branches[0], voltages));
         const power = branches.reduce((sum, branch) => {
             const v = at(voltages, branch.a) - at(voltages, branch.b);
             return sum + v * snap(branchCurrent(branch, voltages));
         }, 0);
 
-        if (part.kind === "battery") {
+        if (part.kind === "battery" || part.kind === "ac") {
             // "+ 0" turns -0 into 0 for a battery delivering nothing.
             const delivered = -throughAtoB + 0;
             readings[part.id] = { voltage, current: delivered, power: voltage * delivered };
@@ -257,6 +273,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
 
         const reading: PartReading = { voltage, current: throughAtoB, power };
         if (part.kind === "capacitor") capacitorVoltages[part.id] = voltage;
+        if (part.kind === "inductor") inductorCurrents[part.id] = branchCurrent(branches[0], voltages);
         if (part.kind === "potentiometer") reading.wiperVoltage = at(voltages, node(part, "w")) - at(voltages, node(part, "b"));
         if (part.kind === "fuse") reading.blown = Boolean(blownFuses[part.id]);
         if (isJunction(part)) {
@@ -279,7 +296,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
         wireCurrents,
         shortCircuit,
         overloadedLeds,
-        state: { capacitorVoltages, junctions, blownFuses },
+        state: { capacitorVoltages, inductorCurrents, junctions, blownFuses },
     };
 }
 
@@ -302,6 +319,12 @@ function floatingNodes(size: number, branches: Branch[]): number[] {
     const floating: number[] = [];
     for (let i = 0; i < size; i++) if (find(i) !== root) floating.push(i);
     return floating;
+}
+
+// Rounding noise from subtracting two nearly equal node voltages.
+function difference(a: number, b: number) {
+    const diff = a - b;
+    return Math.abs(diff) < 1e-9 * Math.max(1, Math.abs(a), Math.abs(b)) ? 0 : diff;
 }
 
 // Currents this small are numerical leakage, not real current.

@@ -1,9 +1,25 @@
-import { LED_COLORS, PART_DEFS, type AnalogKind, type AnalogPart, type LedColor, type Rotation, type Terminal, type Wire } from "./parts";
+import {
+    AC_DEFAULT_FREQUENCY,
+    AC_MAX_FREQUENCY,
+    AC_MIN_FREQUENCY,
+    LED_COLORS,
+    PART_DEFS,
+    type AnalogKind,
+    type AnalogPart,
+    type LedColor,
+    type Rotation,
+    type Terminal,
+    type Wire,
+} from "./parts";
+import { DEFAULT_TIME_PER_DIV, TIME_PER_DIV_OPTIONS, VOLTS_PER_DIV_OPTIONS } from "./scope";
 
 export interface PlacedPart extends AnalogPart {
     x: number;
     y: number;
     rotation: Rotation;
+    /** Oscilloscope display settings (not part of the electrical model). */
+    timePerDiv?: number;
+    voltsPerDiv?: number;
 }
 
 export interface CircuitDocument {
@@ -38,6 +54,14 @@ export function parseCircuitDocument(input: unknown): CircuitDocument {
             rotation,
         };
         if (part.kind === "switch") clean.closed = Boolean(part.closed);
+        if (part.kind === "ac") {
+            const frequency = Number.isFinite(part.frequency) ? Number(part.frequency) : AC_DEFAULT_FREQUENCY;
+            clean.frequency = Math.min(AC_MAX_FREQUENCY, Math.max(AC_MIN_FREQUENCY, frequency));
+        }
+        if (part.kind === "oscilloscope") {
+            clean.timePerDiv = TIME_PER_DIV_OPTIONS.includes(Number(part.timePerDiv)) ? Number(part.timePerDiv) : DEFAULT_TIME_PER_DIV;
+            if (VOLTS_PER_DIV_OPTIONS.includes(Number(part.voltsPerDiv))) clean.voltsPerDiv = Number(part.voltsPerDiv);
+        }
         if (part.kind === "potentiometer") {
             const position = Number.isFinite(part.position) ? Number(part.position) : 0.5;
             clean.position = Math.min(1, Math.max(0, position));
@@ -245,6 +269,83 @@ export const ANALOG_EXAMPLES: AnalogExample[] = [
                 wire("w3", "sw1:b", "bz1:a"),
                 wire("w4", "m1:b", "bat1:b"),
                 wire("w5", "bz1:b", "bat1:b"),
+            ],
+        },
+    },
+    {
+        id: "ac-lamp",
+        label: "AC lamp",
+        description: "A 1 Hz AC source: the current reverses every half second and the lamp flickers with the power.",
+        circuit: {
+            parts: [part("ac1", "ac", 0, 140, 90, { value: 9, frequency: 1 }), part("lamp1", "bulb", 220, 140, 90)],
+            wires: [wire("w1", "ac1:a", "lamp1:a"), wire("w2", "lamp1:b", "ac1:b")],
+        },
+    },
+    {
+        id: "rectifier",
+        label: "Half-wave rectifier (scope)",
+        description: "A diode passes only the positive half of the AC input; the scope shows input (A) and output (B).",
+        circuit: {
+            parts: [
+                part("ac1", "ac", 0, 160, 90, { value: 10, frequency: 2 }),
+                part("d1", "diode", 160, 20, 0),
+                part("r1", "resistor", 340, 160, 90, { value: 1000 }),
+                part("gnd1", "ground", 0, 340, 0),
+                { ...part("osc1", "oscilloscope", 520, 80, 0), timePerDiv: 0.1 },
+            ],
+            wires: [
+                wire("w1", "ac1:a", "d1:a"),
+                wire("w2", "d1:b", "r1:a"),
+                wire("w3", "r1:b", "ac1:b"),
+                wire("w4", "ac1:b", "gnd1:a"),
+                wire("w5", "ac1:a", "osc1:a"),
+                wire("w6", "r1:a", "osc1:b"),
+            ],
+        },
+    },
+    {
+        id: "rc-filter",
+        label: "RC low-pass filter (scope)",
+        description: "The capacitor smooths a 5 Hz input: the output (B) is smaller and lags the input (A).",
+        circuit: {
+            parts: [
+                part("ac1", "ac", 0, 160, 90, { value: 5, frequency: 5 }),
+                part("r1", "resistor", 160, 20, 0, { value: 1000 }),
+                part("c1", "capacitor", 340, 160, 90, { value: 100e-6 }),
+                part("gnd1", "ground", 0, 340, 0),
+                { ...part("osc1", "oscilloscope", 520, 80, 0), timePerDiv: 0.05 },
+            ],
+            wires: [
+                wire("w1", "ac1:a", "r1:a"),
+                wire("w2", "r1:b", "c1:a"),
+                wire("w3", "c1:b", "ac1:b"),
+                wire("w4", "ac1:b", "gnd1:a"),
+                wire("w5", "ac1:a", "osc1:a"),
+                wire("w6", "c1:a", "osc1:b"),
+            ],
+        },
+    },
+    {
+        id: "rl",
+        label: "Inductor with flyback diode",
+        description: "Close the switch: current through the 1 H inductor builds up over about half a second. Open it: the diode carries the inductor's current as it dies away.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90),
+                part("sw1", "switch", 140, 0, 0, { closed: false }),
+                part("r1", "resistor", 300, 0, 0, { value: 10 }),
+                part("l1", "inductor", 460, 140, 90, { value: 1 }),
+                part("d1", "diode", 600, 140, 270),
+                part("am1", "ammeter", 300, 280, 180),
+            ],
+            wires: [
+                wire("w1", "bat1:a", "sw1:a"),
+                wire("w2", "sw1:b", "r1:a"),
+                wire("w3", "r1:b", "l1:a"),
+                wire("w4", "l1:b", "am1:a"),
+                wire("w5", "am1:b", "bat1:b"),
+                wire("w6", "l1:b", "d1:a"),
+                wire("w7", "d1:b", "l1:a"),
             ],
         },
     },
