@@ -11,6 +11,8 @@ export interface LogicNodeData {
 export interface LogicRuntime {
     result: LogicResult;
     toggleSwitch: (id: string) => void;
+    /** Push buttons: held (true) or released. */
+    setPressed: (id: string, pressed: boolean) => void;
 }
 
 // Signal values are shared through context so clock ticks don't rebuild
