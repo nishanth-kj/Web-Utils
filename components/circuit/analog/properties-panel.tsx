@@ -85,6 +85,18 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onRe
                 </div>
             </div>
 
+            {(part.data.kind === "npn" || part.data.kind === "pnp") && (
+                <ValueEditor
+                    key={`${part.id}:${part.data.value}`}
+                    label="Current gain (β / hFE)"
+                    value={part.data.value}
+                    unit=""
+                    min={def.min}
+                    max={def.max}
+                    onCommit={(value) => onUpdate({ value: Math.round(value) })}
+                />
+            )}
+
             {def.unit && (
                 <ValueEditor
                     key={`${part.id}:${part.data.value}`}
@@ -208,7 +220,16 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onRe
                 </Button>
             )}
 
-            {reading && part.data.kind !== "ground" && part.data.kind !== "oscilloscope" && (
+            {reading && (part.data.kind === "npn" || part.data.kind === "pnp") && (
+                <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+                    <Readout label="State" value={reading.transistorState ?? "cutoff"} />
+                    <Readout label="Collector current" value={formatSI(Math.abs(reading.current), "A")} />
+                    <Readout label="Base current" value={formatSI(Math.abs(reading.baseCurrent ?? 0), "A")} />
+                    <Readout label="V(CE)" value={formatSI(Math.abs(reading.voltage), "V")} />
+                </div>
+            )}
+
+            {reading && part.data.kind !== "ground" && part.data.kind !== "oscilloscope" && part.data.kind !== "npn" && part.data.kind !== "pnp" && (
                 <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
                     <Readout label={isBattery ? "Terminal voltage" : "Voltage"} value={formatSI(Math.abs(reading.voltage), "V")} />
                     <Readout label={isBattery ? "Delivers" : "Current"} value={formatSI(Math.abs(reading.current), "A")} />

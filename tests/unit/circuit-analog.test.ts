@@ -361,3 +361,75 @@ describe("ScopeBuffer", () => {
         expect(autoVoltsPerDiv(0.3)).toBe(0.1);
     });
 });
+
+describe("transistors", () => {
+    // 9 V supply; base resistor Rb from `baseFrom`; collector load R_c (+ optional LED); emitter to 0 V.
+    const npnCircuit = (rb: number, rc: number, baseFrom: "bat:a" | "bat:b", withLed = false): [AnalogPart[], Wire[]] => {
+        const parts: AnalogPart[] = [
+            battery(),
+            { id: "rb", kind: "resistor", value: rb },
+            { id: "rc", kind: "resistor", value: rc },
+            { id: "q", kind: "npn", value: 100 },
+        ];
+        const wires = [wire("w1", baseFrom, "rb:a"), wire("w2", "rb:b", "q:b"), wire("w3", "bat:a", "rc:a"), wire("w5", "q:e", "bat:b")];
+        if (withLed) {
+            parts.push({ id: "led", kind: "led", value: 0, color: "red" });
+            wires.push(wire("w4", "rc:b", "led:a"), wire("w6", "led:b", "q:c"));
+        } else {
+            wires.push(wire("w4", "rc:b", "q:c"));
+        }
+        return [parts, wires];
+    };
+
+    it("saturates an NPN switch and lights its LED", () => {
+        const result = solve(...npnCircuit(10_000, 330, "bat:a", true));
+        expect(result.readings.q.transistorState).toBe("saturation");
+        expect(result.readings.q.voltage).toBeCloseTo(0.2, 1);
+        expect(result.readings.q.baseCurrent).toBeCloseTo(8.3 / 10_100, 5);
+        expect(result.readings.led.on).toBe(true);
+        expect(result.readings.led.current).toBeGreaterThan(0.015);
+    });
+
+    it("cuts off when the base is pulled to 0 V", () => {
+        const result = solve(...npnCircuit(10_000, 330, "bat:b", true));
+        expect(result.readings.q.transistorState).toBe("cutoff");
+        expect(result.readings.q.current).toBe(0);
+        expect(result.readings.led.on).toBe(false);
+    });
+
+    it("amplifies base current by β in the active region", () => {
+        const result = solve(...npnCircuit(1_000_000, 1000, "bat:a"));
+        const { transistorState, current, baseCurrent } = result.readings.q;
+        expect(transistorState).toBe("active");
+        expect(current / baseCurrent!).toBeCloseTo(100, 3);
+        expect(result.readings.rc.current).toBeCloseTo(current, 6);
+    });
+
+    it("switches a PNP with its base pulled low", () => {
+        const parts: AnalogPart[] = [
+            battery(),
+            { id: "rb", kind: "resistor", value: 10_000 },
+            { id: "rc", kind: "resistor", value: 330 },
+            { id: "q", kind: "pnp", value: 100 },
+            { id: "led", kind: "led", value: 0, color: "green" },
+        ];
+        const wires = [
+            wire("w1", "bat:a", "q:e"),
+            wire("w2", "q:b", "rb:a"),
+            wire("w3", "rb:b", "bat:b"),
+            wire("w4", "q:c", "rc:a"),
+            wire("w5", "rc:b", "led:a"),
+            wire("w6", "led:b", "bat:b"),
+        ];
+        const result = solve(parts, wires);
+        expect(result.readings.q.transistorState).toBe("saturation");
+        expect(result.readings.led.on).toBe(true);
+    });
+
+    it("changes collector current with the gain setting", () => {
+        const [parts, wires] = npnCircuit(1_000_000, 1000, "bat:a");
+        const low = solve(parts.map((p) => (p.id === "q" ? { ...p, value: 50 } : p)), wires).readings.q.current;
+        const high = solve(parts.map((p) => (p.id === "q" ? { ...p, value: 200 } : p)), wires).readings.q.current;
+        expect(high / low).toBeCloseTo(4, 1);
+    });
+});

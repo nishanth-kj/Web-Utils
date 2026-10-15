@@ -1,4 +1,8 @@
 import {
+    BJT_RBE,
+    BJT_RCE_SAT,
+    BJT_VBE,
+    BJT_VCE_SAT,
     DIODE_FORWARD_VOLTAGE,
     DIODE_ON_RESISTANCE,
     FUSE_RESISTANCE,
@@ -27,6 +31,9 @@ import {
 //   fuse                             0.05 Ω until the current exceeds its rating, then open for good
 //   voltmeter                        10 MΩ
 //   oscilloscope                     ideal probe: no branch, it only reads node voltages
+//   NPN / PNP transistor             piecewise linear: cutoff (open); active: base-emitter
+//                                    junction plus a collector current source β·Ib;
+//                                    saturation: base-emitter junction plus V_CE(sat) = 0.2 V
 // Wires are tiny resistors rather than merged nodes so each one gets its own
 // current (and direction) for display.
 
@@ -40,8 +47,13 @@ const GMIN = 1e-9;
 const BATTERY_INTERNAL_RESISTANCE = 0.01;
 export const SHORT_CIRCUIT_CURRENT = 10;
 const MAX_ITERATIONS = 40;
+// A diode only counts as conducting if real current flows; a forward
+// voltage across it with no return path (e.g. in series with an open
+// switch or a cut-off transistor) isn't enough.
+const MIN_CONDUCTION_CURRENT = 1e-9;
 
 export type JunctionState = "off" | "on" | "reverse";
+export type TransistorState = "cutoff" | "active" | "saturation";
 
 export interface SimState {
     capacitorVoltages: Record<string, number>;
@@ -50,9 +62,10 @@ export interface SimState {
     junctions: Record<string, JunctionState>;
     /** Fuses stay blown until the simulation is restarted or the fuse replaced. */
     blownFuses: Record<string, true>;
+    transistors: Record<string, TransistorState>;
 }
 
-export const initialSimState = (): SimState => ({ capacitorVoltages: {}, inductorCurrents: {}, junctions: {}, blownFuses: {} });
+export const initialSimState = (): SimState => ({ capacitorVoltages: {}, inductorCurrents: {}, junctions: {}, blownFuses: {}, transistors: {} });
 
 export interface PartReading {
     /** V(a) − V(b): across a battery, its terminal voltage. */
@@ -72,6 +85,9 @@ export interface PartReading {
     wiperVoltage?: number;
     /** Fuse only. */
     blown?: boolean;
+    /** Transistors only: base current (into the base for NPN, out of it for PNP). */
+    baseCurrent?: number;
+    transistorState?: TransistorState;
 }
 
 export interface SolveResult {
@@ -89,6 +105,17 @@ interface Branch {
     b: number;
     g: number;
     e: number;
+}
+
+// Voltage-controlled current source: a current gm·(V(cp) − V(cn)) + i0
+// leaves node p and enters node q.
+interface ControlledSource {
+    p: number;
+    q: number;
+    cp: number;
+    cn: number;
+    gm: number;
+    i0: number;
 }
 
 const REFERENCE = -1;
@@ -127,6 +154,33 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
     const node = (part: AnalogPart, terminal: Terminal) => index.get(`${part.id}:${terminal}`) ?? REFERENCE;
     const junctions: Record<string, JunctionState> = { ...previous.junctions };
     const blownFuses: Record<string, true> = { ...previous.blownFuses };
+    const transistors: Record<string, TransistorState> = { ...previous.transistors };
+
+    // Transistor terminals ordered so the same equations serve NPN and PNP:
+    // "forward" is base→emitter for NPN and emitter→base for PNP.
+    const bjtNodes = (part: AnalogPart) => {
+        const b = node(part, "b");
+        const c = node(part, "c");
+        const e = node(part, "e");
+        return part.kind === "npn" ? { b, c, e, sign: 1 } : { b, c, e, sign: -1 };
+    };
+    const baseBranch = (part: AnalogPart): Branch => {
+        const { b, e, sign } = bjtNodes(part);
+        return sign > 0 ? { a: b, b: e, g: 1 / BJT_RBE, e: BJT_VBE } : { a: e, b, g: 1 / BJT_RBE, e: BJT_VBE };
+    };
+    const saturationBranch = (part: AnalogPart): Branch => {
+        const { c, e, sign } = bjtNodes(part);
+        return sign > 0 ? { a: c, b: e, g: 1 / BJT_RCE_SAT, e: BJT_VCE_SAT } : { a: e, b: c, g: 1 / BJT_RCE_SAT, e: BJT_VCE_SAT };
+    };
+    const controlledFor = (part: AnalogPart): ControlledSource[] => {
+        if ((part.kind !== "npn" && part.kind !== "pnp") || transistors[part.id] !== "active") return [];
+        const { b, c, e, sign } = bjtNodes(part);
+        const gm = part.value / BJT_RBE;
+        // Collector current β·Ib with Ib = (V_be − 0.7) / R_be.
+        return sign > 0
+            ? [{ p: c, q: e, cp: b, cn: e, gm, i0: -gm * BJT_VBE }]
+            : [{ p: e, q: c, cp: e, cn: b, gm, i0: -gm * BJT_VBE }];
+    };
 
     const branchesFor = (part: AnalogPart): Branch[] => {
         const a = node(part, "a");
@@ -177,6 +231,12 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
                 if (state === "reverse") return [{ a, b, g: 1 / ZENER_RESISTANCE, e: -part.value }];
                 return [{ a, b, g: OPEN_CONDUCTANCE, e: 0 }];
             }
+            case "npn":
+            case "pnp": {
+                const state = transistors[part.id] ?? "cutoff";
+                if (state === "cutoff") return [{ ...baseBranch(part), g: OPEN_CONDUCTANCE, e: 0 }];
+                return state === "saturation" ? [baseBranch(part), saturationBranch(part)] : [baseBranch(part)];
+            }
             case "ground":
             case "oscilloscope":
                 return [];
@@ -186,8 +246,10 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
     const branchCurrent = ({ a, b, g, e }: Branch, voltages: number[]) => g * (at(voltages, a) - at(voltages, b) - e);
 
     // --- Solve, re-solving while any diode's assumed state was wrong or a
-    // fuse blew.
+    // fuse blew. Diodes switched off for lack of a current path aren't
+    // re-tried in this solve, so they can't flip back and forth.
     let voltages: number[] = new Array(size).fill(0);
+    const noPath = new Set<string>();
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
         const matrix = Array.from({ length: size }, () => new Array<number>(size).fill(0));
         const rhs = new Array<number>(size).fill(0);
@@ -210,6 +272,14 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
             branches.push({ a: index.get(wire.from)!, b: index.get(wire.to)!, g: WIRE_CONDUCTANCE, e: 0 });
         }
         branches.forEach(stamp);
+        for (const { p, q, cp, cn, gm, i0 } of parts.flatMap(controlledFor)) {
+            for (const [row, sign] of [[p, 1], [q, -1]] as const) {
+                if (row < 0) continue;
+                if (cp >= 0) matrix[row][cp] += sign * gm;
+                if (cn >= 0) matrix[row][cn] -= sign * gm;
+                rhs[row] -= sign * i0;
+            }
+        }
         // Only nodes with no conducting path to the reference get GMIN;
         // adding it everywhere would show as phantom leakage current.
         for (const i of floatingNodes(size, branches)) matrix[i][i] += GMIN;
@@ -222,12 +292,33 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
                 const current = branchCurrent(branchesFor(part)[0], voltages);
                 const state = junctions[part.id] ?? "off";
                 let next: JunctionState = state;
-                if (state === "on" && current < 0) next = "off";
-                else if (state === "reverse" && current > 0) next = "off";
-                else if (state === "off" && v > forwardModel(part).voltage) next = "on";
-                else if (state === "off" && part.kind === "zener" && v < -part.value) next = "reverse";
+                if (state === "on" && current < MIN_CONDUCTION_CURRENT) {
+                    next = "off";
+                    if (current >= 0) noPath.add(part.id);
+                } else if (state === "reverse" && current > -MIN_CONDUCTION_CURRENT) {
+                    next = "off";
+                    if (current <= 0) noPath.add(part.id);
+                } else if (state === "off" && !noPath.has(part.id)) {
+                    if (v > forwardModel(part).voltage) next = "on";
+                    else if (part.kind === "zener" && v < -part.value) next = "reverse";
+                }
                 if (next !== state) {
                     junctions[part.id] = next;
+                    changed = true;
+                }
+            } else if (part.kind === "npn" || part.kind === "pnp") {
+                const { c, e, sign } = bjtNodes(part);
+                const state = transistors[part.id] ?? "cutoff";
+                const vbe = branchCurrent({ ...baseBranch(part), g: 1, e: 0 }, voltages);
+                const vce = sign * (at(voltages, c) - at(voltages, e));
+                const ib = state === "cutoff" ? 0 : branchCurrent(baseBranch(part), voltages);
+                let next: TransistorState = state;
+                if (state === "cutoff" && vbe > BJT_VBE) next = "active";
+                else if (state !== "cutoff" && ib < 0) next = "cutoff";
+                else if (state === "active" && vce < BJT_VCE_SAT) next = "saturation";
+                else if (state === "saturation" && branchCurrent(saturationBranch(part), voltages) > part.value * ib) next = "active";
+                if (next !== state) {
+                    transistors[part.id] = next;
                     changed = true;
                 }
             } else if (part.kind === "fuse" && !blownFuses[part.id]) {
@@ -263,6 +354,29 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
             return sum + v * snap(branchCurrent(branch, voltages));
         }, 0);
 
+        if (part.kind === "npn" || part.kind === "pnp") {
+            const { c, e } = bjtNodes(part);
+            const state = transistors[part.id] ?? "cutoff";
+            // Forward base-emitter voltage (positive when the junction is forward biased).
+            const vbe = branchCurrent({ ...baseBranch(part), g: 1, e: 0 }, voltages);
+            const ib = state === "cutoff" ? 0 : snap(branchCurrent(baseBranch(part), voltages));
+            const ic =
+                state === "saturation"
+                    ? snap(branchCurrent(saturationBranch(part), voltages))
+                    : state === "active"
+                      ? snap((part.value / BJT_RBE) * (vbe - BJT_VBE))
+                      : 0;
+            const vce = difference(at(voltages, c), at(voltages, e));
+            readings[part.id] = {
+                voltage: vce,
+                current: ic,
+                power: Math.abs(vce * ic) + Math.abs(vbe * ib),
+                baseCurrent: ib,
+                transistorState: state,
+            };
+            continue;
+        }
+
         if (part.kind === "battery" || part.kind === "ac") {
             // "+ 0" turns -0 into 0 for a battery delivering nothing.
             const delivered = -throughAtoB + 0;
@@ -296,7 +410,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
         wireCurrents,
         shortCircuit,
         overloadedLeds,
-        state: { capacitorVoltages, inductorCurrents, junctions, blownFuses },
+        state: { capacitorVoltages, inductorCurrents, junctions, blownFuses, transistors },
     };
 }
 
