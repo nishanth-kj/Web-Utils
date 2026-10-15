@@ -8,11 +8,18 @@ interface PartSymbolProps {
     glow?: number;
     closed?: boolean;
     color?: LedColor;
+    blown?: boolean;
+    /** 0-1: motor speed. */
+    spin?: number;
+    sounding?: boolean;
+    /** Draw letters inside symbols (motor "M"); the canvas draws them upright itself. */
+    letters?: boolean;
 }
 
 // Schematic symbols drawn left-to-right in an 80×80 box: terminal "a" at
-// (0, 40), terminal "b" at (80, 40). Ground's single terminal is at (40, 0).
-export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red" }: PartSymbolProps) {
+// (0, 40), terminal "b" at (80, 40), a potentiometer's wiper "w" at (40, 80).
+// Ground's single terminal is at (40, 0).
+export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red", blown, spin = 0, sounding, letters = true }: PartSymbolProps) {
     const common = {
         width: size,
         height: size,
@@ -42,6 +49,14 @@ export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red" }:
                     <path d="M0 40H16L20 30L28 50L36 30L44 50L52 30L60 50L64 40H80" />
                 </svg>
             );
+        case "potentiometer":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H16L20 30L28 50L36 30L44 50L52 30L60 50L64 40H80" />
+                    <path d="M40 80V56" />
+                    <path d="M34 60L40 52L46 60" fill="currentColor" />
+                </svg>
+            );
         case "bulb":
             return (
                 <svg {...common}>
@@ -63,6 +78,22 @@ export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red" }:
                 </svg>
             );
         }
+        case "diode":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H28M52 40H80" />
+                    <path d="M28 26V54L52 40Z" fill="currentColor" fillOpacity={0.15} />
+                    <path d="M52 26V54" />
+                </svg>
+            );
+        case "zener":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H28M52 40H80" />
+                    <path d="M28 26V54L52 40Z" fill="currentColor" fillOpacity={0.15} />
+                    <path d="M46 22L52 26V54L58 58" />
+                </svg>
+            );
         case "switch":
             return (
                 <svg {...common}>
@@ -72,11 +103,70 @@ export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red" }:
                     <path d={closed ? "M24 40L56 40" : "M24 40L54 22"} />
                 </svg>
             );
+        case "button": {
+            const y = closed ? 40 : 30;
+            return (
+                <svg {...common}>
+                    <path d="M0 40H22M58 40H80" />
+                    <circle cx="24" cy="40" r="3" fill="currentColor" />
+                    <circle cx="56" cy="40" r="3" fill="currentColor" />
+                    <path d={`M20 ${y}H60M40 ${y}V${y - 14}M32 ${y - 14}H48`} />
+                </svg>
+            );
+        }
+        case "fuse":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H22M58 40H80" />
+                    <rect x="22" y="32" width="36" height="16" rx="2" />
+                    {blown ? (
+                        <path d="M22 40H34M46 40H58M37 34L43 46" stroke="#ef4444" strokeWidth={2} />
+                    ) : (
+                        <path d="M22 40H58" strokeWidth={1.5} />
+                    )}
+                </svg>
+            );
+        case "motor": {
+            // One revolution per 2 s at 5 % speed down to 0.2 s at full speed.
+            const duration = spin > 0.01 ? 0.2 / Math.max(spin, 0.1) : 0;
+            return (
+                <svg {...common}>
+                    <path d="M0 40H22M58 40H80" />
+                    <circle cx="40" cy="40" r="18" />
+                    <g
+                        className={duration ? "circuit-spin" : undefined}
+                        style={{ transformOrigin: "40px 40px", animationDuration: duration ? `${duration}s` : undefined }}
+                    >
+                        <path d="M40 26V54M26 40H54" strokeWidth={1.5} opacity={0.5} />
+                    </g>
+                    {letters && <path d="M33 47V33L40 42L47 33V47" strokeWidth={2} />}
+                </svg>
+            );
+        }
+        case "buzzer":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H24M56 40H80" />
+                    <path d="M24 30H36L50 20V60L36 50H24Z" />
+                    {sounding && <path d="M56 30Q62 40 56 50M62 24Q72 40 62 56" className="animate-pulse" strokeWidth={2} />}
+                </svg>
+            );
         case "capacitor":
             return (
                 <svg {...common}>
                     <path d="M0 40H35M45 40H80" />
                     <path d="M35 22V58M45 22V58" />
+                </svg>
+            );
+        case "voltmeter":
+        case "ammeter":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H20M60 40H80" />
+                    <circle cx="40" cy="40" r="20" />
+                    <text x="40" y="47" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor" stroke="none">
+                        {kind === "voltmeter" ? "V" : "A"}
+                    </text>
                 </svg>
             );
         case "ground":
