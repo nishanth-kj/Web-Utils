@@ -2,7 +2,7 @@
 
 import React, { memo, useContext, useEffect } from "react";
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from "reactflow";
-import { BUZZER_MIN_CURRENT, BULB_RATED_POWER, MOTOR_FULL_CURRENT, PART_DEFS } from "@/lib/circuit/analog/parts";
+import { BUZZER_MIN_CURRENT, BULB_RATED_POWER, MOTOR_FULL_CURRENT, PART_DEFS, type Terminal } from "@/lib/circuit/analog/parts";
 import type { PartReading } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
 import { cn } from "@/lib/utils";
@@ -12,16 +12,15 @@ import { AnalogRuntimeContext, type PartNodeData } from "./runtime";
 
 const SIDES = [Position.Left, Position.Top, Position.Right, Position.Bottom];
 
-// Rotating clockwise by 90° moves the left terminal to the top, and so on.
-// The potentiometer's wiper starts at the bottom; ground's terminal at the top.
-function terminalSides(data: PartNodeData) {
+// Side of the part each terminal sits on before rotation (index into SIDES);
+// rotating clockwise by 90° moves the left side to the top, and so on.
+const TERMINAL_SIDE: Partial<Record<Terminal, number>> = { a: 0, b: 2, w: 3 };
+const TRANSISTOR_SIDE: Partial<Record<Terminal, number>> = { b: 0, c: 1, e: 3 };
+
+function terminalSides(data: PartNodeData): [Terminal, Position][] {
     const step = data.rotation / 90;
-    if (data.kind === "ground") return { a: SIDES[(1 + step) % 4] };
-    return {
-        a: SIDES[step % 4],
-        b: SIDES[(step + 2) % 4],
-        w: data.kind === "potentiometer" ? SIDES[(step + 3) % 4] : undefined,
-    };
+    const base = data.kind === "npn" || data.kind === "pnp" ? TRANSISTOR_SIDE : data.kind === "ground" ? { a: 1 } : TERMINAL_SIDE;
+    return PART_DEFS[data.kind].terminals.map((terminal) => [terminal, SIDES[((base[terminal] ?? 0) + step) % 4]]);
 }
 
 const HANDLE_STYLE: React.CSSProperties = {
@@ -53,6 +52,9 @@ export function valueLabel(data: PartNodeData): string {
             return "DC amps";
         case "ac":
             return `${formatSI(data.value, "V")} ~ ${formatSI(data.frequency ?? 1, "Hz")}`;
+        case "npn":
+        case "pnp":
+            return `${data.kind.toUpperCase()} · β ${data.value}`;
         case "ground":
             return "0 V";
         default:
@@ -80,6 +82,9 @@ function readingLabel(data: PartNodeData, reading: PartReading | undefined): str
             return reading.blown ? "BLOWN" : current;
         case "potentiometer":
             return `${current} · wiper ${formatSI(reading.wiperVoltage ?? 0, "V")}`;
+        case "npn":
+        case "pnp":
+            return reading.transistorState === "cutoff" ? "cut off" : `${reading.transistorState} · Ic ${current}`;
         default:
             return `${current} · ${voltage}`;
     }
@@ -112,8 +117,11 @@ function PartNodeImpl({ id, data, selected }: NodeProps<PartNodeData>) {
     }, [id, data.rotation, updateNodeInternals]);
 
     const overloaded = runtime?.result.overloadedLeds.includes(id) || reading?.blown;
-    // Vertical parts sit on vertical wires, so their label goes beside them.
-    const vertical = data.rotation === 90 || data.rotation === 270;
+    // Labels go on a side without wires: beside vertical parts, below
+    // horizontal ones. Transistors are wired top, bottom and left when
+    // unrotated, so theirs goes beside them then.
+    const quarterTurned = data.rotation === 90 || data.rotation === 270;
+    const vertical = data.kind === "npn" || data.kind === "pnp" ? !quarterTurned : quarterTurned;
     const readingText = readingLabel(data, reading);
     const isMeter = data.kind === "voltmeter" || data.kind === "ammeter";
     const press = (pressed: boolean) => runtime?.updatePart(id, { closed: pressed });
@@ -221,9 +229,9 @@ function PartNodeImpl({ id, data, selected }: NodeProps<PartNodeData>) {
                 </div>
             )}
 
-            <Handle id="a" type="source" position={sides.a} style={HANDLE_STYLE} />
-            {sides.b && <Handle id="b" type="source" position={sides.b} style={HANDLE_STYLE} />}
-            {sides.w && <Handle id="w" type="source" position={sides.w} style={HANDLE_STYLE} />}
+            {sides.map(([terminal, side]) => (
+                <Handle key={terminal} id={terminal} type="source" position={side} style={HANDLE_STYLE} />
+            ))}
 
             <div
                 className={cn(

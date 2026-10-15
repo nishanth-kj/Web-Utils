@@ -18,7 +18,8 @@ interface PartSymbolProps {
 
 // Schematic symbols drawn left-to-right in an 80×80 box: terminal "a" at
 // (0, 40), terminal "b" at (80, 40), a potentiometer's wiper "w" at (40, 80).
-// Ground's single terminal is at (40, 0).
+// Ground's single terminal is at (40, 0). Transistors: base (0, 40),
+// collector (40, 0), emitter (40, 80).
 export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red", blown, spin = 0, sounding, letters = true }: PartSymbolProps) {
     const common = {
         width: size,
@@ -114,6 +115,20 @@ export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red", b
                     <path d="M0 40H28M52 40H80" />
                     <path d="M28 26V54L52 40Z" fill="currentColor" fillOpacity={0.15} />
                     <path d="M46 22L52 26V54L58 58" />
+                </svg>
+            );
+        case "npn":
+        case "pnp":
+            return (
+                <svg {...common}>
+                    <circle cx="38" cy="40" r="22" strokeWidth={1.5} />
+                    <path d="M0 40H28M28 26V54" />
+                    <path d="M28 34L40 24V0M28 46L40 56V80" />
+                    {kind === "npn" ? (
+                        <path d="M33 56L40 56L38 49Z" fill="currentColor" strokeWidth={1.5} />
+                    ) : (
+                        <path d="M30 47L37 47L35 54Z" fill="currentColor" strokeWidth={1.5} />
+                    )}
                 </svg>
             );
         case "switch":

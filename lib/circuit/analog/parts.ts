@@ -11,6 +11,8 @@ export type AnalogKind =
     | "led"
     | "diode"
     | "zener"
+    | "npn"
+    | "pnp"
     | "switch"
     | "button"
     | "fuse"
@@ -22,7 +24,8 @@ export type AnalogKind =
     | "ammeter"
     | "oscilloscope"
     | "ground";
-export type Terminal = "a" | "b" | "w";
+// Transistors use "b" (base), "c" (collector) and "e" (emitter).
+export type Terminal = "a" | "b" | "w" | "c" | "e";
 export type LedColor = "red" | "yellow" | "green" | "blue" | "white";
 export type Rotation = 0 | 90 | 180 | 270;
 
@@ -71,6 +74,9 @@ export const PART_DEFS: Record<AnalogKind, PartDefinition> = {
     led: { label: "LED", defaultValue: 0, terminals: ["a", "b"], prefix: "led" },
     diode: { label: "Diode", defaultValue: 0, terminals: ["a", "b"], prefix: "d" },
     zener: { label: "Zener diode", unit: "V", defaultValue: 5.1, min: 1, max: 200, terminals: ["a", "b"], prefix: "dz" },
+    // value = current gain (hFE / β).
+    npn: { label: "NPN transistor", defaultValue: 100, min: 1, max: 2000, terminals: ["b", "c", "e"], prefix: "q" },
+    pnp: { label: "PNP transistor", defaultValue: 100, min: 1, max: 2000, terminals: ["b", "c", "e"], prefix: "q" },
     switch: { label: "Switch", defaultValue: 0, terminals: ["a", "b"], prefix: "sw" },
     button: { label: "Push button", defaultValue: 0, terminals: ["a", "b"], prefix: "btn" },
     fuse: { label: "Fuse", unit: "A", defaultValue: 0.5, min: 0.001, max: 100, terminals: ["a", "b"], prefix: "fu" },
@@ -88,7 +94,7 @@ export const PART_DEFS: Record<AnalogKind, PartDefinition> = {
 export const PALETTE_GROUPS: { label: string; kinds: AnalogKind[] }[] = [
     { label: "Sources", kinds: ["battery", "ac", "ground"] },
     { label: "Passive", kinds: ["resistor", "potentiometer", "capacitor", "inductor"] },
-    { label: "Semiconductors", kinds: ["diode", "zener", "led"] },
+    { label: "Semiconductors", kinds: ["diode", "zener", "led", "npn", "pnp"] },
     { label: "Switches & protection", kinds: ["switch", "button", "fuse"] },
     { label: "Outputs", kinds: ["bulb", "motor", "buzzer"] },
     { label: "Instruments", kinds: ["voltmeter", "ammeter", "oscilloscope"] },
@@ -110,6 +116,12 @@ export const LED_MAX_CURRENT = 0.03;
 export const DIODE_FORWARD_VOLTAGE = 0.7;
 export const DIODE_ON_RESISTANCE = 0.5;
 export const ZENER_RESISTANCE = 1;
+
+/** Piecewise-linear bipolar transistor: base-emitter junction and saturation. */
+export const BJT_VBE = 0.7;
+export const BJT_RBE = 100;
+export const BJT_VCE_SAT = 0.2;
+export const BJT_RCE_SAT = 1;
 
 export const FUSE_RESISTANCE = 0.05;
 export const VOLTMETER_RESISTANCE = 10e6;
