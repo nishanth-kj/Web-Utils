@@ -27,7 +27,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ANALOG_EXAMPLES, CIRCUIT_FILE_VERSION, parseCircuitDocument, type CircuitDocument } from "@/lib/circuit/analog/document";
-import { PALETTE_GROUPS, PART_DEFS, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
+import { AC_DEFAULT_FREQUENCY, PALETTE_GROUPS, PART_DEFS, TIME_DEPENDENT, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
+import { DEFAULT_TIME_PER_DIV, ScopeBuffer } from "@/lib/circuit/analog/scope";
 import { SHORT_CIRCUIT_CURRENT, initialSimState, solveCircuit, type SolveResult } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ interface CircuitModel {
 
 function toFlow(doc: CircuitDocument): { nodes: PartNodeT[]; edges: Edge[] } {
     return {
-        nodes: doc.parts.map(({ id, x, y, kind, value, rotation, closed, color, position }) => ({
+        nodes: doc.parts.map(({ id, x, y, kind, value, rotation, closed, color, position, frequency, timePerDiv, voltsPerDiv }) => ({
             id,
             type: "part",
             position: { x, y },
@@ -68,6 +69,9 @@ function toFlow(doc: CircuitDocument): { nodes: PartNodeT[]; edges: Edge[] } {
                 ...(closed !== undefined && { closed }),
                 ...(color && { color }),
                 ...(position !== undefined && { position }),
+                ...(frequency !== undefined && { frequency }),
+                ...(timePerDiv !== undefined && { timePerDiv }),
+                ...(voltsPerDiv !== undefined && { voltsPerDiv }),
             },
         })),
         edges: doc.wires.map(({ id, from, to }) => {
@@ -88,7 +92,10 @@ function toDocument(nodes: PartNodeT[], edges: Edge[]): CircuitDocument {
 // Only what affects the electrical result; dragging a part doesn't change it.
 function toModel(nodes: PartNodeT[], edges: Edge[]): CircuitModel {
     const { parts, wires } = toDocument(nodes, edges);
-    return { parts: parts.map(({ id, kind, value, closed, color, position }) => ({ id, kind, value, closed, color, position })), wires };
+    return {
+        parts: parts.map(({ id, kind, value, closed, color, position, frequency }) => ({ id, kind, value, closed, color, position, frequency })),
+        wires,
+    };
 }
 
 // Proteus-style reference designators: R1, C2, LED1, FU1…
@@ -143,10 +150,10 @@ function AnalogSimulatorInner() {
     // --- Simulation
     const circuitKey = useMemo(() => JSON.stringify(toModel(nodes, edges)), [nodes, edges]);
     const model = useMemo(() => JSON.parse(circuitKey) as CircuitModel, [circuitKey]);
-    const hasCapacitors = model.parts.some((part) => part.kind === "capacitor");
-    // Capacitors charge over time and fuses stay blown, so those circuits are
-    // stepped continuously; anything else has no memory.
-    const stateful = hasCapacitors || model.parts.some((part) => part.kind === "fuse");
+    // Capacitors and inductors store energy, AC sources and scopes follow the
+    // clock, and fuses stay blown: those circuits are stepped in real time.
+    // Anything else has no memory and is solved once per change.
+    const stateful = model.parts.some((part) => TIME_DEPENDENT.includes(part.kind));
 
     // Without memory, solve once per change.
     const staticResult = useMemo(
@@ -157,6 +164,9 @@ function AnalogSimulatorInner() {
     // With capacitors, step simulated time in real time while running.
     const simState = useRef(initialSimState());
     const simTime = useRef(0);
+    // One sample per step for each oscilloscope; 12 000 steps covers the
+    // widest screen (1 s/div × 10 divisions) with room to spare.
+    const [scopeBuffers] = useState(() => new Map<string, ScopeBuffer>());
     const [status, setStatus] = useState<SimStatus>("running");
     const [resetCount, setResetCount] = useState(0);
     const [dynamic, setDynamic] = useState<{ result: SolveResult; time: number } | null>(null);
@@ -171,17 +181,24 @@ function AnalogSimulatorInner() {
             const steps = Math.max(1, Math.round(Math.min((now - last) / 1000, 0.05) / DT));
             last = now;
             let result = EMPTY_RESULT;
+            const scopes = model.parts.filter((part) => part.kind === "oscilloscope");
             for (let i = 0; i < steps; i++) {
-                result = solveCircuit(model.parts, model.wires, simState.current, DT);
-                simState.current = result.state;
                 simTime.current += DT;
+                result = solveCircuit(model.parts, model.wires, simState.current, DT, simTime.current);
+                simState.current = result.state;
+                for (const scope of scopes) {
+                    if (!scopeBuffers.has(scope.id)) scopeBuffers.set(scope.id, new ScopeBuffer(12_000));
+                    scopeBuffers
+                        .get(scope.id)!
+                        .push(simTime.current, result.terminalVoltages[`${scope.id}:a`] ?? 0, result.terminalVoltages[`${scope.id}:b`] ?? 0);
+                }
             }
             setDynamic({ result, time: simTime.current });
             frame = requestAnimationFrame(tick);
         };
         frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
-    }, [model, stateful, status, resetCount]);
+    }, [model, stateful, status, resetCount, scopeBuffers]);
 
     const liveResult = staticResult ?? dynamic?.result ?? EMPTY_RESULT;
     const result = status === "running" ? liveResult : status === "paused" ? frozen : EMPTY_RESULT;
@@ -189,9 +206,10 @@ function AnalogSimulatorInner() {
     const resetSimulation = useCallback(() => {
         simState.current = initialSimState();
         simTime.current = 0;
+        scopeBuffers.forEach((buffer) => buffer.clear());
         setDynamic(null);
         setResetCount((count) => count + 1);
-    }, []);
+    }, [scopeBuffers]);
 
     const runSimulation = () => {
         if (status === "stopped") resetSimulation();
@@ -291,6 +309,8 @@ function AnalogSimulatorInner() {
                     ...(kind === "button" && { closed: false }),
                     ...(kind === "led" && { color: "red" as const }),
                     ...(kind === "potentiometer" && { position: 0.5 }),
+                    ...(kind === "ac" && { frequency: AC_DEFAULT_FREQUENCY }),
+                    ...(kind === "oscilloscope" && { timePerDiv: DEFAULT_TIME_PER_DIV }),
                 },
             },
         ]);
@@ -344,7 +364,10 @@ function AnalogSimulatorInner() {
         simState.current = { ...simState.current, blownFuses };
     }, []);
 
-    const runtime = useMemo(() => ({ result, toggleSwitch, updatePart }), [result, toggleSwitch, updatePart]);
+    const runtime = useMemo(
+        () => ({ result, toggleSwitch, updatePart, scopes: scopeBuffers }),
+        [result, toggleSwitch, updatePart, scopeBuffers]
+    );
     const selectedNode = nodes.find((node) => node.selected);
     const selectedEdge = edges.find((edge) => edge.selected);
     const batteryCurrent = Math.max(0, ...model.parts.filter((p) => p.kind === "battery").map((p) => Math.abs(result.readings[p.id]?.current ?? 0)));
@@ -375,7 +398,7 @@ function AnalogSimulatorInner() {
                         onRun={runSimulation}
                         onPause={pauseSimulation}
                         onStop={stopSimulation}
-                        detail={hasCapacitors ? `t = ${(dynamic?.time ?? 0).toFixed(1)} s` : undefined}
+                        detail={stateful ? `t = ${(dynamic?.time ?? 0).toFixed(1)} s` : undefined}
                     />
 
                     <div className="ml-auto flex items-center gap-1">

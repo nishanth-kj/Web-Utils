@@ -284,3 +284,80 @@ describe("semiconductors, protection and instruments", () => {
         expect(solve(...make(true)).readings.b.current).toBeCloseTo(0.09, 3);
     });
 });
+
+describe("time-dependent parts", () => {
+    const run = (parts: AnalogPart[], wires: Wire[], seconds: number) => {
+        let state = initialSimState();
+        let result = solveCircuit(parts, wires, state, 1e-3, 0);
+        const steps = Math.round(seconds / 1e-3);
+        for (let step = 1; step <= steps; step++) {
+            result = solveCircuit(parts, wires, state, 1e-3, step * 1e-3);
+            state = result.state;
+        }
+        return result;
+    };
+
+    it("builds current in an inductor along the RL curve", () => {
+        const parts: AnalogPart[] = [battery(10), { id: "r", kind: "resistor", value: 10 }, { id: "l", kind: "inductor", value: 1 }];
+        const wires = [wire("w1", "bat:a", "r:a"), wire("w2", "r:b", "l:a"), wire("w3", "l:b", "bat:b")];
+        // τ = L/R = 0.1 s; final current 1 A.
+        expect(run(parts, wires, 0.1).readings.l.current).toBeCloseTo(1 - Math.exp(-1), 1);
+        expect(run(parts, wires, 1).readings.l.current).toBeCloseTo(1, 2);
+    });
+
+    it("drives an alternating current from an AC source", () => {
+        const parts: AnalogPart[] = [{ id: "ac", kind: "ac", value: 10, frequency: 1 }, { id: "r", kind: "resistor", value: 1000 }];
+        const wires = [wire("w1", "ac:a", "r:a"), wire("w2", "r:b", "ac:b")];
+        expect(solveCircuit(parts, wires, initialSimState(), 1e-3, 0.25).readings.r.current).toBeCloseTo(0.01, 4);
+        expect(solveCircuit(parts, wires, initialSimState(), 1e-3, 0.75).readings.r.current).toBeCloseTo(-0.01, 4);
+        expect(solveCircuit(parts, wires, initialSimState(), 1e-3, 0.5).readings.r.current).toBeCloseTo(0, 4);
+    });
+
+    it("half-wave rectifies with a diode", () => {
+        const parts: AnalogPart[] = [
+            { id: "ac", kind: "ac", value: 10, frequency: 1 },
+            { id: "d", kind: "diode", value: 0 },
+            { id: "r", kind: "resistor", value: 1000 },
+        ];
+        const wires = [wire("w1", "ac:a", "d:a"), wire("w2", "d:b", "r:a"), wire("w3", "r:b", "ac:b")];
+        expect(solveCircuit(parts, wires, initialSimState(), 1e-3, 0.25).readings.r.voltage).toBeCloseTo(9.3, 1);
+        expect(solveCircuit(parts, wires, initialSimState(), 1e-3, 0.75).readings.r.voltage).toBe(0);
+    });
+
+    it("lets an oscilloscope read node voltages without loading them", () => {
+        const parts: AnalogPart[] = [
+            battery(10),
+            { id: "r1", kind: "resistor", value: 1000 },
+            { id: "r2", kind: "resistor", value: 1000 },
+            { id: "osc", kind: "oscilloscope", value: 0 },
+            { id: "g", kind: "ground", value: 0 },
+        ];
+        const wires = [
+            wire("w1", "bat:a", "r1:a"),
+            wire("w2", "r1:b", "r2:a"),
+            wire("w3", "r2:b", "bat:b"),
+            wire("w4", "bat:b", "g:a"),
+            wire("w5", "bat:a", "osc:a"),
+            wire("w6", "r2:a", "osc:b"),
+        ];
+        const result = solve(parts, wires);
+        expect(result.terminalVoltages["osc:a"]).toBeCloseTo(10, 2);
+        expect(result.terminalVoltages["osc:b"]).toBeCloseTo(5, 2);
+        expect(result.readings.r1.current).toBeCloseTo(0.005, 5);
+    });
+});
+
+describe("ScopeBuffer", () => {
+    it("keeps the most recent samples and returns a time window", async () => {
+        const { ScopeBuffer, autoVoltsPerDiv } = await import("@/lib/circuit/analog/scope");
+        const buffer = new ScopeBuffer(100);
+        for (let i = 0; i < 250; i++) buffer.push(i * 0.01, i, -i);
+        expect(buffer.latest).toEqual({ time: 2.49, a: 249, b: -249 });
+        const recent = buffer.window(0.1, 1000);
+        expect(recent[0].a).toBe(239);
+        expect(recent.at(-1)!.a).toBe(249);
+        expect(buffer.window(10, 10).length).toBeLessThanOrEqual(11);
+        expect(autoVoltsPerDiv(9)).toBe(5);
+        expect(autoVoltsPerDiv(0.3)).toBe(0.1);
+    });
+});

@@ -4,6 +4,7 @@
 
 export type AnalogKind =
     | "battery"
+    | "ac"
     | "resistor"
     | "potentiometer"
     | "bulb"
@@ -16,8 +17,10 @@ export type AnalogKind =
     | "motor"
     | "buzzer"
     | "capacitor"
+    | "inductor"
     | "voltmeter"
     | "ammeter"
+    | "oscilloscope"
     | "ground";
 export type Terminal = "a" | "b" | "w";
 export type LedColor = "red" | "yellow" | "green" | "blue" | "white";
@@ -28,8 +31,8 @@ export interface AnalogPart {
     kind: AnalogKind;
     /**
      * Volts for a battery or Zener (breakdown), ohms for resistors, the
-     * potentiometer, bulb, motor and buzzer, farads for a capacitor, amps for a
-     * fuse (its rating).
+     * potentiometer, bulb, motor and buzzer, farads for a capacitor, henries for
+     * an inductor, amps for a fuse (its rating), peak volts for an AC source.
      */
     value: number;
     /** Switch position, or whether a push button is being held. */
@@ -37,6 +40,8 @@ export interface AnalogPart {
     color?: LedColor;
     /** Potentiometer wiper position, 0 (at a) to 1 (at b). */
     position?: number;
+    /** AC source frequency in hertz. */
+    frequency?: number;
 }
 
 export interface Wire {
@@ -59,6 +64,7 @@ interface PartDefinition {
 
 export const PART_DEFS: Record<AnalogKind, PartDefinition> = {
     battery: { label: "Battery", unit: "V", defaultValue: 9, min: 0, max: 1000, terminals: ["a", "b"], prefix: "bat" },
+    ac: { label: "AC source", unit: "V", defaultValue: 5, min: 0, max: 1000, terminals: ["a", "b"], prefix: "ac" },
     resistor: { label: "Resistor", unit: "Ω", defaultValue: 1000, min: 0.001, max: 1e9, terminals: ["a", "b"], prefix: "r" },
     potentiometer: { label: "Potentiometer", unit: "Ω", defaultValue: 10_000, min: 1, max: 1e8, terminals: ["a", "b", "w"], prefix: "rv" },
     bulb: { label: "Light bulb", unit: "Ω", defaultValue: 100, min: 0.1, max: 1e6, terminals: ["a", "b"], prefix: "lamp" },
@@ -71,18 +77,21 @@ export const PART_DEFS: Record<AnalogKind, PartDefinition> = {
     motor: { label: "DC motor", unit: "Ω", defaultValue: 10, min: 0.1, max: 1e5, terminals: ["a", "b"], prefix: "m" },
     buzzer: { label: "Buzzer", unit: "Ω", defaultValue: 100, min: 1, max: 1e6, terminals: ["a", "b"], prefix: "bz" },
     capacitor: { label: "Capacitor", unit: "F", defaultValue: 100e-6, min: 1e-12, max: 10, terminals: ["a", "b"], prefix: "c" },
+    inductor: { label: "Inductor", unit: "H", defaultValue: 0.1, min: 1e-9, max: 100, terminals: ["a", "b"], prefix: "l" },
     voltmeter: { label: "DC voltmeter", defaultValue: 0, terminals: ["a", "b"], prefix: "vm" },
     ammeter: { label: "DC ammeter", defaultValue: 0, terminals: ["a", "b"], prefix: "am" },
+    // Channel A on terminal a, channel B on terminal b, each measured against ground.
+    oscilloscope: { label: "Oscilloscope", defaultValue: 0, terminals: ["a", "b"], prefix: "osc" },
     ground: { label: "Ground", defaultValue: 0, terminals: ["a"], prefix: "gnd" },
 };
 
 export const PALETTE_GROUPS: { label: string; kinds: AnalogKind[] }[] = [
-    { label: "Sources", kinds: ["battery", "ground"] },
-    { label: "Passive", kinds: ["resistor", "potentiometer", "capacitor"] },
+    { label: "Sources", kinds: ["battery", "ac", "ground"] },
+    { label: "Passive", kinds: ["resistor", "potentiometer", "capacitor", "inductor"] },
     { label: "Semiconductors", kinds: ["diode", "zener", "led"] },
     { label: "Switches & protection", kinds: ["switch", "button", "fuse"] },
     { label: "Outputs", kinds: ["bulb", "motor", "buzzer"] },
-    { label: "Instruments", kinds: ["voltmeter", "ammeter"] },
+    { label: "Instruments", kinds: ["voltmeter", "ammeter", "oscilloscope"] },
 ];
 
 // Forward voltage and display colour per LED colour; a 10 Ω on-resistance and
@@ -104,6 +113,13 @@ export const ZENER_RESISTANCE = 1;
 
 export const FUSE_RESISTANCE = 0.05;
 export const VOLTMETER_RESISTANCE = 10e6;
+
+export const AC_DEFAULT_FREQUENCY = 1;
+export const AC_MIN_FREQUENCY = 0.01;
+export const AC_MAX_FREQUENCY = 1000;
+
+/** Kinds whose behaviour depends on time, so the circuit must be stepped. */
+export const TIME_DEPENDENT: AnalogKind[] = ["capacitor", "inductor", "ac", "fuse", "oscilloscope"];
 
 /** Power at which a bulb is drawn at full brightness. */
 export const BULB_RATED_POWER = 1;

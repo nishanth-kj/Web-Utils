@@ -43,6 +43,28 @@ export function PartSymbol({ kind, size = 80, glow = 0, closed, color = "red", b
                     <path d="M20 22H28M24 18V26" strokeWidth={2} />
                 </svg>
             );
+        case "ac":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H20M60 40H80" />
+                    <circle cx="40" cy="40" r="20" />
+                    <path d="M28 40Q34 26 40 40T52 40" strokeWidth={2} />
+                    <path d="M14 30H22M18 26V34" strokeWidth={2} />
+                </svg>
+            );
+        case "inductor":
+            return (
+                <svg {...common}>
+                    <path d="M0 40H16A6 6 0 0 1 28 40A6 6 0 0 1 40 40A6 6 0 0 1 52 40A6 6 0 0 1 64 40H80" />
+                </svg>
+            );
+        case "oscilloscope":
+            return (
+                <svg {...common}>
+                    <rect x="8" y="16" width="64" height="48" rx="4" />
+                    <path d="M14 46Q22 22 30 40T46 40T62 34" strokeWidth={2} />
+                </svg>
+            );
         case "resistor":
             return (
                 <svg {...common}>

@@ -7,6 +7,7 @@ import type { PartReading } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
 import { cn } from "@/lib/utils";
 import { PartSymbol } from "./part-symbol";
+import { ScopeScreen } from "./scope-node";
 import { AnalogRuntimeContext, type PartNodeData } from "./runtime";
 
 const SIDES = [Position.Left, Position.Top, Position.Right, Position.Bottom];
@@ -50,6 +51,8 @@ export function valueLabel(data: PartNodeData): string {
             return "DC volts";
         case "ammeter":
             return "DC amps";
+        case "ac":
+            return `${formatSI(data.value, "V")} ~ ${formatSI(data.frequency ?? 1, "Hz")}`;
         case "ground":
             return "0 V";
         default:
@@ -63,6 +66,8 @@ function readingLabel(data: PartNodeData, reading: PartReading | undefined): str
     const voltage = formatSI(Math.abs(reading.voltage), "V");
     switch (data.kind) {
         case "battery":
+        case "ac":
+        case "inductor":
         case "motor":
         case "buzzer":
             return current;
@@ -114,6 +119,18 @@ function PartNodeImpl({ id, data, selected }: NodeProps<PartNodeData>) {
     const press = (pressed: boolean) => runtime?.updatePart(id, { closed: pressed });
     const position = data.position ?? 0.5;
     const nudge = (delta: number) => runtime?.updatePart(id, { position: Math.round(Math.min(1, Math.max(0, position + delta)) * 100) / 100 });
+
+    if (data.kind === "oscilloscope") {
+        return (
+            <ScopeScreen
+                id={id}
+                buffer={runtime?.scopes.get(id)}
+                timePerDiv={data.timePerDiv}
+                voltsPerDiv={data.voltsPerDiv}
+                selected={selected}
+            />
+        );
+    }
 
     return (
         <div
