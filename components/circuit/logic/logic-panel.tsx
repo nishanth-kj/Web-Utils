@@ -64,6 +64,7 @@ function renderSelection(
                     <li>Add switches, gates and LEDs from the palette.</li>
                     <li>Drag from an output dot (right side) to an input dot (left side) to connect them.</li>
                     <li>Click a switch to flip it. Green wires carry 1, grey wires carry 0.</li>
+                    <li>Run, Pause and Stop control the simulation: pause holds the clocks, stop powers everything off.</li>
                     <li>Select a gate to change its type; press Delete to remove the selection.</li>
                 </ul>
             </>

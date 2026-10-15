@@ -18,7 +18,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronDown, Download, Eraser, FolderOpen, Pause, Play, RotateCcw } from "lucide-react";
+import { AlertTriangle, ChevronDown, Download, Eraser, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -30,7 +30,9 @@ import { ANALOG_EXAMPLES, CIRCUIT_FILE_VERSION, parseCircuitDocument, type Circu
 import { PALETTE, PART_DEFS, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
 import { SHORT_CIRCUIT_CURRENT, initialSimState, solveCircuit, type SolveResult } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
+import { cn } from "@/lib/utils";
 import { downloadJson } from "../download";
+import { SimulationControls, SimulationNotice, type SimStatus } from "../simulation-controls";
 import { PartNode } from "./part-node";
 import { PartSymbol } from "./part-symbol";
 import { PropertiesPanel } from "./properties-panel";
@@ -141,22 +143,20 @@ function AnalogSimulatorInner() {
         [model, hasCapacitors]
     );
 
-    // With capacitors, step simulated time in real time.
+    // With capacitors, step simulated time in real time while running.
     const simState = useRef(initialSimState());
     const simTime = useRef(0);
-    const [running, setRunning] = useState(true);
+    const [status, setStatus] = useState<SimStatus>("running");
     const [resetCount, setResetCount] = useState(0);
     const [dynamic, setDynamic] = useState<{ result: SolveResult; time: number } | null>(null);
+    // What the canvas shows while paused: the readings at the moment of pausing.
+    const [frozen, setFrozen] = useState<SolveResult>(EMPTY_RESULT);
 
     useEffect(() => {
-        if (!hasCapacitors) return;
+        if (!hasCapacitors || status !== "running") return;
         let frame = 0;
         let last = performance.now();
         const tick = (now: number) => {
-            if (!running) {
-                setDynamic({ result: solveCircuit(model.parts, model.wires, simState.current, DT), time: simTime.current });
-                return;
-            }
             const steps = Math.max(1, Math.round(Math.min((now - last) / 1000, 0.05) / DT));
             last = now;
             let result = EMPTY_RESULT;
@@ -170,15 +170,32 @@ function AnalogSimulatorInner() {
         };
         frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
-    }, [model, hasCapacitors, running, resetCount]);
+    }, [model, hasCapacitors, status, resetCount]);
 
-    const result = staticResult ?? dynamic?.result ?? EMPTY_RESULT;
+    const liveResult = staticResult ?? dynamic?.result ?? EMPTY_RESULT;
+    const result = status === "running" ? liveResult : status === "paused" ? frozen : EMPTY_RESULT;
 
     const resetSimulation = useCallback(() => {
         simState.current = initialSimState();
         simTime.current = 0;
+        setDynamic(null);
         setResetCount((count) => count + 1);
     }, []);
+
+    const runSimulation = () => {
+        if (status === "stopped") resetSimulation();
+        setStatus("running");
+    };
+    const pauseSimulation = () => {
+        if (status !== "running") return;
+        setFrozen(liveResult);
+        setStatus("paused");
+    };
+    // Stop is "power off": no readings, capacitors discharged, clock at 0.
+    const stopSimulation = () => {
+        resetSimulation();
+        setStatus("stopped");
+    };
 
     // --- Persistence for this tab
     useEffect(() => {
@@ -206,6 +223,8 @@ function AnalogSimulatorInner() {
             setNodes(flow.nodes);
             setEdges(flow.edges);
             resetSimulation();
+            // Frozen readings belong to the previous circuit.
+            setStatus((current) => (current === "paused" ? "running" : current));
             requestFit();
         },
         [setNodes, setEdges, resetSimulation, requestFit]
@@ -332,20 +351,13 @@ function AnalogSimulatorInner() {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {hasCapacitors && (
-                        <>
-                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={() => setRunning((r) => !r)}>
-                                {running ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-                                {running ? "Pause" : "Resume"}
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={resetSimulation} title="Discharge capacitors and restart the clock">
-                                <RotateCcw className="size-3.5" /> Reset
-                            </Button>
-                            <span className="font-mono text-[11px] tabular-nums text-muted-foreground" aria-live="off">
-                                t = {(dynamic?.time ?? 0).toFixed(1)} s
-                            </span>
-                        </>
-                    )}
+                    <SimulationControls
+                        status={status}
+                        onRun={runSimulation}
+                        onPause={pauseSimulation}
+                        onStop={stopSimulation}
+                        detail={hasCapacitors ? `t = ${(dynamic?.time ?? 0).toFixed(1)} s` : undefined}
+                    />
 
                     <div className="ml-auto flex items-center gap-1">
                         <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs font-semibold" onClick={clearCircuit}>
@@ -390,7 +402,8 @@ function AnalogSimulatorInner() {
                     </div>
 
                     {/* Canvas */}
-                    <div ref={canvasRef} className="relative min-h-[320px] min-w-0 flex-1">
+                    <div ref={canvasRef} className={cn("relative min-h-[320px] min-w-0 flex-1", status === "paused" && "circuit-paused")}>
+                        <SimulationNotice status={status} />
                         {(result.shortCircuit || result.overloadedLeds.length > 0) && (
                             <div role="alert" className="absolute inset-x-3 top-3 z-10 space-y-1 rounded-lg border border-destructive/40 bg-background/95 px-3 py-2 text-xs text-destructive shadow-sm backdrop-blur">
                                 {result.shortCircuit && (

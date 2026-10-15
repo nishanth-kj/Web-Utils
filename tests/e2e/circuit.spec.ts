@@ -47,7 +47,7 @@ test("warns about a short circuit", async ({ page }) => {
 test("a capacitor charges over time", async ({ page }) => {
     const rc = example("rc");
     await openCircuitWith(page, { ...rc, parts: rc.parts.map((p) => (p.kind === "switch" ? { ...p, closed: true } : p)) });
-    await expect(page.getByText(/^t = \d/)).toBeVisible();
+    await expect(page.getByText(/Running · t = \d/)).toBeVisible();
 
     const capacitor = page.locator(".react-flow__node").filter({ hasText: "1 mF" });
     const volts = async () => Number(((await capacitor.textContent()) ?? "").match(/([\d.]+) (m?)V/)?.[1] ?? 0);
