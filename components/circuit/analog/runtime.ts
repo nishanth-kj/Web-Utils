@@ -8,6 +8,7 @@ export interface PartNodeData {
     rotation: Rotation;
     closed?: boolean;
     color?: LedColor;
+    position?: number;
 }
 
 // Live simulation results are shared through context rather than node data,
@@ -15,6 +16,7 @@ export interface PartNodeData {
 export interface AnalogRuntime {
     result: SolveResult;
     toggleSwitch: (id: string) => void;
+    updatePart: (id: string, patch: Partial<PartNodeData>) => void;
 }
 
 export const AnalogRuntimeContext = createContext<AnalogRuntime | null>(null);

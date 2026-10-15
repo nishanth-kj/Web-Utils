@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { RotateCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LED_COLORS, LED_MAX_CURRENT, PART_DEFS, type LedColor } from "@/lib/circuit/analog/parts";
 import type { PartReading } from "@/lib/circuit/analog/solver";
@@ -16,9 +17,17 @@ interface PropertiesPanelProps {
     onUpdate: (patch: Partial<PartNodeData>) => void;
     onRotate: () => void;
     onDelete: () => void;
+    onReplaceFuse: (id: string) => void;
 }
 
-export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete }: PropertiesPanelProps) {
+const VALUE_LABELS: Partial<Record<PartNodeData["kind"], string>> = {
+    battery: "Voltage",
+    capacitor: "Capacitance",
+    zener: "Breakdown voltage",
+    fuse: "Rating",
+};
+
+export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete, onReplaceFuse }: PropertiesPanelProps) {
     if (wire && !part) {
         return (
             <div className="space-y-3 p-4">
@@ -68,7 +77,7 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete }: Pr
             {def.unit && (
                 <ValueEditor
                     key={`${part.id}:${part.data.value}`}
-                    label={part.data.kind === "battery" ? "Voltage" : part.data.kind === "capacitor" ? "Capacitance" : "Resistance"}
+                    label={VALUE_LABELS[part.data.kind] ?? "Resistance"}
                     value={part.data.value}
                     unit={def.unit}
                     min={def.min}
@@ -94,6 +103,37 @@ export function PropertiesPanel({ part, wire, onUpdate, onRotate, onDelete }: Pr
                     </Select>
                     <p className="text-[11px] text-muted-foreground">Max {formatSI(LED_MAX_CURRENT, "A")}. Connect the anode (left) toward +.</p>
                 </div>
+            )}
+
+            {part.data.kind === "potentiometer" && (
+                <div className="space-y-2">
+                    <div className="flex items-baseline justify-between">
+                        <label className="text-[11px] font-semibold text-muted-foreground" id="pot-position">Wiper position</label>
+                        <span className="font-mono text-xs tabular-nums">{Math.round((part.data.position ?? 0.5) * 100)}%</span>
+                    </div>
+                    <Slider
+                        aria-labelledby="pot-position"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[Math.round((part.data.position ?? 0.5) * 100)]}
+                        onValueChange={([value]) => onUpdate({ position: value / 100 })}
+                    />
+                    <p className="text-[11px] text-muted-foreground">0% puts the wiper at end a, 100% at end b. Use it as a dimmer by wiring one end and the wiper.</p>
+                </div>
+            )}
+
+            {part.data.kind === "fuse" && reading?.blown && (
+                <div className="space-y-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+                    <p>Blown: the current went over {formatSI(part.data.value, "A")}.</p>
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => onReplaceFuse(part.id)}>
+                        Replace fuse
+                    </Button>
+                </div>
+            )}
+
+            {part.data.kind === "button" && (
+                <p className="text-[11px] text-muted-foreground">Press and hold the button on the canvas (or focus it and hold Space) to close it.</p>
             )}
 
             {part.data.kind === "switch" && (

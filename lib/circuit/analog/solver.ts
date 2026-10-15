@@ -1,12 +1,29 @@
-import { LED_COLORS, LED_MAX_CURRENT, LED_ON_RESISTANCE, PART_DEFS, type AnalogPart, type Wire } from "./parts";
+import {
+    DIODE_FORWARD_VOLTAGE,
+    DIODE_ON_RESISTANCE,
+    FUSE_RESISTANCE,
+    LED_COLORS,
+    LED_MAX_CURRENT,
+    LED_ON_RESISTANCE,
+    PART_DEFS,
+    VOLTMETER_RESISTANCE,
+    ZENER_RESISTANCE,
+    type AnalogPart,
+    type Terminal,
+    type Wire,
+} from "./parts";
 
 // Nodal analysis over a circuit where every element is a conductance with an
 // internal source voltage: i(a→b) = g · (V(a) − V(b) − e).
-//   resistor, bulb   g = 1/R              e = 0
-//   battery          g = 1/r_internal     e = V   (Thevenin source)
-//   capacitor        g = C/dt             e = v(previous step)   (backward Euler)
-//   LED              off: g ≈ 0;  on: g = 1/R_on, e = V_forward   (piecewise linear)
-//   switch, wire     closed: g = 1 kS (1 mΩ);  open: g ≈ 0
+//   resistor, bulb, motor, buzzer   g = 1/R              e = 0
+//   potentiometer                    two resistors meeting at the wiper
+//   battery                          g = 1/r_internal     e = V   (Thevenin source)
+//   capacitor                        g = C/dt             e = v(previous step)   (backward Euler)
+//   LED, diode, Zener                piecewise linear: off ≈ open; on: g = 1/R_on, e = V_forward;
+//                                    Zener breakdown: g = 1/R_z, e = −V_z
+//   switch, button, wire, ammeter    closed: g = 1 kS (1 mΩ);  open: g ≈ 0
+//   fuse                             0.05 Ω until the current exceeds its rating, then open for good
+//   voltmeter                        10 MΩ
 // Wires are tiny resistors rather than merged nodes so each one gets its own
 // current (and direction) for display.
 
@@ -17,24 +34,38 @@ const OPEN_CONDUCTANCE = 1e-12;
 const GMIN = 1e-9;
 const BATTERY_INTERNAL_RESISTANCE = 0.01;
 export const SHORT_CIRCUIT_CURRENT = 10;
-const MAX_LED_ITERATIONS = 25;
+const MAX_ITERATIONS = 40;
+
+export type JunctionState = "off" | "on" | "reverse";
 
 export interface SimState {
     capacitorVoltages: Record<string, number>;
-    ledOn: Record<string, boolean>;
+    /** Conduction state of each LED, diode and Zener. */
+    junctions: Record<string, JunctionState>;
+    /** Fuses stay blown until the simulation is restarted or the fuse replaced. */
+    blownFuses: Record<string, true>;
 }
 
-export const initialSimState = (): SimState => ({ capacitorVoltages: {}, ledOn: {} });
+export const initialSimState = (): SimState => ({ capacitorVoltages: {}, junctions: {}, blownFuses: {} });
 
 export interface PartReading {
     /** V(a) − V(b): across a battery, its terminal voltage. */
     voltage: number;
-    /** Current through the part from a to b. For a battery: the current it delivers out of its + terminal. */
+    /**
+     * Current through the part from a to b (potentiometer: into terminal a).
+     * For a battery: the current it delivers out of its + terminal.
+     */
     current: number;
     /** Power absorbed by the part. For a battery: power delivered. */
     power: number;
-    /** LED only: whether it conducts. */
+    /** LEDs and diodes: whether they conduct (forward or, for a Zener, in breakdown). */
     on?: boolean;
+    /** Zener only: conducting in reverse breakdown. */
+    breakdown?: boolean;
+    /** Potentiometer only: wiper voltage relative to terminal b. */
+    wiperVoltage?: number;
+    /** Fuse only. */
+    blown?: boolean;
 }
 
 export interface SolveResult {
@@ -55,6 +86,13 @@ interface Branch {
 }
 
 const REFERENCE = -1;
+const isJunction = (part: AnalogPart) => part.kind === "led" || part.kind === "diode" || part.kind === "zener";
+
+function forwardModel(part: AnalogPart) {
+    return part.kind === "led"
+        ? { voltage: LED_COLORS[part.color ?? "red"].forwardVoltage, resistance: LED_ON_RESISTANCE }
+        : { voltage: DIODE_FORWARD_VOLTAGE, resistance: DIODE_ON_RESISTANCE };
+}
 
 export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimState, dt: number): SolveResult {
     // --- Number the terminals; ground (or a fallback) is the 0 V reference.
@@ -78,34 +116,64 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
     }
 
     const connectedWires = wires.filter((wire) => index.has(wire.from) && index.has(wire.to) && wire.from !== wire.to);
-    const node = (part: AnalogPart, terminal: "a" | "b") => index.get(`${part.id}:${terminal}`) ?? REFERENCE;
-    const ledOn: Record<string, boolean> = { ...previous.ledOn };
+    const node = (part: AnalogPart, terminal: Terminal) => index.get(`${part.id}:${terminal}`) ?? REFERENCE;
+    const junctions: Record<string, JunctionState> = { ...previous.junctions };
+    const blownFuses: Record<string, true> = { ...previous.blownFuses };
 
-    const branchFor = (part: AnalogPart): Branch | null => {
+    const branchesFor = (part: AnalogPart): Branch[] => {
         const a = node(part, "a");
         const b = node(part, "b");
         switch (part.kind) {
             case "battery":
-                return { a, b, g: 1 / BATTERY_INTERNAL_RESISTANCE, e: part.value };
+                return [{ a, b, g: 1 / BATTERY_INTERNAL_RESISTANCE, e: part.value }];
             case "resistor":
             case "bulb":
-                return { a, b, g: 1 / Math.max(part.value, 1e-6), e: 0 };
+            case "motor":
+            case "buzzer":
+                return [{ a, b, g: 1 / Math.max(part.value, 1e-6), e: 0 }];
+            case "potentiometer": {
+                const w = node(part, "w");
+                const position = Math.min(1, Math.max(0, part.position ?? 0.5));
+                // Keep a sliver of resistance at the ends so the wiper never shorts.
+                const total = Math.max(part.value, 1);
+                return [
+                    { a, b: w, g: 1 / Math.max(total * position, 1e-3), e: 0 },
+                    { a: w, b, g: 1 / Math.max(total * (1 - position), 1e-3), e: 0 },
+                ];
+            }
             case "switch":
-                return { a, b, g: part.closed ? WIRE_CONDUCTANCE : OPEN_CONDUCTANCE, e: 0 };
+            case "button":
+                return [{ a, b, g: part.closed ? WIRE_CONDUCTANCE : OPEN_CONDUCTANCE, e: 0 }];
+            case "ammeter":
+                return [{ a, b, g: WIRE_CONDUCTANCE, e: 0 }];
+            case "voltmeter":
+                return [{ a, b, g: 1 / VOLTMETER_RESISTANCE, e: 0 }];
+            case "fuse":
+                return [{ a, b, g: blownFuses[part.id] ? OPEN_CONDUCTANCE : 1 / FUSE_RESISTANCE, e: 0 }];
             case "capacitor":
-                return { a, b, g: Math.max(part.value, 1e-15) / dt, e: previous.capacitorVoltages[part.id] ?? 0 };
+                return [{ a, b, g: Math.max(part.value, 1e-15) / dt, e: previous.capacitorVoltages[part.id] ?? 0 }];
             case "led":
-                return ledOn[part.id]
-                    ? { a, b, g: 1 / LED_ON_RESISTANCE, e: LED_COLORS[part.color ?? "red"].forwardVoltage }
-                    : { a, b, g: OPEN_CONDUCTANCE, e: 0 };
+            case "diode":
+            case "zener": {
+                const state = junctions[part.id] ?? "off";
+                if (state === "on") {
+                    const forward = forwardModel(part);
+                    return [{ a, b, g: 1 / forward.resistance, e: forward.voltage }];
+                }
+                if (state === "reverse") return [{ a, b, g: 1 / ZENER_RESISTANCE, e: -part.value }];
+                return [{ a, b, g: OPEN_CONDUCTANCE, e: 0 }];
+            }
             case "ground":
-                return null;
+                return [];
         }
     };
 
-    // --- Solve, re-solving while any LED's assumed on/off state was wrong.
+    const branchCurrent = ({ a, b, g, e }: Branch, voltages: number[]) => g * (at(voltages, a) - at(voltages, b) - e);
+
+    // --- Solve, re-solving while any diode's assumed state was wrong or a
+    // fuse blew.
     let voltages: number[] = new Array(size).fill(0);
-    for (let iteration = 0; iteration < MAX_LED_ITERATIONS; iteration++) {
+    for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
         const matrix = Array.from({ length: size }, () => new Array<number>(size).fill(0));
         const rhs = new Array<number>(size).fill(0);
         const stamp = ({ a, b, g, e }: Branch) => {
@@ -122,11 +190,7 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
                 matrix[b][a] -= g;
             }
         };
-        const branches: Branch[] = [];
-        for (const part of parts) {
-            const branch = branchFor(part);
-            if (branch) branches.push(branch);
-        }
+        const branches: Branch[] = parts.flatMap(branchesFor);
         for (const wire of connectedWires) {
             branches.push({ a: index.get(wire.from)!, b: index.get(wire.to)!, g: WIRE_CONDUCTANCE, e: 0 });
         }
@@ -138,13 +202,24 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
 
         let changed = false;
         for (const part of parts) {
-            if (part.kind !== "led") continue;
-            const v = at(voltages, node(part, "a")) - at(voltages, node(part, "b"));
-            const forward = LED_COLORS[part.color ?? "red"].forwardVoltage;
-            const shouldConduct = ledOn[part.id] ? v >= forward : v > forward;
-            if (shouldConduct !== Boolean(ledOn[part.id])) {
-                ledOn[part.id] = shouldConduct;
-                changed = true;
+            if (isJunction(part)) {
+                const v = at(voltages, node(part, "a")) - at(voltages, node(part, "b"));
+                const current = branchCurrent(branchesFor(part)[0], voltages);
+                const state = junctions[part.id] ?? "off";
+                let next: JunctionState = state;
+                if (state === "on" && current < 0) next = "off";
+                else if (state === "reverse" && current > 0) next = "off";
+                else if (state === "off" && v > forwardModel(part).voltage) next = "on";
+                else if (state === "off" && part.kind === "zener" && v < -part.value) next = "reverse";
+                if (next !== state) {
+                    junctions[part.id] = next;
+                    changed = true;
+                }
+            } else if (part.kind === "fuse" && !blownFuses[part.id]) {
+                if (Math.abs(branchCurrent(branchesFor(part)[0], voltages)) > part.value) {
+                    blownFuses[part.id] = true;
+                    changed = true;
+                }
             }
         }
         if (!changed) break;
@@ -160,26 +235,37 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
     const overloadedLeds: string[] = [];
 
     for (const part of parts) {
-        const branch = branchFor(part);
-        if (!branch) {
+        const branches = branchesFor(part);
+        if (branches.length === 0) {
             readings[part.id] = { voltage: 0, current: 0, power: 0 };
             continue;
         }
-        const voltage = at(voltages, branch.a) - at(voltages, branch.b);
-        const throughAtoB = snap(branch.g * (voltage - branch.e));
+        const voltage = at(voltages, node(part, "a")) - at(voltages, node(part, "b"));
+        const throughAtoB = snap(branchCurrent(branches[0], voltages));
+        const power = branches.reduce((sum, branch) => {
+            const v = at(voltages, branch.a) - at(voltages, branch.b);
+            return sum + v * snap(branchCurrent(branch, voltages));
+        }, 0);
+
         if (part.kind === "battery") {
             // "+ 0" turns -0 into 0 for a battery delivering nothing.
             const delivered = -throughAtoB + 0;
             readings[part.id] = { voltage, current: delivered, power: voltage * delivered };
             if (Math.abs(delivered) > SHORT_CIRCUIT_CURRENT) shortCircuit = true;
-        } else {
-            readings[part.id] = { voltage, current: throughAtoB, power: voltage * throughAtoB };
+            continue;
         }
+
+        const reading: PartReading = { voltage, current: throughAtoB, power };
         if (part.kind === "capacitor") capacitorVoltages[part.id] = voltage;
-        if (part.kind === "led") {
-            readings[part.id].on = Boolean(ledOn[part.id]);
-            if (throughAtoB > LED_MAX_CURRENT) overloadedLeds.push(part.id);
+        if (part.kind === "potentiometer") reading.wiperVoltage = at(voltages, node(part, "w")) - at(voltages, node(part, "b"));
+        if (part.kind === "fuse") reading.blown = Boolean(blownFuses[part.id]);
+        if (isJunction(part)) {
+            const state = junctions[part.id] ?? "off";
+            reading.on = state !== "off";
+            if (part.kind === "zener") reading.breakdown = state === "reverse";
+            if (part.kind === "led" && throughAtoB > LED_MAX_CURRENT) overloadedLeds.push(part.id);
         }
+        readings[part.id] = reading;
     }
 
     const wireCurrents: Record<string, number> = {};
@@ -193,16 +279,18 @@ export function solveCircuit(parts: AnalogPart[], wires: Wire[], previous: SimSt
         wireCurrents,
         shortCircuit,
         overloadedLeds,
-        state: { capacitorVoltages, ledOn },
+        state: { capacitorVoltages, junctions, blownFuses },
     };
 }
 
+// Voltages under a nanovolt are leakage through floating nodes, not real.
 function at(voltages: number[], i: number) {
-    return i === REFERENCE ? 0 : voltages[i];
+    if (i === REFERENCE) return 0;
+    return Math.abs(voltages[i]) < 1e-9 ? 0 : voltages[i];
 }
 
 // Nodes not connected to the reference through any real conductor (open
-// switches and off LEDs don't count).
+// switches, off diodes and blown fuses don't count).
 function floatingNodes(size: number, branches: Branch[]): number[] {
     const parent = Array.from({ length: size + 1 }, (_, i) => i);
     const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));

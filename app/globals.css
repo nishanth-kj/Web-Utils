@@ -236,3 +236,18 @@
 .circuit-paused .circuit-flow {
   animation-play-state: paused;
 }
+
+/* Circuit simulator: spinning motor rotor. */
+.circuit-spin {
+  animation: spin-slow 1s linear infinite;
+}
+
+.circuit-paused .circuit-spin {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circuit-spin {
+    animation: none;
+  }
+}

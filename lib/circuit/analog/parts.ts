@@ -1,23 +1,47 @@
-// Part catalogue for the analog circuit simulator. Every part has terminals
-// "a" and "b" (battery: a = +, b = −; LED: a = anode, b = cathode) except
-// ground, which has a single terminal "a".
+// Part catalogue for the analog circuit simulator. Two-terminal parts use
+// "a" and "b" (battery: a = +, b = −; diodes and LEDs: a = anode,
+// b = cathode). The potentiometer adds its wiper "w"; ground has only "a".
 
-export type AnalogKind = "battery" | "resistor" | "bulb" | "led" | "switch" | "capacitor" | "ground";
+export type AnalogKind =
+    | "battery"
+    | "resistor"
+    | "potentiometer"
+    | "bulb"
+    | "led"
+    | "diode"
+    | "zener"
+    | "switch"
+    | "button"
+    | "fuse"
+    | "motor"
+    | "buzzer"
+    | "capacitor"
+    | "voltmeter"
+    | "ammeter"
+    | "ground";
+export type Terminal = "a" | "b" | "w";
 export type LedColor = "red" | "yellow" | "green" | "blue" | "white";
 export type Rotation = 0 | 90 | 180 | 270;
 
 export interface AnalogPart {
     id: string;
     kind: AnalogKind;
-    /** Volts for a battery, ohms for a resistor or bulb, farads for a capacitor. */
+    /**
+     * Volts for a battery or Zener (breakdown), ohms for resistors, the
+     * potentiometer, bulb, motor and buzzer, farads for a capacitor, amps for a
+     * fuse (its rating).
+     */
     value: number;
+    /** Switch position, or whether a push button is being held. */
     closed?: boolean;
     color?: LedColor;
+    /** Potentiometer wiper position, 0 (at a) to 1 (at b). */
+    position?: number;
 }
 
 export interface Wire {
     id: string;
-    /** Terminal references, "<partId>:<a|b>". */
+    /** Terminal references, "<partId>:<a|b|w>". */
     from: string;
     to: string;
 }
@@ -28,20 +52,38 @@ interface PartDefinition {
     defaultValue: number;
     min?: number;
     max?: number;
-    terminals: ("a" | "b")[];
+    terminals: Terminal[];
+    /** Prefix for reference designators such as R1 or D2. */
+    prefix: string;
 }
 
 export const PART_DEFS: Record<AnalogKind, PartDefinition> = {
-    battery: { label: "Battery", unit: "V", defaultValue: 9, min: 0, max: 1000, terminals: ["a", "b"] },
-    resistor: { label: "Resistor", unit: "Ω", defaultValue: 1000, min: 0.001, max: 1e9, terminals: ["a", "b"] },
-    bulb: { label: "Light bulb", unit: "Ω", defaultValue: 100, min: 0.1, max: 1e6, terminals: ["a", "b"] },
-    led: { label: "LED", defaultValue: 0, terminals: ["a", "b"] },
-    switch: { label: "Switch", defaultValue: 0, terminals: ["a", "b"] },
-    capacitor: { label: "Capacitor", unit: "F", defaultValue: 100e-6, min: 1e-12, max: 10, terminals: ["a", "b"] },
-    ground: { label: "Ground", defaultValue: 0, terminals: ["a"] },
+    battery: { label: "Battery", unit: "V", defaultValue: 9, min: 0, max: 1000, terminals: ["a", "b"], prefix: "bat" },
+    resistor: { label: "Resistor", unit: "Ω", defaultValue: 1000, min: 0.001, max: 1e9, terminals: ["a", "b"], prefix: "r" },
+    potentiometer: { label: "Potentiometer", unit: "Ω", defaultValue: 10_000, min: 1, max: 1e8, terminals: ["a", "b", "w"], prefix: "rv" },
+    bulb: { label: "Light bulb", unit: "Ω", defaultValue: 100, min: 0.1, max: 1e6, terminals: ["a", "b"], prefix: "lamp" },
+    led: { label: "LED", defaultValue: 0, terminals: ["a", "b"], prefix: "led" },
+    diode: { label: "Diode", defaultValue: 0, terminals: ["a", "b"], prefix: "d" },
+    zener: { label: "Zener diode", unit: "V", defaultValue: 5.1, min: 1, max: 200, terminals: ["a", "b"], prefix: "dz" },
+    switch: { label: "Switch", defaultValue: 0, terminals: ["a", "b"], prefix: "sw" },
+    button: { label: "Push button", defaultValue: 0, terminals: ["a", "b"], prefix: "btn" },
+    fuse: { label: "Fuse", unit: "A", defaultValue: 0.5, min: 0.001, max: 100, terminals: ["a", "b"], prefix: "fu" },
+    motor: { label: "DC motor", unit: "Ω", defaultValue: 10, min: 0.1, max: 1e5, terminals: ["a", "b"], prefix: "m" },
+    buzzer: { label: "Buzzer", unit: "Ω", defaultValue: 100, min: 1, max: 1e6, terminals: ["a", "b"], prefix: "bz" },
+    capacitor: { label: "Capacitor", unit: "F", defaultValue: 100e-6, min: 1e-12, max: 10, terminals: ["a", "b"], prefix: "c" },
+    voltmeter: { label: "DC voltmeter", defaultValue: 0, terminals: ["a", "b"], prefix: "vm" },
+    ammeter: { label: "DC ammeter", defaultValue: 0, terminals: ["a", "b"], prefix: "am" },
+    ground: { label: "Ground", defaultValue: 0, terminals: ["a"], prefix: "gnd" },
 };
 
-export const PALETTE: AnalogKind[] = ["battery", "resistor", "bulb", "led", "switch", "capacitor", "ground"];
+export const PALETTE_GROUPS: { label: string; kinds: AnalogKind[] }[] = [
+    { label: "Sources", kinds: ["battery", "ground"] },
+    { label: "Passive", kinds: ["resistor", "potentiometer", "capacitor"] },
+    { label: "Semiconductors", kinds: ["diode", "zener", "led"] },
+    { label: "Switches & protection", kinds: ["switch", "button", "fuse"] },
+    { label: "Outputs", kinds: ["bulb", "motor", "buzzer"] },
+    { label: "Instruments", kinds: ["voltmeter", "ammeter"] },
+];
 
 // Forward voltage and display colour per LED colour; a 10 Ω on-resistance and
 // 30 mA rating are typical for 5 mm indicator LEDs.
@@ -55,5 +97,16 @@ export const LED_COLORS: Record<LedColor, { forwardVoltage: number; glow: string
 export const LED_ON_RESISTANCE = 10;
 export const LED_MAX_CURRENT = 0.03;
 
+/** Generic small-signal silicon diode (1N4148-like). */
+export const DIODE_FORWARD_VOLTAGE = 0.7;
+export const DIODE_ON_RESISTANCE = 0.5;
+export const ZENER_RESISTANCE = 1;
+
+export const FUSE_RESISTANCE = 0.05;
+export const VOLTMETER_RESISTANCE = 10e6;
+
 /** Power at which a bulb is drawn at full brightness. */
 export const BULB_RATED_POWER = 1;
+/** Current at which the motor reaches full display speed, and the buzzer sounds. */
+export const MOTOR_FULL_CURRENT = 0.5;
+export const BUZZER_MIN_CURRENT = 0.005;

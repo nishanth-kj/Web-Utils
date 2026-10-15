@@ -1,4 +1,4 @@
-import { LED_COLORS, PART_DEFS, type AnalogKind, type AnalogPart, type LedColor, type Rotation, type Wire } from "./parts";
+import { LED_COLORS, PART_DEFS, type AnalogKind, type AnalogPart, type LedColor, type Rotation, type Terminal, type Wire } from "./parts";
 
 export interface PlacedPart extends AnalogPart {
     x: number;
@@ -38,6 +38,10 @@ export function parseCircuitDocument(input: unknown): CircuitDocument {
             rotation,
         };
         if (part.kind === "switch") clean.closed = Boolean(part.closed);
+        if (part.kind === "potentiometer") {
+            const position = Number.isFinite(part.position) ? Number(part.position) : 0.5;
+            clean.position = Math.min(1, Math.max(0, position));
+        }
         if (part.kind === "led") clean.color = part.color && part.color in LED_COLORS ? (part.color as LedColor) : "red";
         return clean;
     });
@@ -46,7 +50,7 @@ export function parseCircuitDocument(input: unknown): CircuitDocument {
         if (typeof ref !== "string") return false;
         const [id, terminal] = ref.split(":");
         const part = cleanParts.find((p) => p.id === id);
-        return Boolean(part && PART_DEFS[part.kind].terminals.includes(terminal as "a" | "b"));
+        return Boolean(part && PART_DEFS[part.kind].terminals.includes(terminal as Terminal));
     };
     const cleanWires: Wire[] = wires
         .map((raw) => raw as Partial<Wire>)
@@ -143,6 +147,104 @@ export const ANALOG_EXAMPLES: AnalogExample[] = [
                 wire("w2", "sw1:b", "r1:a"),
                 wire("w3", "r1:b", "c1:a"),
                 wire("w4", "c1:b", "bat1:b"),
+            ],
+        },
+    },
+    {
+        id: "meters",
+        label: "Measuring with meters",
+        description: "An ammeter in series reads the current; a voltmeter across the lower resistor reads its voltage.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90),
+                part("am1", "ammeter", 160, 0, 0),
+                part("r1", "resistor", 340, 60, 90, { value: 1000 }),
+                part("r2", "resistor", 340, 220, 90, { value: 2000 }),
+                part("vm1", "voltmeter", 500, 220, 90),
+            ],
+            wires: [
+                wire("w1", "bat1:a", "am1:a"),
+                wire("w2", "am1:b", "r1:a"),
+                wire("w3", "r1:b", "r2:a"),
+                wire("w4", "r2:b", "bat1:b"),
+                wire("w5", "r2:a", "vm1:a"),
+                wire("w6", "r2:b", "vm1:b"),
+            ],
+        },
+    },
+    {
+        id: "zener",
+        label: "Zener voltage regulator",
+        description: "The Zener holds about 5.1 V across the load even when you change the battery voltage.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90, { value: 12 }),
+                part("r1", "resistor", 160, 0, 0, { value: 470 }),
+                part("dz1", "zener", 340, 140, 270, { value: 5.1 }),
+                part("r2", "resistor", 480, 140, 90, { value: 2200 }),
+                part("vm1", "voltmeter", 620, 140, 90),
+            ],
+            wires: [
+                wire("w1", "bat1:a", "r1:a"),
+                wire("w2", "r1:b", "dz1:b"),
+                wire("w3", "dz1:a", "bat1:b"),
+                wire("w4", "r1:b", "r2:a"),
+                wire("w5", "r2:b", "bat1:b"),
+                wire("w6", "r2:a", "vm1:a"),
+                wire("w7", "r2:b", "vm1:b"),
+            ],
+        },
+    },
+    {
+        id: "dimmer",
+        label: "Potentiometer dimmer",
+        description: "Turn the potentiometer with its + and − buttons to dim the bulb.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90),
+                part("rv1", "potentiometer", 160, 0, 0, { value: 200, position: 0.2 }),
+                part("lamp1", "bulb", 340, 140, 90, { value: 50 }),
+            ],
+            wires: [wire("w1", "bat1:a", "rv1:a"), wire("w2", "rv1:w", "lamp1:a"), wire("w3", "lamp1:b", "bat1:b")],
+        },
+    },
+    {
+        id: "fuse",
+        label: "Fuse protection",
+        description: "Hold the button to short the bulb: the 0.5 A fuse blows and cuts the circuit. Stop and Run to replace it.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90),
+                part("fu1", "fuse", 160, 0, 0, { value: 0.5 }),
+                part("lamp1", "bulb", 340, 140, 90),
+                part("btn1", "button", 480, 140, 90),
+            ],
+            wires: [
+                wire("w1", "bat1:a", "fu1:a"),
+                wire("w2", "fu1:b", "lamp1:a"),
+                wire("w3", "lamp1:b", "bat1:b"),
+                wire("w4", "fu1:b", "btn1:a"),
+                wire("w5", "btn1:b", "bat1:b"),
+            ],
+        },
+    },
+    {
+        id: "motor",
+        label: "Motor and buzzer",
+        description: "A switch runs a DC motor and a buzzer in parallel; the motor spins faster with more current.",
+        circuit: {
+            parts: [
+                part("bat1", "battery", 0, 140, 90, { value: 6 }),
+                part("sw1", "switch", 160, 0, 0, { closed: true }),
+                part("m1", "motor", 340, 140, 90),
+                part("bz1", "buzzer", 480, 140, 90),
+            ],
+            wires: [
+                wire("w1", "bat1:a", "sw1:a"),
+                wire("w2", "sw1:b", "m1:a"),
+                wire("w3", "sw1:b", "bz1:a"),
+                wire("w4", "m1:b", "bat1:b"),
+                wire("w5", "bz1:b", "bat1:b"),
             ],
         },
     },

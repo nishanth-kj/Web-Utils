@@ -186,3 +186,101 @@ describe("open circuits", () => {
         expect(result.wireCurrents.w1).toBe(0);
     });
 });
+
+describe("semiconductors, protection and instruments", () => {
+    const loop = (middle: AnalogPart[], links: [string, string][]): [AnalogPart[], Wire[]] => [
+        [battery(), ...middle],
+        links.map(([from, to], i) => wire(`w${i + 1}`, from, to)),
+    ];
+
+    it("drops about 0.7 V across a forward-biased diode", () => {
+        const [parts, wires] = loop(
+            [{ id: "r", kind: "resistor", value: 1000 }, { id: "d", kind: "diode", value: 0 }],
+            [["bat:a", "r:a"], ["r:b", "d:a"], ["d:b", "bat:b"]]
+        );
+        const result = solve(parts, wires);
+        expect(result.readings.d.on).toBe(true);
+        expect(result.readings.d.voltage).toBeCloseTo(0.704, 2);
+        expect(result.readings.r.current).toBeCloseTo((9 - 0.7) / 1000.5, 4);
+    });
+
+    it.each([9, 12, 20])("regulates to the Zener voltage from a %s V supply", (volts) => {
+        const parts: AnalogPart[] = [
+            battery(volts),
+            { id: "r", kind: "resistor", value: 470 },
+            { id: "z", kind: "zener", value: 5.1 },
+            { id: "load", kind: "resistor", value: 2200 },
+        ];
+        const wires = [
+            wire("w1", "bat:a", "r:a"),
+            wire("w2", "r:b", "z:b"),
+            wire("w3", "z:a", "bat:b"),
+            wire("w4", "r:b", "load:a"),
+            wire("w5", "load:b", "bat:b"),
+        ];
+        const result = solve(parts, wires);
+        expect(result.readings.z.breakdown).toBe(true);
+        expect(result.readings.load.voltage).toBeGreaterThan(5.1);
+        expect(result.readings.load.voltage).toBeLessThan(5.15);
+    });
+
+    it("leaves a Zener off below its breakdown voltage", () => {
+        const [parts, wires] = loop(
+            [{ id: "r", kind: "resistor", value: 470 }, { id: "z", kind: "zener", value: 12 }],
+            [["bat:a", "r:a"], ["r:b", "z:b"], ["z:a", "bat:b"]]
+        );
+        const result = solve(parts, wires);
+        expect(result.readings.z.on).toBe(false);
+        expect(Math.abs(result.readings.r.current)).toBeLessThan(1e-6);
+    });
+
+    it("divides voltage by the potentiometer's wiper position", () => {
+        const parts: AnalogPart[] = [battery(10), { id: "rv", kind: "potentiometer", value: 10_000, position: 0.25 }, { id: "g", kind: "ground", value: 0 }];
+        const wires = [wire("w1", "bat:a", "rv:a"), wire("w2", "rv:b", "bat:b"), wire("w3", "bat:b", "g:a")];
+        const result = solve(parts, wires);
+        // 25 % of the way from a (10 V) towards b (0 V).
+        expect(result.terminalVoltages["rv:w"]).toBeCloseTo(7.5, 2);
+        expect(result.readings.rv.wiperVoltage).toBeCloseTo(7.5, 2);
+    });
+
+    it("blows a fuse above its rating and keeps it blown", () => {
+        const parts: AnalogPart[] = [battery(), { id: "f", kind: "fuse", value: 0.5 }, { id: "r", kind: "resistor", value: 10 }];
+        const wires = [wire("w1", "bat:a", "f:a"), wire("w2", "f:b", "r:a"), wire("w3", "r:b", "bat:b")];
+        const first = solveCircuit(parts, wires, initialSimState(), 1e-3);
+        expect(first.readings.f.blown).toBe(true);
+        expect(first.readings.r.current).toBe(0);
+
+        // Even with a gentler load the fuse stays open until it's replaced.
+        const gentle = parts.map((p) => (p.id === "r" ? { ...p, value: 1000 } : p));
+        expect(solveCircuit(gentle, wires, first.state, 1e-3).readings.f.blown).toBe(true);
+        expect(solveCircuit(gentle, wires, initialSimState(), 1e-3).readings.f.blown).toBe(false);
+    });
+
+    it("reads voltage without loading the circuit and current in series", () => {
+        const parts: AnalogPart[] = [
+            battery(),
+            { id: "am", kind: "ammeter", value: 0 },
+            { id: "r1", kind: "resistor", value: 1000 },
+            { id: "r2", kind: "resistor", value: 2000 },
+            { id: "vm", kind: "voltmeter", value: 0 },
+        ];
+        const wires = [
+            wire("w1", "bat:a", "am:a"),
+            wire("w2", "am:b", "r1:a"),
+            wire("w3", "r1:b", "r2:a"),
+            wire("w4", "r2:b", "bat:b"),
+            wire("w5", "r2:a", "vm:a"),
+            wire("w6", "r2:b", "vm:b"),
+        ];
+        const result = solve(parts, wires);
+        expect(result.readings.am.current).toBeCloseTo(0.003, 5);
+        expect(result.readings.vm.voltage).toBeCloseTo(6, 3);
+    });
+
+    it("conducts through a push button only while held", () => {
+        const make = (closed: boolean): [AnalogPart[], Wire[]] =>
+            loop([{ id: "btn", kind: "button", value: 0, closed }, { id: "b", kind: "bulb", value: 100 }], [["bat:a", "btn:a"], ["btn:b", "b:a"], ["b:b", "bat:b"]]);
+        expect(solve(...make(false)).readings.b.current).toBe(0);
+        expect(solve(...make(true)).readings.b.current).toBeCloseTo(0.09, 3);
+    });
+});

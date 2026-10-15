@@ -27,7 +27,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ANALOG_EXAMPLES, CIRCUIT_FILE_VERSION, parseCircuitDocument, type CircuitDocument } from "@/lib/circuit/analog/document";
-import { PALETTE, PART_DEFS, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
+import { PALETTE_GROUPS, PART_DEFS, type AnalogKind, type AnalogPart, type Rotation, type Wire } from "@/lib/circuit/analog/parts";
 import { SHORT_CIRCUIT_CURRENT, initialSimState, solveCircuit, type SolveResult } from "@/lib/circuit/analog/solver";
 import { formatSI } from "@/lib/circuit/units";
 import { cn } from "@/lib/utils";
@@ -57,11 +57,18 @@ interface CircuitModel {
 
 function toFlow(doc: CircuitDocument): { nodes: PartNodeT[]; edges: Edge[] } {
     return {
-        nodes: doc.parts.map(({ id, x, y, kind, value, rotation, closed, color }) => ({
+        nodes: doc.parts.map(({ id, x, y, kind, value, rotation, closed, color, position }) => ({
             id,
             type: "part",
             position: { x, y },
-            data: { kind, value, rotation, ...(closed !== undefined && { closed }), ...(color && { color }) },
+            data: {
+                kind,
+                value,
+                rotation,
+                ...(closed !== undefined && { closed }),
+                ...(color && { color }),
+                ...(position !== undefined && { position }),
+            },
         })),
         edges: doc.wires.map(({ id, from, to }) => {
             const [source, sourceHandle] = from.split(":");
@@ -81,11 +88,12 @@ function toDocument(nodes: PartNodeT[], edges: Edge[]): CircuitDocument {
 // Only what affects the electrical result; dragging a part doesn't change it.
 function toModel(nodes: PartNodeT[], edges: Edge[]): CircuitModel {
     const { parts, wires } = toDocument(nodes, edges);
-    return { parts: parts.map(({ id, kind, value, closed, color }) => ({ id, kind, value, closed, color })), wires };
+    return { parts: parts.map(({ id, kind, value, closed, color, position }) => ({ id, kind, value, closed, color, position })), wires };
 }
 
+// Proteus-style reference designators: R1, C2, LED1, FU1…
 function nextId(kind: AnalogKind, nodes: PartNodeT[]) {
-    const prefix = kind === "battery" ? "bat" : kind;
+    const prefix = PART_DEFS[kind].prefix;
     let n = 1;
     while (nodes.some((node) => node.id === `${prefix}${n}`)) n++;
     return `${prefix}${n}`;
@@ -136,11 +144,14 @@ function AnalogSimulatorInner() {
     const circuitKey = useMemo(() => JSON.stringify(toModel(nodes, edges)), [nodes, edges]);
     const model = useMemo(() => JSON.parse(circuitKey) as CircuitModel, [circuitKey]);
     const hasCapacitors = model.parts.some((part) => part.kind === "capacitor");
+    // Capacitors charge over time and fuses stay blown, so those circuits are
+    // stepped continuously; anything else has no memory.
+    const stateful = hasCapacitors || model.parts.some((part) => part.kind === "fuse");
 
-    // Without capacitors the circuit has no memory: solve once per change.
+    // Without memory, solve once per change.
     const staticResult = useMemo(
-        () => (hasCapacitors ? null : solveCircuit(model.parts, model.wires, initialSimState(), DT)),
-        [model, hasCapacitors]
+        () => (stateful ? null : solveCircuit(model.parts, model.wires, initialSimState(), DT)),
+        [model, stateful]
     );
 
     // With capacitors, step simulated time in real time while running.
@@ -153,7 +164,7 @@ function AnalogSimulatorInner() {
     const [frozen, setFrozen] = useState<SolveResult>(EMPTY_RESULT);
 
     useEffect(() => {
-        if (!hasCapacitors || status !== "running") return;
+        if (!stateful || status !== "running") return;
         let frame = 0;
         let last = performance.now();
         const tick = (now: number) => {
@@ -170,7 +181,7 @@ function AnalogSimulatorInner() {
         };
         frame = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(frame);
-    }, [model, hasCapacitors, status, resetCount]);
+    }, [model, stateful, status, resetCount]);
 
     const liveResult = staticResult ?? dynamic?.result ?? EMPTY_RESULT;
     const result = status === "running" ? liveResult : status === "paused" ? frozen : EMPTY_RESULT;
@@ -277,7 +288,9 @@ function AnalogSimulatorInner() {
                     value: PART_DEFS[kind].defaultValue,
                     rotation: 0,
                     ...(kind === "switch" && { closed: true }),
+                    ...(kind === "button" && { closed: false }),
                     ...(kind === "led" && { color: "red" as const }),
+                    ...(kind === "potentiometer" && { position: 0.5 }),
                 },
             },
         ]);
@@ -325,7 +338,13 @@ function AnalogSimulatorInner() {
         return () => window.removeEventListener("keydown", onKey);
     }, [rotateSelected]);
 
-    const runtime = useMemo(() => ({ result, toggleSwitch }), [result, toggleSwitch]);
+    const replaceFuse = useCallback((id: string) => {
+        const blownFuses = { ...simState.current.blownFuses };
+        delete blownFuses[id];
+        simState.current = { ...simState.current, blownFuses };
+    }, []);
+
+    const runtime = useMemo(() => ({ result, toggleSwitch, updatePart }), [result, toggleSwitch, updatePart]);
     const selectedNode = nodes.find((node) => node.selected);
     const selectedEdge = edges.find((edge) => edge.selected);
     const batteryCurrent = Math.max(0, ...model.parts.filter((p) => p.kind === "battery").map((p) => Math.abs(result.readings[p.id]?.current ?? 0)));
@@ -384,20 +403,25 @@ function AnalogSimulatorInner() {
 
                 <div className="flex min-h-0 flex-1 flex-col md:flex-row">
                     {/* Palette */}
-                    <div className="flex shrink-0 gap-1 overflow-x-auto border-b p-2 md:w-36 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r" role="toolbar" aria-label="Add a part">
-                        {PALETTE.map((kind) => (
-                            <button
-                                key={kind}
-                                type="button"
-                                onClick={() => addPart(kind)}
-                                className="flex shrink-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
-                                title={`Add a ${PART_DEFS[kind].label.toLowerCase()}`}
-                            >
-                                <span className="shrink-0 text-muted-foreground">
-                                    <PartSymbol kind={kind} size={28} closed />
-                                </span>
-                                {PART_DEFS[kind].label}
-                            </button>
+                    <div className="flex shrink-0 gap-1 overflow-x-auto border-b p-2 md:w-40 md:flex-col md:overflow-y-auto md:border-b-0 md:border-r" role="toolbar" aria-label="Add a part">
+                        {PALETTE_GROUPS.map((group) => (
+                            <div key={group.label} className="flex shrink-0 gap-1 md:flex-col">
+                                <span className="hidden px-2 pt-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground md:block">{group.label}</span>
+                                {group.kinds.map((kind) => (
+                                    <button
+                                        key={kind}
+                                        type="button"
+                                        onClick={() => addPart(kind)}
+                                        className="flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-medium text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+                                        title={`Add a ${PART_DEFS[kind].label.toLowerCase()}`}
+                                    >
+                                        <span className="shrink-0 text-muted-foreground">
+                                            <PartSymbol kind={kind} size={28} closed />
+                                        </span>
+                                        {PART_DEFS[kind].label}
+                                    </button>
+                                ))}
+                            </div>
                         ))}
                     </div>
 
@@ -454,6 +478,7 @@ function AnalogSimulatorInner() {
                             onUpdate={(patch) => selectedNode && updatePart(selectedNode.id, patch)}
                             onRotate={rotateSelected}
                             onDelete={deleteSelected}
+                            onReplaceFuse={replaceFuse}
                         />
                     </aside>
                 </div>
