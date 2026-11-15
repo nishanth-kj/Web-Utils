@@ -59,7 +59,7 @@ Instantly visualize code execution, design ER diagrams, edit media, format data,
 | :--- | :--- | :--- |
 | **Password Generator & Checker** | [`/password`](https://webutils.site/password) | Generate cryptographically secure passwords and check their strength against known breached datasets using WebAssembly. |
 | **Crypto & UUID Generator** | [`/crypto`](https://webutils.site/crypto) | Generate UUID v4 identifiers, compute SHA/MD5 hashes, and perform AES text encryption/decryption. |
-| **Epoch Converter** | [`/time`](https://webutils.site/time) | Convert between Unix timestamps and human-readable dates with timezone calculations and live time display. |
+| **Epoch Converter** | [`/time`](https://webutils.site/time) | Convert between Unix timestamps and human-readable dates with timezone calculations and live time display. |\n| **QR Code Generator** | [`/qr`](https://webutils.site/qr) | Generate customizable QR codes for URLs, text, email, phone numbers, and Wi-Fi; export as PNG or SVG locally. |
 | **Dummy File Generator** | [`/dummy`](https://webutils.site/dummy) | Generate mock placeholder files of any size (KB, MB, GB) or extension for testing file upload limits and pipelines. |
 
 ---
