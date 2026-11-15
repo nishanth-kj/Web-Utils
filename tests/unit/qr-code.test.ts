@@ -4,8 +4,8 @@ import { generateQrMatrix, qrMatrixToSvg } from "@/lib/qr-code";
 describe("QR code generator", () => {
     it("creates a valid-sized matrix for a short URL", () => {
         const matrix = generateQrMatrix("https://example.com");
-        expect(matrix).toHaveLength(21);
-        expect(matrix.every((row) => row.length === 21)).toBe(true);
+        expect(matrix).toHaveLength(25);
+        expect(matrix.every((row) => row.length === 25)).toBe(true);
     });
 
     it("creates larger versions for longer content", () => {
