@@ -24,6 +24,7 @@ const TOOL_ROUTES = [
   '/code-visualizer',
   '/video-editor',
   '/image-editor',
+  '/qr',
   ...PREVIEWABLE_FORMATS.map((format) => `/view/${format}`),
 ];
 

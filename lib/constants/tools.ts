@@ -13,7 +13,8 @@ import {
     Video,
     ImagePlus,
     Workflow,
-    CircuitBoard
+    CircuitBoard,
+    QrCode
 } from 'lucide-react';
 import { PREVIEWABLE_FORMATS } from '@/lib/formats';
 
@@ -65,6 +66,11 @@ export const TOOL_CATEGORIES: Category[] = [
         id: "media",
         label: "Media & Assets",
         description: "Converters and optimizers for images, videos, and fonts"
+    },
+    {
+        id: "utilities",
+        label: "Utilities",
+        description: "Practical generators and everyday developer utilities"
     }
 ];
 
@@ -216,6 +222,16 @@ export const TOOLS: Tool[] = [
         category: "media",
         status: "Available",
         icon: ImagePlus,
+        isNew: true
+    },
+    {
+        id: "qr-code-generator",
+        name: "QR Code Generator",
+        description: "Generate customizable QR codes for URLs, text, email, phone numbers, and Wi-Fi",
+        href: "/qr",
+        category: "utilities",
+        status: "Available",
+        icon: QrCode,
         isNew: true
     }
 ];
