@@ -178,5 +178,5 @@ export function qrMatrixToSvg(matrix: boolean[][], foreground = "#000000", backg
             if (matrix[y][x]) modules.push(`M${x + 4} ${y + 4}h1v1h-1z`);
         }
     }
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size + 8} ${size + 8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="${background}"/><path d="${modules.join("")}" fill="${foreground}"/></svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size + 8}" height="${size + 8}" viewBox="0 0 ${size + 8} ${size + 8}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="${background}"/><path d="${modules.join("")}" fill="${foreground}"/></svg>`;
 }
